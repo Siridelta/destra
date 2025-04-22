@@ -4,7 +4,7 @@ module ExprBuild
 export ExprNode, AssignmentNode, EquationNode
 export @expl, parse_expression
 export find_dependencies, substitute
-export compile_to_desmos
+export compile_to_desmos, save_to_desmos_state
 
 # 包含核心组件
 include("core/ExprNode.jl")

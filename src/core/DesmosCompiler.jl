@@ -159,7 +159,7 @@ function expr_to_latex(expr)
                         result *= " \\ge "
                     elseif op == :<=
                         result *= " \\le "
-                    elseif op == :==
+                    elseif op == (==)
                         result *= " = "
                     else
                         result *= " $(op) "

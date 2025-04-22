@@ -28,7 +28,7 @@ end
 捕获表达式并支持插值，允许在表达式中引用其他表达式节点
 
 # 参数
-- `expr`: 要捕获的表达式，可包含 `$(...)` 形式的插值
+- `expr`: 要捕获的表达式，可包含 `\$(...)` 形式的插值
 
 # 返回
 - 解析后的表达式节点
@@ -37,7 +37,7 @@ end
 ```julia
 a = @expl a = 3
 b = @expl b = 4
-circle = @expl_interpolate x^2 + y^2 = $(a)^2 + $(b)^2
+circle = @expl_interpolate x^2 + y^2 = \$(a)^2 + \$(b)^2
 ```
 """
 macro expl_interpolate(expr)

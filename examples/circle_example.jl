@@ -2,6 +2,7 @@
 
 # 导入 ExprBuild 模块
 using ExprBuild
+using JSON
 
 # 定义变量
 a = @expl a = 3

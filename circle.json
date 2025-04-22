@@ -1,0 +1,15 @@
+{
+  "version": 9,
+  "graph": { "viewport": { "ymin": -10, "ymax": 10, "xmax": 10, "xmin": -10 } },
+  "expressions": {
+    "list": [
+      { "latex": "a = 3", "id": "expr_1", "type": "expression" },
+      { "latex": "b = 4", "id": "expr_2", "type": "expression" },
+      {
+        "latex": "x^{2} + y^{2} = begin\n    #= D:\\_Codings\\_Desmos\\ExprBuild-Julia\\examples\\circle_example.jl:16 =#\n    a ^ 2 + b ^ 2\nend",
+        "id": "expr_3",
+        "type": "expression"
+      }
+    ]
+  }
+}
