@@ -1,7 +1,5 @@
 # Bernard.jl
 
-> 本项目原名 ExprBuild-Julia，现正式更名为 Bernard.jl。
-
 Bernard.jl 是一个为 Desmos 图形计算器爱好者设计的开发框架，基于 Julia 语言实现。它允许通过编程方式构建和管理复杂的 Desmos 图表，简化创作过程。
 
 ## 项目概述
