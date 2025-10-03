@@ -30,9 +30,14 @@ Bernard 是一个为 Desmos 图形计算器爱好者设计的编程框架，让�
 - [Desmos Canvas 项目总览](./Desmos%20Canvas项目总览.md) - Desmos Canvas 项目的详细介绍和当前状态
 
 ### 技术路线文档
-- [JS路线/](../JS路线/) - JavaScript 路线技术可行性分析和设计模式
+- [JS路线/](./JS路线/) - JavaScript 路线技术可行性分析和设计模式
+  - [JS技术方案.md](./JS路线/JS技术方案.md) - “默认模式”优先的技术方案详情
+  - [两种模式：默认模式与Genshin模式.md](./JS路线/两种模式：默认模式与Genshin模式.md) - 项目核心双模式设计哲学
 - [Julia路线/](../Julia路线/) - Julia 路线技术方案（历史版本）
 - [Desmos建模/](./Desmos建模/) - Desmos 公式系统建模相关资料
+
+### 技术设计记录
+- [技术设计记录/](./技术设计记录/) - 项目关键技术决策的归档，按时间点依次记录
 
 ### 工作区域
 - [H2A Buffer](./H2A%20Buffer.md) - 临时与 AI 交互、待处理内容的文本缓冲区
