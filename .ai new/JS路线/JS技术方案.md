@@ -6,7 +6,11 @@
 
 ### 双重表达式对象模式
 
-Bernard 采用两种不同的声明方式区分不同类型的节点，利用 JavaScript 的模板字符串作为 DSL 载体：
+Bernard 采用两种不同的声明方式区分不同类型的节点：
+-  expl explicit 显式的 变量/函数/action 有名字 必定是一种声明
+- expr expression 普通表达式
+
+，并利用 JavaScript 的模板字符串作为 DSL 载体：
 
 ```javascript
 // 无预处理版本
@@ -15,7 +19,7 @@ const b = expr`pi ^ 2`;           // 纯表达式节点
 const c = expl`c = ${a} + ${b}`;  // 组合的显式公式节点
 const eq = expr`x^2 + y^2 = 4`;   // 方程表达式节点
 
-// 有预处理版本
+// 有预处理版本（预处理机制在后文解释，用于化简语法）
 const a = expl`1 + 3`;            // 自动推断变量名
 const b = expr`pi ^ 2`;           // 表达式节点无需变量名
 const c = expl`${a} + ${b}`;      // 自动推断组合公式
