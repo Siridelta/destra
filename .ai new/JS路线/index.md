@@ -1,10 +1,10 @@
-# Bernard JavaScript 路线
+# Destra JavaScript 路线
 
-> Bernard 项目的 JavaScript 技术路线文档，包含技术设计、实现方案和待讨论的问题。
+> Destra 项目的 JavaScript 技术路线文档，包含技术设计、实现方案和待讨论的问题。
 
 ## 简介
 
-这是 Bernard 项目的 JavaScript 技术路线文档集合，记录了 JavaScript 路线的技术设计、实现思路和待讨论的技术问题。
+这是 Destra 项目的 JavaScript 技术路线文档集合，记录了 JavaScript 路线的技术设计、实现思路和待讨论的技术问题。
 
 ## 内容目录
 
@@ -15,12 +15,12 @@
 - [表达式建模设计](./表达式建模设计.md) - 数学表达式的建模方案（待创建）
 - [依赖管理系统](./依赖管理系统.md) - 依赖关系的识别和管理（待创建）
 - [开发体验优化](./开发体验优化.md) - 开发体验的优化策略（待创建）
-- [Desmos Canvas 集成方案](./DesmosCanvas集成方案.md) - 与 Desmos Canvas 的集成方案（待创建）
+- [PSADestra 集成方案](./PSADestra集成方案.md) - 与 PSADestra 的集成方案（待创建）
 - [性能优化策略](./性能优化策略.md) - 系统性能优化策略（待创建）
 
 ## 技术路线概述
 
-Bernard 采用 JavaScript 作为主要技术路线，设计了双重表达式对象模式：
+Destra 采用 JavaScript 作为主要技术路线，设计了双重表达式对象模式：
 
 - **expr** - 纯表达式节点，用于表示数学表达式
 - **expl** - 显式公式节点，用于定义变量和函数
@@ -45,6 +45,6 @@ Bernard 采用 JavaScript 作为主要技术路线，设计了双重表达式对
 
 ## 相关文档
 
-- [项目总览](../项目总览.md) - Bernard 项目的完整介绍
-- [技术笔记](../技术笔记.md) - Bernard 的技术概述
-- [Desmos Canvas 项目总览](../Desmos%20Canvas项目总览.md) - Desmos Canvas 项目的介绍 
+- [项目总览](../项目总览.md) - Destra 项目的完整介绍
+- [技术笔记](../技术笔记.md) - Destra 的技术概述
+- [PSADestra 项目总览](../PSADestra%20项目总览.md) - PSADestra 项目的介绍 

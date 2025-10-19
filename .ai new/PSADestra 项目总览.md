@@ -1,26 +1,26 @@
-# Desmos Canvas 项目总览
+# PerSpatia.Ad: Destra (PSADestra) 项目总览
 
-> Desmos Canvas 是一个画布式的编程环境，探索画布式、交互式、声明式创作工具的开发，与 Bernard 项目深度集成。
+> PerSpatia.Ad: Destra 是一个画布式的编程环境，探索画布式、交互式、声明式创作工具的开发，与 Destra 项目深度集成。
 
 ## 项目背景
 
-Desmos Canvas 项目的诞生源于两个重要需求：
+PSADestra 项目的诞生源于两个重要需求：
 
-**探索更大愿景，验证关键理念** - 作为 Para/Parasee 项目的第一个原型，Desmos Canvas 以一个小众领域的编程创作工具形式，学习、验证和展示"画布式、交互式、声明式创作"的理念和技术。这个项目让我们能够在实践中探索这些创新理念的可行性。
+**探索更大愿景，验证关键理念** - 作为 Para/Parasee 项目的第一个原型，PSADestra 以一个小众领域的编程创作工具形式，学习、验证和展示"画布式、交互式、声明式创作"的理念和技术。这个项目让我们能够在实践中探索这些创新理念的可行性。
 
-**让 Bernard 更易使用，服务 Desmos 爱好者社区** - Bernard 虽然功能强大，但传统的编程界面对于 Desmos 爱好者（主要是中学生）来说门槛较高。大多数学生没有个人电脑，无法通过传统的开发环境使用 Bernard。Desmos Canvas 为 Bernard 提供了一个更直观、更易用的画布式界面，让更多 Desmos 爱好者能够使用 Bernard 的强大功能。
+**让 Destra 更易使用，服务 Desmos 爱好者社区** - Destra 虽然功能强大，但传统的编程界面对于 Desmos 爱好者（主要是中学生）来说门槛较高。大多数学生没有个人电脑，无法通过传统的开发环境使用 Destra。PSADestra 为 Destra 提供了一个更直观、更易用的画布式界面，让更多 Desmos 爱好者能够使用 Destra 的强大功能。
 
-### Bernard 项目简述
+### Destra 项目简述
 
-Bernard 是一个专为 Desmos 图形计算器爱好者设计的编程框架。它让创作者能够用代码来构建复杂的 Desmos 图表，同时保持数学表达的自然性和直观性。
+Destra 是一个专为 Desmos 图形计算器爱好者设计的编程框架。它让创作者能够用代码来构建复杂的 Desmos 图表，同时保持数学表达的自然性和直观性。
 
-Bernard 的核心价值在于：
+Destra 的核心价值在于：
 - **简化复杂图表的构建** - 通过编程方式管理大量表达式，自动处理依赖关系
 - **保持数学表达的自然性** - 提供接近数学习惯的语法，让创作者专注于数学逻辑
 - **提供实时反馈** - 表达式修改后能立即在预览中查看效果
 - **支持可扩展的公式组合** - 让创作者能够构建可重用的数学组件
 
-Desmos Canvas 与 Bernard 的集成创造了一种全新的创作体验：创作者可以在画布中直观地编写代码，实时预览 Desmos 图表，让编程和可视化创作无缝衔接。
+PSADestra 与 Destra 的集成创造了一种全新的创作体验：创作者可以在画布中直观地编写代码，实时预览 Desmos 图表，让编程和可视化创作无缝衔接。
 
 ## 核心设计理念
 
@@ -37,7 +37,7 @@ Desmos Canvas 与 Bernard 的集成创造了一种全新的创作体验：创作
 
 ### 技术选择历程
 
-在 Bernard 和 Desmos Canvas 两个项目的开发过程中，我们同时考虑了两个技术路线：Julia 和 JavaScript。这个选择需要从两个项目的整体视角来评估。
+在 Destra 和 PSADestra 两个项目的开发过程中，我们同时考虑了两个技术路线：Julia 和 JavaScript。这个选择需要从两个项目的整体视角来评估。
 
 **Julia 路线的优势**：
 - **数学表达自然** - Julia 的语法极其接近数学表达习惯，支持隐式乘法、Unicode 数学符号等
@@ -47,17 +47,17 @@ Desmos Canvas 与 Bernard 的集成创造了一种全新的创作体验：创作
 **JavaScript 路线的优势**：
 - **前后端开发生态丰富** - 有成熟的前端框架、工具链和社区支持
 - **易学易用** - 对大多数开发者而言更熟悉，学习成本较低
-- **架构简化** - Desmos Canvas 可以采取更简单的无后端架构
+- **架构简化** - PSADestra 可以采取更简单的无后端架构
 - **部署便利** - 纯前端应用部署简单，用户可以直接在浏览器中使用
 
 ### 架构影响分析
 
-**Desmos Canvas 的架构选择**：
+**PSADestra 的架构选择**：
 - **JavaScript 路线**：可以采取无后端架构，前端直接处理所有逻辑
 - **Julia 路线**：必须开发 Julia 后端，并将前端打包成 Tauri 应用
 
-**Bernard 的使用体验**：
-Bernard 的使用体验受两个方面影响：
+**Destra 的使用体验**：
+Destra 的使用体验受两个方面影响：
 - **表达式创建的语法简洁程度** - Julia 在前者所能支持的语法设计方案一定程度上胜过 JavaScript 里的方案
 - **对表达式对象进行自定义程序化操作的难易程度** - 对于后者，编程化处理，JavaScript 可能比 Julia 好很多
 
@@ -93,21 +93,21 @@ Bernard 的使用体验受两个方面影响：
 
 ### 开发中的功能 🚧
 
-- **Bernard 集成** - 与 Bernard 项目的深度集成
+- **Destra 集成** - 与 Destra 项目的深度集成
 - **Desmos 预览** - 实时 Desmos 图表预览功能
 - **表达式解析** - JavaScript 环境下的表达式建模
 
-## 与 Bernard 的集成
+## 与 Destra 的集成
 
 ### 集成背景
 
-Desmos Canvas 与 Bernard 项目有着深度的集成关系。Bernard 为 Desmos Canvas 提供 Desmos 相关的核心功能支持，包括表达式捕获、公式对象生成、Desmos 结构导出等。
+PSADestra 与 Destra 项目有着深度的集成关系。Destra 为 PSADestra 提供 Desmos 相关的核心功能支持，包括表达式捕获、公式对象生成、Desmos 结构导出等。
 
 ### 集成架构
 
 **前端协作**：
-- Desmos Canvas 负责画布交互、控件渲染、依赖追踪
-- Bernard 负责表达式解析、公式对象生成和 Desmos 集成
+- PSADestra 负责画布交互、控件渲染、依赖追踪
+- Destra 负责表达式解析、公式对象生成和 Desmos 集成
 
 **数据流**：
 - 前端传递代码片段到后端
@@ -120,7 +120,7 @@ Desmos Canvas 与 Bernard 项目有着深度的集成关系。Bernard 为 Desmos
 
 ## 项目定位
 
-Desmos Canvas 是一个为 Desmos 圈子里的创作者和爱好者打造的画布式编程原型，目标是用 JavaScript + Bernard + Desmos + React Flow 快速实现一个能让大家轻松玩转动画、艺术和设计的工具。大家不需要什么专业背景，只要有兴趣就能直接上手参与创作，也方便有 Desmos 经验的朋友加入团队一起折腾。虽然以后 Para/Parasee 可能会走别的技术路线，但现在这个原型积累下来的想法和体验都能迁移过去，对团队来说也是很重要的基础和故事。
+PSADestra 是一个为 Desmos 圈子里的创作者和爱好者打造的画布式编程原型，目标是用 JavaScript + Destra + Desmos + React Flow 快速实现一个能让大家轻松玩转动画、艺术和设计的工具。大家不需要什么专业背景，只要有兴趣就能直接上手参与创作，也方便有 Desmos 经验的朋友加入团队一起折腾。虽然以后 Para/Parasee 可能会走别的技术路线，但现在这个原型积累下来的想法和体验都能迁移过去，对团队来说也是很重要的基础和故事。
 
 ## 开发状态
 
@@ -128,13 +128,13 @@ Desmos Canvas 是一个为 Desmos 圈子里的创作者和爱好者打造的画�
 
 项目处于高速开发阶段，重点推进：
 
-1. **Bernard 集成** - 完善与 Bernard 项目的集成方案
+1. **Destra 集成** - 完善与 Destra 项目的集成方案
 2. **Desmos 预览** - 实现实时 Desmos 图表预览功能
 3. **用户体验优化** - 提升画布式编程的流畅性和直观性
 
 ### 下一步计划
 
-- 完善 Bernard 与 Desmos Canvas 的 API 协议
+- 完善 Destra 与 PSADestra 的 API 协议
 - 实现表达式解析和依赖分析
 - 优化实时预览和交互体验
 - 建立完整的开发文档和示例
@@ -148,6 +148,6 @@ Desmos Canvas 是一个为 Desmos 圈子里的创作者和爱好者打造的画�
 
 ## 相关文档
 
-- [Bernard 项目总览](./项目总览.md) - Bernard 项目的详细介绍
-- [Bernard 技术笔记](./技术笔记.md) - Bernard 的技术实现细节
+- [Destra 项目总览](./项目总览.md) - Destra 项目的详细介绍
+- [Destra 技术笔记](./技术笔记.md) - Destra 的技术实现细节
 - [JuliaCanvas 集成方案](../JuliaCanvas集成方案.md) - 历史集成方案文档 

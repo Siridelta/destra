@@ -1,6 +1,6 @@
-# Bernard.jl
+# destra.jl
 
-> 本项目原名 ExprBuild-Julia，现正式更名为 Bernard.jl。
+> 本项目曾用名 ExprBuild-Julia, Bernard.jl，现正式更名为 destra.jl。
 
 原项目[Static-1248/ExprBuild](https://github.com/Static-1248/ExprBuild)
 
@@ -8,6 +8,6 @@
 
 目前在和AI紧张对线ing
 
-见[项目总览](working-notes/项目总览.md)。
+见[项目总览](.ai%20new/项目总览.md)。
 
-将与一个画布式 Julia IDE 结合，实现一个画布式 Desmos 图表开发环境。
+将与一个画布式 IDE 结合，实现一个画布式 Desmos 图表开发环境。
