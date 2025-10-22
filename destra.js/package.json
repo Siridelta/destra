@@ -1,0 +1,12 @@
+{
+  "name": "destra-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.1",
+  "scripts": {
+    "lint": "echo \"TODO: configure repo-wide lint command\"",
+    "build": "echo \"TODO: orchestrate workspace builds\"",
+    "dev": "echo \"TODO: orchestrate workspace dev servers\""
+  }
+}
+
