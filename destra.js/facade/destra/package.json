@@ -1,0 +1,15 @@
+{
+  "name": "@ad-destra/destra",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "main": "src/index.ts",
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "@ad-destra/v-mutable": "workspace:*"
+  },
+  "devDependencies": {}
+}
+
