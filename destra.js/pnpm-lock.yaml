@@ -10,9 +10,9 @@ importers:
 
   facade/destra:
     dependencies:
-      '@ad-destra/v-mutable':
+      '@ad-destra/v-id-mutable':
         specifier: workspace:*
-        version: link:../../variant-drafts/v-mutable
+        version: link:../../variant-drafts/v-id-mutable
 
   shared/core: {}
 
@@ -20,7 +20,7 @@ importers:
 
   shared/types: {}
 
-  variant-drafts/v-mutable:
+  variant-drafts/v-id-mutable:
     dependencies:
       '@ad-destra/core':
         specifier: workspace:*

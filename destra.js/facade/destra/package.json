@@ -11,7 +11,7 @@
     "src"
   ],
   "dependencies": {
-    "@ad-destra/v-mutable": "workspace:*"
+    "@ad-destra/v-id-mutable": "workspace:*"
   },
   "devDependencies": {}
 }

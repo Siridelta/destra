@@ -1,5 +1,5 @@
 {
-  "name": "@ad-destra/types",
+  "name": "@ad-destra/v-id-mutable",
   "version": "0.0.0",
   "type": "module",
   "license": "MIT",
@@ -10,7 +10,10 @@
   "files": [
     "src"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "@ad-destra/core": "workspace:*",
+    "@ad-destra/types": "workspace:*"
+  },
   "devDependencies": {}
 }
 
