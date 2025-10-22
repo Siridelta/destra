@@ -7,6 +7,8 @@
     "lint": "echo \"TODO: configure repo-wide lint command\"",
     "build": "echo \"TODO: orchestrate workspace builds\"",
     "dev": "echo \"TODO: orchestrate workspace dev servers\""
+  },
+  "devDependencies": {
+    "vitest": "^4.0.1"
   }
 }
-

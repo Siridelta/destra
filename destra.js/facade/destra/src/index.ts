@@ -1,2 +1,2 @@
-export * from "@destra-variant/v-mutable";
+export * from "@ad-destra/v-id-mutable";
 
