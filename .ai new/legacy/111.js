@@ -5,6 +5,10 @@ c = For`a = 3, b = ${expr`4`}` (ctx =>
     
 ); 
 
+sigmoid = Fn`x` (ctx =>
+    expr`1 / (1 + e^(-${ctx.x}))`
+);
+
 
 // 1
 const n = expl`(1, 1)`
