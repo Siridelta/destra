@@ -16,7 +16,7 @@
 
 ## 项目简述
 
-Destra 是一个为 Desmos 图形计算器爱好者设计的编程框架，让用户能够通过代码来构建和管理复杂的数学图表。项目目前处于重新规划和文档重构阶段，明确转向 JavaScript 优先的技术路线，与 PerSpatia.Ad: Destra (PSADestra) 项目协同开发。
+Destra 是一个为 Desmos 图形计算器爱好者设计的编程框架，让用户能够通过代码来构建和管理复杂的数学图表。项目目前处于重新规划和文档重构阶段，明确转向 JavaScript 优先的技术路线，与 PerSpatia: Ad Destra (PSADestra) 项目协同开发。
 
 现在 Destra 将与 PSADestra 项目深度集成，将 Desmos 图表创作引入画布式编程环境，实现代码编写与图象预览的无缝衔接。
 

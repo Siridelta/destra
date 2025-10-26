@@ -1,6 +1,6 @@
-# PerSpatia.Ad: Destra (PSADestra) 项目总览
+# PerSpatia: Ad Destra (PSADestra) 项目总览
 
-> PerSpatia.Ad: Destra 是一个画布式的编程环境，探索画布式、交互式、声明式创作工具的开发，与 Destra 项目深度集成。
+> PerSpatia: Ad Destra 是一个画布式的编程环境，探索画布式、交互式、声明式创作工具的开发，与 Destra 项目深度集成。
 
 ## 项目背景
 
