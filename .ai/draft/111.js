@@ -9,12 +9,14 @@ sigmoid = Fn`x` (ctx =>
     expr`1 / (1 + e^(-${ctx.x}))`
 );
 
+sigmoid2 = expl`(x) => 1 / (1 + e^(-x))`
+
 
 // 1
 const n = expl`(1, 1)`
     .point(it => it
             .size(expr`10 * ${m.x}`)
-            .drag(dragNone)     // 从Bernard库里导入的常量
+            .drag(dragNone)     // 从库里导入的常量
     )
     .label(it => it
             .content`Pos: ${n.x}, ${n.y}`
