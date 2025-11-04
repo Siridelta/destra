@@ -18,20 +18,7 @@ importers:
         specifier: workspace:*
         version: link:../../variant-drafts/v-id-mutable
 
-  shared/core: {}
-
-  shared/preprocessor: {}
-
-  shared/types: {}
-
-  variant-drafts/v-id-mutable:
-    dependencies:
-      '@ad-destra/core':
-        specifier: workspace:*
-        version: link:../../shared/core
-      '@ad-destra/types':
-        specifier: workspace:*
-        version: link:../../shared/types
+  variant-drafts/v-id-mutable: {}
 
 packages:
 

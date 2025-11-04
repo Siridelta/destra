@@ -1,6 +1,4 @@
 packages:
-  - 'shared/*'
   - 'variant-drafts/*'
   - 'facade/*'
-  - 'tooling/*'
 

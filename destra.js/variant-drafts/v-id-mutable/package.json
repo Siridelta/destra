@@ -8,12 +8,10 @@
     "access": "public"
   },
   "files": [
-    "src"
+    "src",
+    "vite-plugin"
   ],
-  "dependencies": {
-    "@ad-destra/core": "workspace:*",
-    "@ad-destra/types": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {}
 }
 
