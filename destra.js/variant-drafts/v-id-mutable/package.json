@@ -11,7 +11,7 @@
     "src",
     "vite-plugin"
   ],
-  "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "magic-regexp": "^0.10.0"
+  }
 }
-
