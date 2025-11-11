@@ -9,8 +9,10 @@
 
 import { specialSymbols } from "./specialSymbols";
 
+// 临时打表保留字，供 analyzeType 使用
+// 后续需改造成由原理出发计算得出
 
-// 保留字(常量、保留变量、内置函数)；也供 analyzeType 使用
+// 保留字(常量、保留变量、内置函数)；
 // 要求：在 wordChar 范围内
 export const reservedWords1 = [
     // 保留变量

@@ -1,25 +1,25 @@
 {
   "version": "0.2.0",
   "configurations": [
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug v-id-mutable Test 1",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "test"
-      ],
-      "runtimeVersion": "v22.18.0",
-      "cwd": "${workspaceFolder}/destra.js/variant-drafts/v-id-mutable",
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    },
+    // {
+    //   "type": "node",
+    //   "request": "launch",
+    //   "name": "Debug v-id-mutable Test 1",
+    //   "runtimeExecutable": "npm",
+    //   "runtimeArgs": [
+    //     "run",
+    //     "test:basic"
+    //   ],
+    //   "runtimeVersion": "22.18.0",
+    //   "cwd": "${workspaceFolder}/destra.js/variant-drafts/v-id-mutable",
+    //   "console": "integratedTerminal",
+    //   "internalConsoleOptions": "neverOpen"
+    // },
     {
         "type": "node-terminal",
         "request": "launch",
-        "name": "Debug v-id-mutable Test 2",
-        "command": "npm run test",
+        "name": "Debug v-id-mutable Test:basic (node-terminal)",
+        "command": "npm run test:basic",
         "cwd": "${workspaceFolder}/destra.js/variant-drafts/v-id-mutable",
     }
   ]
