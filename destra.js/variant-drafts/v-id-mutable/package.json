@@ -11,7 +11,11 @@
     "src",
     "vite-plugin"
   ],
+  "scripts": {
+    "test": "node --import tsx test/run-test.ts"
+  },
   "devDependencies": {
-    "magic-regexp": "^0.10.0"
+    "magic-regexp": "^0.10.0",
+    "tsx": "^4.7.0"
   }
 }

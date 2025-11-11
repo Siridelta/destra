@@ -120,14 +120,15 @@ There are multiple types of operators, including:
 
 - **Complex Numbers**:
 	> Needs Desmos enabled complex mode. Consider adding a flag in a flags dict into type `Expr<...>`'s generic params?
-	- real(z), imag(z), arg(z), conj(z)
+	- real(z), imag(z), arg(z), conj(z); z.real, z.imag;
 
 - **Geometry**:
 	- Point(x, y): Introduced by ourselves. It's a function that returns a $(x, y)$ point expr. It's not a Desmos function.
-	- P.x, P.y: Get the x/y coordinate of a point.
+	- P.x, P.y, P.z: Get the x/y/z coordinate of a point.
 	- midpoint(p1, p2)
 	- distance(p1, p2)
 	- polygon(...points) / polygon(pointList)
+	- length(vector/segment), (vector/segment).length
 
 - **List Operations**:
 	- join: join elements or/and lists into a big list
