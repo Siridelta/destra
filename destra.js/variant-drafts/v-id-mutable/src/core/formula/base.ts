@@ -14,7 +14,12 @@ import { type FormulaTypeInfo } from "../expr-dsl/analyzeType";
 /**
  * 原始值类型：字符串、数字、布尔值、null、undefined
  */
-export type PrimitiveValue = string | number | boolean | null | undefined;
+export type PrimitiveValue =
+    | string
+    | number
+//    | boolean
+//    | null
+//    | undefined;
 
 /**
  * 模板字符串载荷，包含字符串片段和插值值
@@ -127,20 +132,41 @@ export const collectDependencies = (values: readonly Substitutable[]): Embeddabl
  */
 export abstract class Formula {
     public readonly template: TemplatePayload;
-    public readonly dependencies: readonly Embeddable[];
+    public readonly deps: readonly Embeddable[];
     public abstract readonly type: FormulaType;
 
-    protected constructor(template: TemplatePayload, dependencies: readonly Embeddable[]) {
-        this.template = template;
-        const embeddable: Embeddable[] = [];
-        for (const dependency of dependencies) {
-            // 运行时检查：保证依赖项为 Embeddable
-            if (!dependency.isEmbeddable) {
-                throw new TypeError("检测到不可嵌入的依赖，违反“禁止悬空依赖”约束。");
-            }
-            embeddable.push(dependency as Embeddable);
+    /**
+     * console-side 可用的一个可以直观展示公式内容的 getter 方法
+     * （其实这里和 analyzeType.ts 里的 buildInspectableSource 函数是部分重复的，
+     * 但是在逻辑上应该不会有关联，所以也就重复写了）
+     * 这里会把 placeholder 替换为依赖项（dependencies，整理、缩并过的，而非模板载荷里的 values）的索引
+     * 对于非 dependencies 里的值，则直接使用其 toString() 结果
+     */
+    protected get _content(): string {
+        const { strings, values } = this.template;
+        let source = strings[0]!;
+        for (let i = 0; i < values.length; i += 1) {
+            (() => {
+                const value = values[i];
+                if (!(value instanceof Formula)) {
+                    source += value.toString();
+                    return;
+                }
+                if (value instanceof Expl && value.id()) {
+                    source += `\$${value.id()}`;
+                    return;
+                }
+                const depIndex = this.deps.findIndex(dep => dep === value);
+                source += `\$${depIndex}`;
+            })();
+            source += strings[i + 1]!;
         }
-        this.dependencies = Object.freeze(embeddable);
+        return source.trim();
+    }
+
+    protected constructor(template: TemplatePayload) {
+        this.template = template;
+        this.deps = Object.freeze(collectDependencies(template.values));
     }
 
     /**
@@ -154,7 +180,7 @@ export abstract class Formula {
  */
 export abstract class Expl extends Formula {
     public readonly isEmbeddable = true as const;
-    protected abstract idMeta: IdMetadata;
+    protected idMeta: IdMetadata;
     protected get _id(): string | undefined {
         if (this.idMeta.segments.length === 0) {
             return undefined;
@@ -164,8 +190,9 @@ export abstract class Expl extends Formula {
     // 内部使用 _id 获取 computed id 值，同时直接使用 idMeta 进行设置或者细度读取
     // 运行时 _id getter 在调试环境里可见，但在 ts 源代码语境里不可见
 
-    protected constructor(template: TemplatePayload, dependencies: readonly Embeddable[]) {
-        super(template, dependencies);
+    protected constructor(template: TemplatePayload) {
+        super(template);
+        this.idMeta = { segments: [], isImplicit: false };
     }
 }
 
@@ -185,8 +212,8 @@ export class Expression extends Expr {
     public readonly isEmbeddable = true as const;
     public readonly type = FormulaType.Expression;
 
-    public constructor(template: TemplatePayload, dependencies: readonly Embeddable[]) {
-        super(template, dependencies);
+    public constructor(template: TemplatePayload) {
+        super(template);
     }
 }
 
@@ -197,8 +224,8 @@ export class ExplicitEquation extends Expr {
     public readonly isEmbeddable = false as const;
     public readonly type = FormulaType.ExplicitEquation;
 
-    public constructor(template: TemplatePayload, dependencies: readonly Embeddable[]) {
-        super(template, dependencies);
+    public constructor(template: TemplatePayload) {
+        super(template);
     }
 }
 
@@ -209,8 +236,8 @@ export class ImplicitEquation extends Expr {
     public readonly isEmbeddable = false as const;
     public readonly type = FormulaType.ImplicitEquation;
 
-    public constructor(template: TemplatePayload, dependencies: readonly Embeddable[]) {
-        super(template, dependencies);
+    public constructor(template: TemplatePayload) {
+        super(template);
     }
 }
 
@@ -221,8 +248,8 @@ export class Regression extends Expr {
     public readonly isEmbeddable = false as const;
     public readonly type = FormulaType.Regression;
 
-    public constructor(template: TemplatePayload, dependencies: readonly Embeddable[]) {
-        super(template, dependencies);
+    public constructor(template: TemplatePayload) {
+        super(template);
     }
 }
 
@@ -235,12 +262,9 @@ export class Regression extends Expr {
  */
 export class VarExpl extends Expl {
     public readonly type = FormulaType.Variable;
-    protected idMeta: IdMetadata;
 
-    public constructor(template: TemplatePayload, dependencies: readonly Embeddable[], id?: string) {
-        super(template, dependencies);
-        const segments = id ? [id] : [];
-        this.idMeta = { segments, isImplicit: false };
+    public constructor(template: TemplatePayload) {
+        super(template);
     }
 }
 
@@ -262,16 +286,12 @@ export type FuncExplSignature<TSignature extends FuncExplSignatureBase> = ((
 class FuncExplBaseClass extends Expl {
     public readonly type = FormulaType.Function;
     public readonly params: readonly string[];
-    protected idMeta: IdMetadata;
-    
+
     public constructor(
         template: TemplatePayload,
-        dependencies: readonly Embeddable[],
-        options: { readonly id?: string; readonly params: readonly string[] },
+        options: { readonly params: readonly string[] },
     ) {
-        super(template, dependencies);
-        const segments = options.id ? [options.id] : [];
-        this.idMeta = { segments, isImplicit: false };
+        super(template);
         this.params = Object.freeze([...options.params]);
     }
 }
@@ -284,7 +304,7 @@ class FuncExplBaseClass extends Expl {
  * （实际返回的一定将会是 Expression 类型而不是它的子类型）
  */
 class FuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplBaseClass {
-    protected invoke(...args: Parameters<TSignature>): Expression {
+    protected invoke(funcExpl: FuncExpl<TSignature>, ...args: Parameters<TSignature>): Expression {
         // 运行时检查：参数必须是可代入项
         args.forEach((arg, index) => {
             if (!isSubstitutable(arg)) {
@@ -297,7 +317,7 @@ class FuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplBa
         }
         // 创建函数调用表达式
         return createFunctionCallExpression(
-            this,
+            funcExpl,
             args as Parameters<TSignature> & readonly Substitutable[],
         );
     }
@@ -307,8 +327,8 @@ class FuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplBa
  * FuncExplClassWithPublicInvoke 类：函数声明的类型化实现类，第2层，将 invoke 方法公开，供 createCallableFuncExpl 使用，但是不对外暴露
  */
 class FuncExplClassWithPublicInvoke<TSignature extends FuncExplSignatureBase> extends FuncExplClass<TSignature> {
-    public invoke(...args: Parameters<TSignature>): Expression {
-        return super.invoke(...args);
+    public invoke(funcExpl: FuncExpl<TSignature>, ...args: Parameters<TSignature>): Expression {
+        return super.invoke(funcExpl, ...args);
     }
 }
 
@@ -326,21 +346,25 @@ export type FuncExpl<TSignature extends FuncExplSignatureBase> =
  */
 export const createCallableFuncExpl = <TSignature extends FuncExplSignatureBase>(
     template: TemplatePayload,
-    dependencies: readonly Embeddable[],
     info: Extract<FormulaTypeInfo, { readonly type: FormulaType.Function }>,
 ): FuncExpl<TSignature> => {
     // 先创建 FuncExplClass 类实例
-    const instance = new FuncExplClassWithPublicInvoke<TSignature>(template, dependencies, {
-        id: info.name,
+    const instance = new FuncExplClassWithPublicInvoke<TSignature>(template, {
         params: info.params,
     });
-    // 然后创建 callable 的箭头函数
-    const callable = ((...args: Parameters<TSignature>) =>
-        instance.invoke(...args)) as FuncExpl<TSignature>;
-    // 把 instance 的原型链和属性都复制给 callable 对象，让 callable 对象看起来也像 FuncExplClass 实例一样
-    Object.setPrototypeOf(callable, FuncExplClass.prototype);
-    Object.assign(callable, instance);
-    return callable;
+    if (info.name) {
+        instance.id(info.name);
+    }
+    // 然后创建 funcExpl 箭头函数
+    // Intentionally pass the funcExpl obj into invoke, let internal knows it and use it to build the Expression
+    // so the resulting Expression is dependent on a 'FuncExpl' (?) and would not see a 'FuncExplClassWithPublicInvoke'
+    // This is for console-side DevEx.
+    const funcExpl = ((...args: Parameters<TSignature>) =>
+        instance.invoke(funcExpl, ...args)) as FuncExpl<TSignature>;
+    // 把 instance 的原型链和属性都复制给 funcExpl 对象，让 funcExpl 对象看起来也像 FuncExplClass 实例一样
+    Object.assign(funcExpl, instance);
+    Object.setPrototypeOf(funcExpl, FuncExplClass.prototype);
+    return funcExpl;
 };
 
 /**
@@ -348,7 +372,7 @@ export const createCallableFuncExpl = <TSignature extends FuncExplSignatureBase>
  * 将函数调用转换为一个 Expression 对象
  */
 export const createFunctionCallExpression = <TSignature extends FuncExplSignatureBase>(
-    fn: FuncExplClass<TSignature>,
+    fn: FuncExpl<TSignature>,
     args: Parameters<TSignature> & readonly Substitutable[],
 ): Expression => {
     const strings: string[] = [""];
@@ -367,8 +391,7 @@ export const createFunctionCallExpression = <TSignature extends FuncExplSignatur
         strings: Object.freeze(strings),
         values: Object.freeze(values),
     };
-    const dependencies = collectDependencies(template.values);
-    return new Expression(template, dependencies);
+    return new Expression(template);
 };
 
 // ============================================================================

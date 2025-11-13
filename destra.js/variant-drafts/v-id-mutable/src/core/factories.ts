@@ -34,18 +34,17 @@ import { analyzeType } from "./expr-dsl/analyzeType";
  */
 export const expr = (strings: TemplateStringsArray, ...values: Substitutable[]): Expr => {
     const template = createTemplatePayload(strings, values);
-    const dependencies = collectDependencies(template.values);
     const info = analyzeType(template, "expr");
 
     switch (info.type) {
         case FormulaType.Expression:
-            return new Expression(template, dependencies);
+            return new Expression(template);
         case FormulaType.ExplicitEquation:
-            return new ExplicitEquation(template, dependencies);
+            return new ExplicitEquation(template);
         case FormulaType.ImplicitEquation:
-            return new ImplicitEquation(template, dependencies);
+            return new ImplicitEquation(template);
         case FormulaType.Regression:
-            return new Regression(template, dependencies);
+            return new Regression(template);
     }
 };
 
@@ -65,14 +64,17 @@ export const expr = (strings: TemplateStringsArray, ...values: Substitutable[]):
  */
 export const expl = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl => {
     const template = createTemplatePayload(strings, values);
-    const dependencies = collectDependencies(template.values);
     const info = analyzeType(template, "expl");
 
     switch (info.type) {
         case FormulaType.Variable:
-            return new VarExpl(template, dependencies, info.name);
+            const varExpl = new VarExpl(template);
+            if (info.name) {
+                varExpl.id(info.name);
+            }
+            return varExpl;
         case FormulaType.Function:
-            return createCallableFuncExpl(template, dependencies, info);
+            return createCallableFuncExpl(template, info);
     }
 };
 

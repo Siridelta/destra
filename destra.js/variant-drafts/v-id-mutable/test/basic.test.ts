@@ -24,23 +24,25 @@ console.log("变量 a:", a);
 console.log("变量 b:", b);
 console.log("a 的类型:", a.constructor.name);
 console.log("a 是否为可嵌入:", a.isEmbeddable);
-console.log("a 的依赖:", a.dependencies);
+console.log("a 的依赖:", a.deps);
 
 // 创建使用变量的表达式
 const sum = expr`${a} + ${b}`;
 console.log("表达式 sum:", sum);
-console.log("sum 的依赖:", sum.dependencies);
+console.log("sum 的依赖:", sum.deps);
 
 // 创建复杂 id 表达式
 const complexIdExpr = expr`_a1.1.sin.b.c_.8.x = 10`;  // 左边并非合法 id，识别为 implicit equation
 const complexIdExpr2 = expr`_a1.1.sin.b.c_.8.c = 10`;  // 左边为合法 id，识别为 explicit equation
 const complexIdExpl = expl`_a1.1.sin.b.c_.8.d = 10`;  // 左边为合法 id，识别为 variable
+console.log("复杂 id 表达式(expr + 非法 id -> implicit equation):", complexIdExpr);
+console.log("复杂 id 表达式(expr + 合法 id -> explicit equation):", complexIdExpr2);
+console.log("复杂 id 表达式(expl + 合法 id -> variable):", complexIdExpl);
 try {
     const complexIdExplIllegal = expl`_a1.1.sin.b.c_.8.x = 10`;  // 左边并非合法 id，抛出错误
 } catch (error) {
-    console.log("错误：", (error as Error).message);
+    console.log("错误：", (error as Error).message, (error as Error).stack);
 }
-console.log("复杂 id 表达式:", complexIdExpr);
 
 // 创建纯数值表达式
 const pureExpr = expr`2 + 3`;
@@ -60,7 +62,7 @@ console.log("square 的参数:", (square as any).params);
 // 调用函数
 const result1 = square(5);
 console.log("square(5):", result1);
-console.log("result1 的依赖:", result1.dependencies);
+console.log("result1 的依赖:", result1.deps);
 
 // 多参数函数（注意：函数体中的表达式应该直接写在模板字符串中）
 const distance = expl`(x, y) => sqrt(x^2 + y^2)` as FuncExpl<(x: Substitutable, y: Substitutable) => Expression>;
@@ -85,13 +87,16 @@ const C = expr`1` as Expression;
 // 使用多个变量构建复杂表达式
 const complexExpr = expr`${p}^2 + ${q}^2 + ${p} * ${q} + ${C}`;
 console.log("复杂表达式:", complexExpr);
-console.log("复杂表达式的依赖数量:", complexExpr.dependencies.length);
+console.log("复杂表达式的依赖数量:", complexExpr.deps.length);
 
 // 嵌套函数调用
-const add = expl`(a, b) => a + b` as FuncExpl<(a: Substitutable, b: Substitutable) => Expression>;
-const multiply = expl`(a, b) => a * b` as FuncExpl<(a: Substitutable, b: Substitutable) => Expression>;
-const combined = expr`${add}(${multiply}(${p}, ${q}), ${p})`;
-console.log("嵌套函数调用:", combined);
+const add = (expl`(a, b) => a + b` as FuncExpl<(a: Substitutable, b: Substitutable) => Expression>).id("add", true);
+const multiply = (expl`(a, b) => a * b` as FuncExpl<(a: Substitutable, b: Substitutable) => Expression>).id("multiply", true);
+const combined1 = expr`${add}(${multiply}(${p}, ${q}), ${p})`;
+console.log("嵌套函数调用 DSL嵌入写法:", combined1);
+const combined2 = add(multiply(p, q), p);
+console.log("嵌套函数调用 JS函数调用写法:", combined2);
+
 
 // ============================================================================
 // 4. 方程类型
@@ -143,7 +148,7 @@ const calculation = expr`${base}^${power}`;
 console.log("base 变量:", base);
 console.log("power 变量:", power);
 console.log("calculation 表达式:", calculation);
-console.log("calculation 依赖的变量:", calculation.dependencies.map(d => {
+console.log("calculation 依赖的变量:", calculation.deps.map(d => {
     // 检查是否为 VarExpl 类型
     if (d.constructor.name === "VarExpl") {
         return `VarExpl(${(d as VarExpl).id() || ""})`;
