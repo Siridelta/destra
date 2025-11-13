@@ -201,8 +201,8 @@ const regressionPattern = exactly(
 // 方程符号：匹配 "="; 但也会匹配到变量赋值语法中的 "="，需要进一步区分。
 const equationOperatorPattern =
     exactly("=")
-        .notBefore(exactly("="))
-        .notAfter(exactly("="));
+        .notBefore(anyOf("=", ">", "<"))
+        .notAfter(anyOf("=", ">", "<"));
 
 // 不等式符号：匹配 ">=", "<=", ">", "<", 前后不能是 "=", ">" 或 "<"
 const inequalityPattern =
@@ -213,6 +213,7 @@ const inequalityPattern =
 // 编译正则表达式
 const allInExpressionCharRangeRegex = createRegExp(inExpressionCharRangePattern.at.lineStart().at.lineEnd());
 const paramNameRegex = createRegExp(paramNamePattern);
+const firstIdSegmentRegex = createRegExp(firstIdSegmentPattern);
 const idRegex = createRegExp(idPattern);
 const arrowFunctionHeadRegex = createRegExp(arrowFunctionHeadPattern);
 const namedFunctionDefinitionRegex = createRegExp(namedFunctionDefinitionPattern);
@@ -420,8 +421,16 @@ function analyzeType(
         const [_, op] = [...validOps.entries()][0]!;
         return { type: FormulaType.ImplicitEquation, op };
     }
+    if (factoryType === "expl") {
+        return { type: FormulaType.Variable, name: undefined };
+    }
     return { type: FormulaType.Expression };
 }
 
-export { analyzeType };
+export { 
+    analyzeType,
+    idPattern,
+    firstIdSegmentPattern,
+    idSegmentPattern,
+};
 
