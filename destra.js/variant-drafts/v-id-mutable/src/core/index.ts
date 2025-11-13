@@ -10,25 +10,34 @@
 // 导出核心类型和基类
 // ============================================================================
 
-export * from "./formula/base";
+import { 
+    Expression, ExplicitEquation, ImplicitEquation, Regression, 
+    VarExpl, type FuncExpl, Expl,
+    type Substitutable
+} from "./formula/base";
 
 // ============================================================================
 // 导入模块以应用原型注入（重要：这些导入有副作用）
 // ============================================================================
 
-// ID 相关方法的原型注入（待实现）
+// ID 相关方法的原型注入
 import "./formula/id";
 
 // 样式相关方法的原型注入（待实现）
 import "./formula/style";
 
+export { 
+    Expression, ExplicitEquation, ImplicitEquation, Regression, 
+    VarExpl, type FuncExpl, Expl, 
+    type Substitutable 
+};
 // ============================================================================
 // 导出工厂函数和 API
 // ============================================================================
 
 export * from "./factories";
-export * from "./selection";
-export * from "./builder";
+// export * from "./selection";
+// export * from "./builder";
 
 // ============================================================================
 // 导出解析器相关（可选，供高级用户使用）

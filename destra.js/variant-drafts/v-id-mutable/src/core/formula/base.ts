@@ -5,7 +5,7 @@
  * 这些是构建整个表达式系统的基础。
  */
 
-import type { FormulaTypeInfo } from "../expr-dsl/analyzeType";
+import { type FormulaTypeInfo } from "../expr-dsl/analyzeType";
 
 // ============================================================================
 // 类型定义
@@ -28,7 +28,7 @@ export interface TemplatePayload {
  * ID 元数据，记录 ID 的值和是否为隐式生成
  */
 export interface IdMetadata {
-    value?: string;
+    segments: readonly string[];
     isImplicit: boolean;
 }
 
@@ -154,11 +154,18 @@ export abstract class Formula {
  */
 export abstract class Expl extends Formula {
     public readonly isEmbeddable = true as const;
-    public readonly idMeta: IdMetadata;
+    protected abstract idMeta: IdMetadata;
+    protected get _id(): string | undefined {
+        if (this.idMeta.segments.length === 0) {
+            return undefined;
+        }
+        return this.idMeta.segments.join(".");
+    }
+    // 内部使用 _id 获取 computed id 值，同时直接使用 idMeta 进行设置或者细度读取
+    // 运行时 _id getter 在调试环境里可见，但在 ts 源代码语境里不可见
 
     protected constructor(template: TemplatePayload, dependencies: readonly Embeddable[]) {
         super(template, dependencies);
-        this.idMeta = { isImplicit: false };
     }
 }
 
@@ -228,13 +235,12 @@ export class Regression extends Expr {
  */
 export class VarExpl extends Expl {
     public readonly type = FormulaType.Variable;
+    protected idMeta: IdMetadata;
 
     public constructor(template: TemplatePayload, dependencies: readonly Embeddable[], id?: string) {
         super(template, dependencies);
-        if (id) {
-            this.idMeta.value = id;
-            this.idMeta.isImplicit = false;
-        }
+        const segments = id ? [id] : [];
+        this.idMeta = { segments, isImplicit: false };
     }
 }
 
@@ -256,28 +262,29 @@ export type FuncExplSignature<TSignature extends FuncExplSignatureBase> = ((
 class FuncExplBaseClass extends Expl {
     public readonly type = FormulaType.Function;
     public readonly params: readonly string[];
-
+    protected idMeta: IdMetadata;
+    
     public constructor(
         template: TemplatePayload,
         dependencies: readonly Embeddable[],
         options: { readonly id?: string; readonly params: readonly string[] },
     ) {
         super(template, dependencies);
-        if (options.id) {
-            this.idMeta.value = options.id;
-            this.idMeta.isImplicit = false;
-        }
+        const segments = options.id ? [options.id] : [];
+        this.idMeta = { segments, isImplicit: false };
         this.params = Object.freeze([...options.params]);
     }
 }
 
 /**
- * FuncExpl 类：函数声明的类型化实现类
+ * FuncExplClass 类：函数声明的类型化实现类，第1层，加上带函数签名信息的泛型类型，
+ * 以及加上 protected 的 invoke 方法（不对外暴露），这个类在加入后面的 type 混合类型后对外暴露
+ * 
  * TSignature 只用于存储函数签名的类型信息，其返回值类型信息我们不使用
  * （实际返回的一定将会是 Expression 类型而不是它的子类型）
  */
 class FuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplBaseClass {
-    public invoke(...args: Parameters<TSignature>): Expression {
+    protected invoke(...args: Parameters<TSignature>): Expression {
         // 运行时检查：参数必须是可代入项
         args.forEach((arg, index) => {
             if (!isSubstitutable(arg)) {
@@ -297,11 +304,20 @@ class FuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplBa
 }
 
 /**
+ * FuncExplClassWithPublicInvoke 类：函数声明的类型化实现类，第2层，将 invoke 方法公开，供 createCallableFuncExpl 使用，但是不对外暴露
+ */
+class FuncExplClassWithPublicInvoke<TSignature extends FuncExplSignatureBase> extends FuncExplClass<TSignature> {
+    public invoke(...args: Parameters<TSignature>): Expression {
+        return super.invoke(...args);
+    }
+}
+
+/**
  * FuncExpl 类型：可调用的函数表达式类型
  * 这是一个混合类型，既是一个对象（继承 FuncExplBaseClass），也是一个可调用的函数
  */
 export type FuncExpl<TSignature extends FuncExplSignatureBase> =
-    Omit<FuncExplClass<TSignature>, "invoke">   // 移除 invoke 方法，避免内部 API 暴露
+    FuncExplClass<TSignature>
     & FuncExplSignature<TSignature>;
 
 /**
@@ -314,7 +330,7 @@ export const createCallableFuncExpl = <TSignature extends FuncExplSignatureBase>
     info: Extract<FormulaTypeInfo, { readonly type: FormulaType.Function }>,
 ): FuncExpl<TSignature> => {
     // 先创建 FuncExplClass 类实例
-    const instance = new FuncExplClass<TSignature>(template, dependencies, {
+    const instance = new FuncExplClassWithPublicInvoke<TSignature>(template, dependencies, {
         id: info.name,
         params: info.params,
     });
@@ -322,7 +338,7 @@ export const createCallableFuncExpl = <TSignature extends FuncExplSignatureBase>
     const callable = ((...args: Parameters<TSignature>) =>
         instance.invoke(...args)) as FuncExpl<TSignature>;
     // 把 instance 的原型链和属性都复制给 callable 对象，让 callable 对象看起来也像 FuncExplClass 实例一样
-    Object.setPrototypeOf(callable, FuncExplBaseClass.prototype);
+    Object.setPrototypeOf(callable, FuncExplClass.prototype);
     Object.assign(callable, instance);
     return callable;
 };

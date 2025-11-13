@@ -3,6 +3,9 @@
  * 
  * 本文件展示了如何使用 Destra 的核心 API 来创建和管理数学表达式。
  * 这些示例涵盖了基本的表达式创建、变量声明、函数定义和使用等场景。
+ * 
+ * 注意，这里没有使用创作形式，而是模拟了预处理器的工作，手写标准形式。
+ * （因为预处理器还没写，以及这个测试用例是基础功能测试，所以先这样x）
  */
 
 import { expr, expl, type Expression, type VarExpl, type FuncExpl, type Substitutable, type Expl } from "../src/core/index";
@@ -14,8 +17,8 @@ import { expr, expl, type Expression, type VarExpl, type FuncExpl, type Substitu
 console.log("=== 1. 基础变量声明和表达式创建 ===");
 
 // 创建基础变量
-const a = expl`a = 3`;
-const b = expl`b = 5`;
+const a = expl`a = 3` as VarExpl;
+const b = expl`b = 5` as VarExpl;
 
 console.log("变量 a:", a);
 console.log("变量 b:", b);
@@ -66,7 +69,7 @@ console.log("函数 distance:", distance);
 // 具名函数形式
 const namedFunc = expl`f(x) = x^2 + 1`;
 console.log("具名函数 f:", namedFunc);
-console.log("函数 id:", namedFunc.idMeta.value);
+console.log("函数 id:", namedFunc.id());
 
 // ============================================================================
 // 3. 复杂表达式组合
@@ -75,11 +78,12 @@ console.log("函数 id:", namedFunc.idMeta.value);
 console.log("\n=== 3. 复杂表达式组合 ===");
 
 // 创建多个变量
-const p = expl`p = 2`;
-const q = expl`q = 3`;
+const p = expl`p = 2` as VarExpl;
+const q = expl`q = 3` as VarExpl;
+const C = expr`1` as Expression;
 
 // 使用多个变量构建复杂表达式
-const complexExpr = expr`${p}^2 + ${q}^2 + ${p} * ${q}`;
+const complexExpr = expr`${p}^2 + ${q}^2 + ${p} * ${q} + ${C}`;
 console.log("复杂表达式:", complexExpr);
 console.log("复杂表达式的依赖数量:", complexExpr.dependencies.length);
 
@@ -110,25 +114,20 @@ const inequality = expr`x >= 0`;
 console.log("不等式:", inequality);
 
 // ============================================================================
-// 5. ID 设置（如果已实现）
+// 5. ID 设置
 // ============================================================================
 
 console.log("\n=== 5. ID 设置 ===");
 
-// 尝试设置 ID（注意：id 方法可能尚未通过原型注入实现）
-try {
-    // 使用类型断言来访问可能存在的 id 方法
-    const withId = (expl`value = 10` as any).id?.("myLib.value") || expl`value = 10`;
-    console.log("带 ID 的变量:", withId);
-    console.log("ID 元数据:", (withId as any).idMeta);
-    if ((withId as any).idMeta?.value) {
-        console.log("  ✓ ID 已设置:", (withId as any).idMeta.value);
-    } else {
-        console.log("  ⚠ ID 功能尚未实现（需要原型注入）");
-    }
-} catch (error) {
-    console.log("ID 功能尚未实现或需要原型注入:", (error as Error).message);
-}
+const myValue = (expl`myLib.myValue = 10` as VarExpl)
+console.log("通过 DSL 代码设置 ID 的变量:", myValue);
+console.log("ID 值:", myValue.id());
+
+const myValue2 = (expl`10` as VarExpl)
+console.log("未设置 ID 的变量:", myValue2);
+myValue2.id("myLib.myValue2");
+console.log("通过方法设置 ID 后:", myValue2);
+console.log("ID 值:", myValue2.id());
 
 // ============================================================================
 // 6. 依赖关系验证
@@ -137,8 +136,8 @@ try {
 console.log("\n=== 6. 依赖关系验证 ===");
 
 // 测试依赖收集
-const base = expl`base = 10`;
-const power = expl`power = 2`;
+const base = expl`base = 10` as VarExpl;
+const power = expl`power = 2` as VarExpl;
 const calculation = expr`${base}^${power}`;
 
 console.log("base 变量:", base);
@@ -147,7 +146,7 @@ console.log("calculation 表达式:", calculation);
 console.log("calculation 依赖的变量:", calculation.dependencies.map(d => {
     // 检查是否为 VarExpl 类型
     if (d.constructor.name === "VarExpl") {
-        return `VarExpl(${(d as VarExpl).idMeta.value || "unnamed"})`;
+        return `VarExpl(${(d as VarExpl).id() || ""})`;
     }
     return d.constructor.name;
 }));
@@ -175,8 +174,8 @@ try {
 console.log("\n=== 8. 实际数学场景示例 ===");
 
 // 创建一个简单的物理场景：计算速度
-const velocity = expl`my.v = 10`;  // 速度 10 m/s
-const time = expl`my.t = 5`;        // 时间 5 s
+const velocity = expl`my.v = 10` as VarExpl;  // 速度 10 m/s
+const time = expl`my.t = 5` as VarExpl;        // 时间 5 s
 const distance_calc = expr`${velocity} * ${time}`;  // 距离 = 速度 × 时间
 
 console.log("物理场景:");
@@ -185,7 +184,7 @@ console.log("  时间:", time);
 console.log("  距离计算:", distance_calc);
 
 // 创建一个几何场景：圆的方程
-const radius = expl`my.r = 3`;
+const radius = expl`my.r = 3` as VarExpl;
 const circle = expr`x^2 + y^2 = ${radius}^2`;
 console.log("\n几何场景:");
 console.log("  半径:", radius);
