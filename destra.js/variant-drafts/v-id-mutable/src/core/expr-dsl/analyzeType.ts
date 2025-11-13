@@ -7,7 +7,7 @@
  * 完整的 AST 解析（Tier 2）将在后续实现。
  */
 
-import { createRegExp, exactly, letter, wordChar, anyOf, maybe, whitespace, charNotIn, charIn, wordBoundary, digit } from "magic-regexp";
+import { createRegExp, exactly, letter, wordChar, anyOf, maybe, whitespace, charNotIn, charIn, wordBoundary, digit, oneOrMore } from "magic-regexp";
 import { type TemplatePayload, FormulaType } from "../formula/base";
 import { reservedWords, reservedWords1, reservedWords2, reservedWords3, reservedWords4, reservedWords5, suffixReservedWords } from "./parseAst";
 import { specialSymbols } from "./specialSymbols";
@@ -82,7 +82,7 @@ const inExpressionCharRangePattern =
     ).times.any();
 
 
-const idSegmentPattern = wordChar.times.any();
+const idSegmentPattern = oneOrMore(wordChar);
 const firstIdSegmentPattern = anyOf(letter, "_").and(wordChar.times.any());
 const paramNamePattern = firstIdSegmentPattern;
 
