@@ -354,10 +354,11 @@ function analyzeType(
         // 括号包裹的参数列表 / 单个参数名
         const singleParam = arrowHead.groups.singleParam;
         const paramsString = singleParam ? singleParam : arrowHead.groups.params!;
+        const name = arrowHead.groups.functionName;
         if (factoryType === "expr") {
             throw new TypeError("不能用 `expr` 创建函数。");
         }
-        return { type: FormulaType.Function, params: extractParameters(paramsString) };
+        return { type: FormulaType.Function, name, params: extractParameters(paramsString) };
     }
 
     // 然后匹配掉具名函数式的函数定义语法，为 "f(x) = x^2" 这样的形式。
@@ -418,6 +419,9 @@ function analyzeType(
         throw new TypeError("括号层级外有多于一个等号或不等号。");
     }
     if (validOps.size === 1) {
+        if (factoryType === "expl") {
+            throw new TypeError("不能用 `expl` 创建隐式方程。");
+        }
         const [_, op] = [...validOps.entries()][0]!;
         return { type: FormulaType.ImplicitEquation, op };
     }
