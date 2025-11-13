@@ -80,7 +80,7 @@ export * from "./builder";
 **前置文档**: `核心API与命名机制.md`
 
 **任务**:
-1.  在 `formula/id.ts` 中，使用“声明合并+原型注入”模式为 `Expl` 类实现 `.id()` 方法。
+1.  在 `formula/id.ts` 中，使用“声明合并+原型注入”模式为 `Expl` 类实现 `.id()` 方法和 `.realname()` 方法。
 2.  为 `Formula` 实现 `.idPrepend()` 等批量操作方法。
 
 **
@@ -111,6 +111,15 @@ Expl.prototype.idPrepend = function(segment) {
     return this;
 };
 ```
+
+### Step 2.3-pre: 调查 Desmos 样式属性详细信息
+
+**负责人**: static, Gemini
+**状态**: 待办
+**前置文档**: `属性与样式API.md`
+
+**任务**:
+调查清楚 Desmos 里具体有哪些样式属性，以及它们的用途、设置方式、获取方式、修改方式等详细信息，并记录成文档放到 `./Desmos建模/` 文件夹里。
 
 ### Step 2.3: `formula` 模块 - 样式属性 API
 

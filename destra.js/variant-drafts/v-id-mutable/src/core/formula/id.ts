@@ -6,11 +6,13 @@
  * 这些方法支持：
  * - `.id(value, isImplicit)`: 设置或更新表达式的 Destra ID
  * - `.idPrepend(segment)`: 在现有 ID 前添加前缀段（用于批量操作）
+ * - `.realname(name)`: 强制指定表达式的最终 Desmos 真名（覆盖自动命名生成器）
  */
 
-import { createRegExp } from "magic-regexp";
+import { anyOf, createRegExp, digit, exactly, letter, maybe, oneOrMore } from "magic-regexp";
 import { idPattern, idSegmentPattern } from "../expr-dsl/analyzeType";
 import { Expl } from "./base";
+import { specialSymbolsChars, specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/specialSymbols";
 
 // ============================================================================
 // 声明合并：扩展 Expl 接口类型定义
@@ -64,6 +66,38 @@ declare module "./base" {
          * ```
          */
         idPrepend(segment: string): this;
+
+        /**
+         * 强制指定表达式的最终 Desmos 真名
+         * 
+         * 用于覆盖 Destra 的自动命名生成器，强制指定表达式在 Desmos 图表中的变量名。
+         * 这是实现"键盘输入 Hack"等高级技巧所必需的。
+         * 
+         * @param name - Desmos 变量名，必须符合 Desmos 命名规则
+         * @returns 返回自身，支持链式调用
+         * 
+         * @throws {TypeError} 当 name 为空字符串时抛出
+         * 
+         * @example
+         * ```typescript
+         * // 强制指定 Desmos 变量名为 "myVar"
+         * const vec = expl`(1, 2)`.id("physics.vec").realname("v");
+         * // 即使 ID 是 "physics.vec"，最终在 Desmos 中的变量名将是 "v"
+         * ```
+         */
+        realname(name: string): this;
+        /**
+         * 获取表达式的强制指定的 Desmos 真名
+         * 
+         * @returns 返回 Desmos 真名，如果未设置则返回 undefined
+         * 
+         * @example
+         * ```typescript
+         * const vec = expl`(1, 2)`.realname("v");
+         * console.log(vec.realname()); // "v"
+         * ```
+         */
+        realname(): string | undefined;
     }
 }
 
@@ -77,9 +111,9 @@ declare module "./base" {
  * 设置表达式的 Destra ID，并标记其是否为隐式生成。
  * 隐式 ID 在命名冲突解决时具有较低优先级。
  */
-function _Expl_id (this: Expl): string | undefined;
-function _Expl_id (this: Expl, value: string, isImplicit?: boolean): Expl;
-function _Expl_id (this: Expl, value?: string, isImplicit: boolean = false): Expl | string | undefined {
+function _Expl_id(this: Expl): string | undefined;
+function _Expl_id(this: Expl, value: string, isImplicit?: boolean): Expl;
+function _Expl_id(this: Expl, value?: string, isImplicit: boolean = false): Expl | string | undefined {
     // get 功能
     if (value === undefined) {
         return this._id;
@@ -98,7 +132,7 @@ function _Expl_id (this: Expl, value?: string, isImplicit: boolean = false): Exp
         segments,
         isImplicit,
     }
-    
+
     return this;
 }
 
@@ -114,10 +148,72 @@ Expl.prototype.idPrepend = function (this: Expl, segment: string): Expl {
     if (!segment || !createRegExp(idSegmentPattern).test(segment)) {
         throw new TypeError("无效的 ID 段格式。");
     }
-    
+
     const currentSegments = this.idMeta.segments;
     this.idMeta.segments = [segment, ...currentSegments];
-    
+
     return this;
 };
+
+/**
+ * 定义 Desmos 变量名的合法范围。
+ * 规则：以字母或希腊字母(在 Destra 里可以为希腊字母的 alias，或者希腊字母字符本身)开头；可拥有一个下标，在头字母后用下划线连接，下标为一串可以包含至少一个字母或数字的字符串。
+ * 例如：a, a_b, α, α_1, α_1xy, alpha_1xy2z
+ * 按理 Destra 还应该防止你使用保留变量（x, y, z, t）作为变量名，但是既然你要使用 realname() 这种 hacky 的方法了，额，那就给你 hack 的空间吧（绝对不是因为我懒得写排除（绝对不是）），不要把你的图表玩坏就好。
+ */
+const realnamePattern = exactly(
+    exactly("").at.lineStart(),
+    anyOf(
+        letter,
+        anyOf(...specialSymbolsPaged.greekLowerCase.aliases),
+        anyOf(...specialSymbolsPaged.greekUpperCase.aliases),
+        anyOf(...specialSymbolsPaged.greekLowerCase.chars),
+        anyOf(...specialSymbolsPaged.greekUpperCase.chars),
+    ).groupedAs("head"),
+    maybe(
+        "_",
+        oneOrMore(anyOf(letter, digit)).groupedAs("subscript"),
+    ),
+    exactly("").at.lineEnd(),
+);
+
+/**
+ * 实现 .realname() 方法
+ * 
+ * 强制指定表达式的最终 Desmos 真名，覆盖自动命名生成器。
+ * 这是实现"键盘输入 Hack"等高级技巧所必需的。
+ * 
+ * 规则：以单个字母或单个希腊字母(在 Destra 里可以使用 alias，或者希腊字母字符本身)开头；可拥有一个下标，在头字母后用下划线连接，下标为一串可以包含至少一个字母或数字的字符串；真名整体必须符合此规则。
+ * 例如：a, a_b, α, α_1, α_1xy, alpha_1xy2z
+ * 注意：设置时会将真名头部的希腊字母本体转化为对应的 alias。因为这两种写法只能对应 Desmos 里的同一种变量名。
+ */
+function _Expl_realname(this: Expl): string | undefined;
+function _Expl_realname(this: Expl, name: string): Expl;
+function _Expl_realname(this: Expl, name?: string): Expl | string | undefined {
+    // get 功能
+    if (name === undefined) {
+        return this._realname;
+    }
+
+    // set 功能
+    const match = name.match(createRegExp(realnamePattern));
+    if (!match) {
+        throw new TypeError("无效的 Desmos 变量名。");
+    }
+    const head = match.groups.head!;
+    if (specialSymbolsChars.includes(head as any)) {
+        const normalizedHead = Object.entries(specialSymbolsMap).find(([_, char]) => char === head)![0];
+        const subscript = match.groups.subscript;
+        if (subscript) {
+            this._realname = `${normalizedHead}_${subscript}`;
+        } else {
+            this._realname = normalizedHead;
+        }
+        return this;
+    }
+    this._realname = name;
+    return this;
+}
+
+Expl.prototype.realname = _Expl_realname;
 

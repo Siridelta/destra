@@ -181,6 +181,7 @@ export abstract class Formula {
 export abstract class Expl extends Formula {
     public readonly isEmbeddable = true as const;
     protected idMeta: IdMetadata;
+    protected _realname?: string;
     protected get _id(): string | undefined {
         if (this.idMeta.segments.length === 0) {
             return undefined;

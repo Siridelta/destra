@@ -7,7 +7,7 @@
 
 // TODO: 实现完整的 AST 解析器
 
-import { specialSymbols } from "./specialSymbols";
+import { specialSymbolsMap } from "./specialSymbols";
 
 // 临时打表保留字，供 analyzeType 使用
 // 后续需改造成由原理出发计算得出
@@ -16,9 +16,9 @@ import { specialSymbols } from "./specialSymbols";
 // 要求：在 wordChar 范围内
 export const reservedWords1 = [
     // 保留变量
-    "x", "y", "z", "t", "r", "theta", specialSymbols.theta, "phi", specialSymbols.phi, "rho", specialSymbols.rho,
+    "x", "y", "z", "t", "r", "theta", specialSymbolsMap.theta, "phi", specialSymbolsMap.phi, "rho", specialSymbolsMap.rho,
     // 常量
-    "e", "pi", specialSymbols.pi, "tau", specialSymbols.tau, "i",
+    "e", "pi", specialSymbolsMap.pi, "tau", specialSymbolsMap.tau, "i",
     // 内置函数
     "root", "abs", "sqrt", "cbrt", "exp", "log", "ln", 
 ] as const;

@@ -10,7 +10,7 @@
 import { createRegExp, exactly, letter, wordChar, anyOf, maybe, whitespace, charNotIn, charIn, wordBoundary, digit, oneOrMore } from "magic-regexp";
 import { type TemplatePayload, FormulaType } from "../formula/base";
 import { reservedWords, reservedWords1, reservedWords2, reservedWords3, reservedWords4, reservedWords5, suffixReservedWords } from "./parseAst";
-import { specialSymbols } from "./specialSymbols";
+import { specialSymbolsMap } from "./specialSymbols";
 
 // ============================================================================
 // 类型定义
@@ -185,7 +185,7 @@ const variableDefinitionPattern = exactly(
 const explicitEquationPattern = exactly(
     lineStart,
     whitespace.times.any(),
-    anyOf(idPattern, "x", "y", "z", "r", "rho", specialSymbols.rho).groupedAs("lhsName"),
+    anyOf(idPattern, "x", "y", "z", "r", "rho", specialSymbolsMap.rho).groupedAs("lhsName"),
     whitespace.times.any(),
     "=",
     inExpressionCharRangePattern,
