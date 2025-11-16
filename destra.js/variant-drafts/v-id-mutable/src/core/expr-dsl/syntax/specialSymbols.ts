@@ -77,22 +77,34 @@ export const specialSymbolsPaged = {
             Omega: 'Ω',
         },
     },
+    "others": {
+        aliases: ["infty"],
+        chars: ["∞"],
+        map: {
+            infty: '∞',
+        },
+    },
 } as const satisfies Record<string, SpecialSymbolsMapPage>;
 
 export const specialSymbolsAliases = [
     ...specialSymbolsPaged.greekLowerCase.aliases,
     ...specialSymbolsPaged.greekUpperCase.aliases,
+    ...specialSymbolsPaged.others.aliases,
 ] as const;
 
 export const specialSymbolsChars = [
     ...specialSymbolsPaged.greekLowerCase.chars,
     ...specialSymbolsPaged.greekUpperCase.chars,
+    ...specialSymbolsPaged.others.chars,
 ] as const;
 
 type SpecialSymbolsMapPart<PageKey extends keyof typeof specialSymbolsPaged> = {
     readonly [K in keyof (typeof specialSymbolsPaged)[PageKey]["map"]]: (typeof specialSymbolsPaged)[PageKey]["map"][K];
 }
-type SpecialSymbolsMap0 = SpecialSymbolsMapPart<"greekLowerCase"> & SpecialSymbolsMapPart<"greekUpperCase">;
+type SpecialSymbolsMap0 = 
+    & SpecialSymbolsMapPart<"greekLowerCase"> 
+    & SpecialSymbolsMapPart<"greekUpperCase"> 
+    & SpecialSymbolsMapPart<"others">;
 type SpecialSymbolsMap = {
     readonly [K in keyof SpecialSymbolsMap0]: SpecialSymbolsMap0[K];
 }

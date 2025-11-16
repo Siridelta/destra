@@ -10,9 +10,9 @@
  */
 
 import { anyOf, createRegExp, digit, exactly, letter, maybe, oneOrMore } from "magic-regexp";
-import { idPattern, idSegmentPattern } from "../expr-dsl/analyzeType";
+import { idPattern, idSegmentPattern } from "../expr-dsl/syntax/commonRegExpPatterns";
+import { specialSymbolsChars, specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/syntax/specialSymbols";
 import { Expl } from "./base";
-import { specialSymbolsChars, specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/specialSymbols";
 
 // ============================================================================
 // 声明合并：扩展 Expl 接口类型定义

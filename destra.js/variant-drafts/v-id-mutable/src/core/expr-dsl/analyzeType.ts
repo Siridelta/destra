@@ -7,10 +7,10 @@
  * 完整的 AST 解析（Tier 2）将在后续实现。
  */
 
-import { createRegExp, exactly, letter, wordChar, anyOf, maybe, whitespace, charNotIn, charIn, wordBoundary, digit, oneOrMore } from "magic-regexp";
+import { createRegExp, exactly, anyOf, maybe, whitespace } from "magic-regexp";
 import { type TemplatePayload, FormulaType } from "../formula/base";
-import { reservedWords, reservedWords1, reservedWords2, reservedWords3, reservedWords4, reservedWords5, suffixReservedWords } from "./parseAst";
-import { specialSymbolsMap } from "./specialSymbols";
+import { specialSymbolsMap } from "./syntax/specialSymbols";
+import { firstIdSegmentPattern, idPattern, idSegmentPattern, inExpressionCharRangePattern, lineStart, paramNamePattern } from "./syntax/commonRegExpPatterns";
 
 // ============================================================================
 // 类型定义
@@ -65,59 +65,6 @@ type FormulaTypeInfoOfExpl = Extract<
 // ============================================================================
 // 正则表达式定义
 // ============================================================================
-
-// 大致界定 Expr DSL 中纯表达式 (expression) 内容的字符范围
-const expressionCharRange = [
-    // wordChar, whitespace,
-    "+", "-", "*", "/", "^", "%", "!",
-    "(", ")", "[", "]", "{", "}",
-    ".", ",", ":",
-    "=", "<", ">",
-] as const;
-const inExpressionCharRangePattern =
-    anyOf(
-        wordChar, whitespace,
-        exactly("${", digit.times.any(), "}"),
-        ...expressionCharRange,
-    ).times.any();
-
-
-const idSegmentPattern = oneOrMore(wordChar);
-const firstIdSegmentPattern = anyOf(letter, "_").and(wordChar.times.any());
-const paramNamePattern = firstIdSegmentPattern;
-
-const lineStart = exactly("").at.lineStart();
-const lineEnd = exactly("").at.lineEnd();
-
-// 定义 ID 的合法范围。
-// 规则：一个或多个 id 段，用点号 "." 连接。整体不能等于任何 reservedWords；第一个 id 段不能以数字开头；当 id 段数量大于 1 时，最后一个 id 段不能为 suffixReservedWords 中的任何一个。
-// 例如： a, a_b, a.b, a.b.c
-const idPattern = exactly(
-    wordBoundary.or(lineStart)
-        .notAfter(".")
-        .notBefore(
-            anyOf(
-                anyOf(...reservedWords1),
-                anyOf(...reservedWords2),
-                anyOf(...reservedWords3),
-                anyOf(...reservedWords4),
-                anyOf(...reservedWords5),
-            ),
-            wordBoundary.notBefore(".").or(lineEnd)
-        ),
-    firstIdSegmentPattern,
-    maybe(
-        exactly(".")
-            .and(idSegmentPattern).times.any(),
-        exactly(".")
-            .notBefore(
-                anyOf(...suffixReservedWords),
-                wordBoundary.or(lineEnd)
-            )
-            .and(idSegmentPattern),
-    ),
-    wordBoundary.notBefore(".").or(lineEnd)
-);
 
 // 箭头函数头：匹配 "(x, y) =>" 或 "x =>" 或前面有函数名赋值部分 "id = " 等形式
 // 结构为：可选的函数名赋值部分 "id = "，然后是参数列表（括号包裹或单个参数），最后是 "=>"
@@ -433,8 +380,5 @@ function analyzeType(
 
 export { 
     analyzeType,
-    idPattern,
-    firstIdSegmentPattern,
-    idSegmentPattern,
 };
 
