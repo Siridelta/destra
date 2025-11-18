@@ -64,12 +64,12 @@ const n = expl`1 in 0 : 0.1 : 10`;
     myPoint.style(s => {
         s.point.size = 12;
         s.label.text = "Origin";
-        s.color = "rgb(255,0,0)";
+        s.color = "rgb(255, 0, 0)";
     });
     ```
 
 2.  **便利快捷方式**:
-    *   **一级属性快捷入口**: 为常用的一级属性（如 `point`, `label`）提供直接的修改方法，以减少代码嵌套。
+    *   **一级属性快捷入口**: 为常用的一级属性（如 `point`, `label`）提供直接的 Editor 式修改方法，以减少代码嵌套。
         ```javascript
         // 等效于 myPoint.style(s => { s.point(p => { ... }) })
         myPoint.point(p => {
@@ -80,8 +80,8 @@ const n = expl`1 in 0 : 0.1 : 10`;
 
     *   **属性更新快捷方式**: `expr.style({ ... })` 和 `expr.point({ ... })` 接受一个对象，并将其与现有样式进行**深层合并 (Deep Merge) + 更新**，作为 “edit/update” 语义的简便写法。
         ```javascript
-        // 将 point.size 设置为 12, 其他 point 属性不变
-        myPoint.point({ size: 12 });
+        // 将 point.size 设置为 12, opacity 设置为 undefined（即取消设置，Desmos state 里对应数据也会成为 undefined，让 Desmos 取默认值）,其他 point 属性不变
+        myPoint.point({ size: 12, opacity: undefined });
 
         // 同时修改颜色和标签
         myPoint.style({
@@ -91,7 +91,15 @@ const n = expl`1 in 0 : 0.1 : 10`;
         ```
         > 注意：此快捷方式只用于 “edit/update” 功能。完整的 “set/rewrite” 功能必须通过在 `Editor` API 内部进行赋值来完成。
 
-### 3.3 `Editor` 对象详解
+### 3.3 API 详细结构
+
+关于样式 API 的具体数据结构，我们进行了深入的讨论和设计，旨在提供一个比 Desmos 原生 `ExpressionState` 更直观、更有组织性的模型。
+
+最终的 API 结构被定义在一个独立的文档中，以保持本文档的聚焦。
+
+> **详情请参阅：[样式API结构](./样式API结构.md)**
+
+### 3.4 `Editor` 对象详解
 
 `Editor` 是进行样式修改的核心交互句柄，它被设计为一个功能强大的混合类型对象。
 

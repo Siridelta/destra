@@ -1,0 +1,245 @@
+# 样式 API 结构
+
+> 本文档详细阐述 Destra “默认模式”中样式 API 的全部结构。
+
+```typescript
+
+// LineStyle 和 PointStyle 对应 `Desmos.Styles`
+enum LineStyle {
+    SOLID = "SOLID",
+    DASHED = "DASHED",
+    DOTTED = "DOTTED",
+}
+
+enum PointStyle {
+    POINT = "POINT",
+    OPEN = "OPEN",
+    CROSS = "CROSS",
+    SQUARE = "SQUARE",
+    PLUS = "PLUS",
+    TRIANGLE = "TRIANGLE",
+    DIAMOND = "DIAMOND",
+    STAR = "STAR",
+}
+
+// 对应 `Desmos.DragModes`
+enum DragMode {
+    AUTO = "AUTO",
+    NONE = "NONE",
+    X = "X",
+    Y = "Y",
+    XY = "XY",
+}
+
+// 对应 `Desmos.LabelOrientations`
+enum LabelOrientation {
+    DEFAULT = "default",
+    CENTER = "center",
+    CENTER_AUTO = "center_auto",
+    AUTO_CENTER = "auto_center",
+    ABOVE = "above",
+    ABOVE_LEFT = "above_left",
+    ABOVE_RIGHT = "above_right",
+    ABOVE_AUTO = "above_auto",
+    BELOW = "below",
+    BELOW_LEFT = "below_left",
+    BELOW_RIGHT = "below_right",
+    BELOW_AUTO = "below_auto",
+    LEFT = "left",
+    AUTO_LEFT = "auto_left",
+    RIGHT = "right",
+    AUTO_RIGHT = "auto_right",
+}
+
+// 数值型的、可嵌入公式的样式值类型
+type NumericStyleValue = NumericPrimitiveValue | Expression | VarExpl;
+// 颜色
+type ColorStyleValue = VarExpl | string;
+
+interface DestraStyle {
+    /**
+     * 主可见性开关，对应 Desmos 的 `hidden` 属性。
+     * 如果为 `true`，则表达式完全隐藏，但会保留各组件的可见性设置（记忆状态）。
+     * 如果为 `false` 或 `undefined`，则表达式的可见性由 `show` 属性决定。
+     */
+    hidden?: boolean;
+
+    /**
+     * 精细控制表达式各个部分的可见性。
+     * 仅在 `hidden` 不为 `true` 时生效。
+     */
+    showParts?: {
+        /** 控制线条部分的可见性。对应 Desmos 的 `lines` 属性。 */
+        lines?: boolean;
+        /** 控制点部分的可见性。对应 Desmos 的 `points` 属性。 */
+        points?: boolean;
+        /** 控制填充部分的可见性。对应 Desmos 的 `fill` 属性。 */
+        fill?: boolean;
+        /** 控制标签的可见性。对应 Desmos 的 `showLabel` 属性。 */
+        label?: boolean;
+    };
+
+    /**
+     * 颜色。
+     * 适用于线条、点、填充和标签。
+     */
+    color?: ColorStyleValue;
+
+    /**
+     * 线条样式
+     */
+    line?: {
+        style?: LineStyle;
+        width?: NumericStyleValue;
+        opacity?: NumericStyleValue;
+    };
+
+    /**
+     * 点的样式
+     */
+    point?: {
+        style?: PointStyle;
+        size?: NumericStyleValue;
+        opacity?: NumericStyleValue;
+        dragMode?: DragMode;
+    };
+
+    /**
+     * 填充样式
+     */
+    fill?: {
+        opacity?: NumericStyleValue;
+    };
+
+    /**
+     * 标签样式
+     */
+    label?: {
+        text?: string;
+        size?: NumericStyleValue;
+        /**
+         * 标签的放置位置。
+         */
+        orientation?: LabelOrientation;
+        /**
+         * 标签的旋转角度。
+         */
+        angle?: NumericStyleValue;
+    };
+    
+    /**
+     * 特定类型表达式的定义域。
+     * 它们严格来说不是“样式”，但与表达式的视觉呈现范围密切相关。
+     * 对 2D 极坐标方程/不等式、3D 柱坐标显式方程来说，`theta` 域是有效的；
+     * 对 3D 球坐标显式方程来说，`theta` 和 `phi` 域是有效的；
+     * 对 2D 参数曲线、3D 参数曲线来说，`t` 域是有效的；
+     * 对 3D 参数曲面来说，`u` 和 `v` 域是有效的；
+     * 
+     * 2D 类计算器（图形计算器、几何计算器）里可用：2D 极坐标方程/不等式、2D 参数曲线；
+     * 3D 类计算器（空间计算器）里可用：2D 极坐标显式方程、3D 柱坐标显式方程、3D 球坐标显式方程、2D 参数曲线、3D 参数曲线、3D 参数曲面；其中 2D 极坐标显式方程、2D 参数曲线绘制于xy平面，2D 极坐标显式方程可"扩展至3D"。
+     */
+    // 对应 Desmos 的 `polarDomain` 属性
+    theta?: {
+        min: NumericStyleValue;
+        max: NumericStyleValue;
+    };
+    // 对应 Desmos 的 `paramtricDomain3Dphi` 属性
+    phi?: {
+        min: NumericStyleValue;
+        max: NumericStyleValue;
+    };
+    // 对应 Desmos 的 `parametricDomain` 属性
+    t?: {
+        min: NumericStyleValue;
+        max: NumericStyleValue;
+    };
+    // 对应 Desmos 的 `paramtricDomain3Du` 属性
+    u?: {
+        min: NumericStyleValue;
+        max: NumericStyleValue;
+    };
+    // 对应 Desmos 的 `paramtricDomain3Dv` 属性
+    v?: {
+        min: NumericStyleValue;
+        max: NumericStyleValue;
+    };
+}
+```
+
+它与 Desmos 的 ExpressionState 定义的映射关系，由下面这段代码展示：
+
+```typescript
+
+const numericToLatex = (value: NumericStyleValue | undefined): string | undefined => {
+    if (value instanceof Expression) {
+        return value.compiled;
+    } else if (value instanceof VarExpl) {
+        return value.compiledName;
+    } else {
+        // Expect a number or number-compatible string. String's number-compatibility is checked in modding-time.
+        return value?.toString(); 
+    }
+}
+
+const convertFuncLikeColorExp = (colorExp: string): string => { 
+    // Converts 'rgb(...)' / 'hsv(...)' / 'oklab(...)' string to a '#RRGGBB' string.
+}
+
+const colorToLatex = (color: ColorStyleValue | undefined): string | undefined => {
+    if (color instanceof VarExpl) {
+        return color.compiledName;
+    } else {
+        // Expect a "#RRGGBB" / function-like color expression string. Validity is checked in modding-time.
+        return color ? convertFuncLikeColorExp(color) : undefined; 
+    }
+}
+
+expressionState = {
+    ...expressionState,
+
+    hidden: destraStyle.hidden,
+    lines: destraStyle.showParts?.lines,
+    points: destraStyle.showParts?.points,
+    fill: destraStyle.showParts?.fill,
+
+    showLabel: destraStyle.showParts?.label,
+    color: colorToLatex(destraStyle.color),
+
+    lineStyle: destraStyle.line?.style,
+    lineWidth: numericToLatex(destraStyle.line?.width),
+    lineOpacity: numericToLatex(destraStyle.line?.opacity),
+
+    pointStyle: destraStyle.point?.style,
+    pointSize: numericToLatex(destraStyle.point?.size),
+    pointOpacity: numericToLatex(destraStyle.point?.opacity),
+    dragMode: destraStyle.point?.dragMode,
+
+    fillOpacity: numericToLatex(destraStyle.fill?.opacity),
+    
+    label: destraStyle.label?.text,
+    labelSize: numericToLatex(destraStyle.label?.size),
+    labelOrientation: destraStyle.label?.orientation,
+    labelAngle: numericToLatex(destraStyle.label?.angle),
+
+    polarDomain: destraStyle.theta ? {
+        min: numericToLatex(destraStyle.theta?.min),
+        max: numericToLatex(destraStyle.theta?.max),
+    } : undefined,
+    paramtricDomain3Dphi: destraStyle.phi ? {
+        min: numericToLatex(destraStyle.phi?.min),
+        max: numericToLatex(destraStyle.phi?.max),
+    } : undefined,
+    parametricDomain: destraStyle.t ? {
+        min: numericToLatex(destraStyle.t?.min),
+        max: numericToLatex(destraStyle.t?.max),
+    } : undefined,
+    paramtricDomain3Du: destraStyle.u ? {
+        min: numericToLatex(destraStyle.u?.min),
+        max: numericToLatex(destraStyle.u?.max),
+    } : undefined,
+    paramtricDomain3Dv: destraStyle.v ? {
+        min: numericToLatex(destraStyle.v?.min),
+        max: numericToLatex(destraStyle.v?.max),
+    } : undefined,
+}
+```

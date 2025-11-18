@@ -115,21 +115,26 @@ Expl.prototype.idPrepend = function(segment) {
 ### Step 2.3-pre: 调查 Desmos 样式属性详细信息
 
 **负责人**: static, Gemini
-**状态**: 待办
+**状态**: 已完成
 **前置文档**: `属性与样式API.md`
 
 **任务**:
-调查清楚 Desmos 里具体有哪些样式属性，以及它们的用途、设置方式、获取方式、修改方式等详细信息，并记录成文档放到 `./Desmos建模/` 文件夹里。
+调查清楚 Desmos 里具体有哪些样式属性，以及它们的用途、设置方式、获取方式、修改方式等详细信息，并记录成文档；并确定我们 Destra 这边的样式 API 结构设计（显然 Desmos 原版的 API 不够直观(intuitive)，我们需要抓住这次机会重构它）。
+**产出**: 
+- `.ai/Desmos建模/ExpressionState定义.md`
+- `.ai/技术笔记/JS路线/默认模式/样式API结构.md`
 
 ### Step 2.3: `formula` 模块 - 样式属性 API
 
 **负责人**: AI Coder
-**状态**: 待办
-**前置文档**: `属性与样式API.md`
+**状态**: 可开始
+**前置文档**: 
+- `属性与样式API.md`
+- `样式API结构.md`
 
 **任务**:
 1.  在 `formula/style.ts` 中，遵循与 ID 逻辑相同的“声明合并+原型注入”模式，为 `Formula` 类实现 `.style()` 方法。
-2.  根据 `属性与样式API.md` 中关于“可变显示属性”的设计，定义相关的类型和实现。
+2.  根据 `属性与样式API.md` 中关于“可变显示属性”的设计，以及 `样式API结构.md` 中定义的详细数据模型，实现 `Editor` 模式及相关类型。
 
 ### Step 2.4: `selection` 模块实现
 
