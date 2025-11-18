@@ -9,7 +9,7 @@
  * - `.point()`, `.label()`, `.line()`, `.fill()`: 便利快捷方式
  */
 
-import { Expression, VarExpl, type Formula } from "./base";
+import { Expression, VarExpl, Formula } from "./base";
 
 // ============================================================================
 // 类型定义和枚举
@@ -257,9 +257,9 @@ function cloneStyle(style: DestraStyle | undefined): DestraStyle {
  * - 支持赋值（`editor.field = value`）和删除（`delete editor.field`）
  */
 class StyleEditor {
-    private _style: DestraStyle;
-    private _parent: Formula | StyleEditor | null;
-    private _path: string[];
+    protected _style: DestraStyle;
+    protected _parent: Formula | StyleEditor | null;
+    protected _path: string[];
 
     constructor(
         style: DestraStyle,
@@ -376,6 +376,27 @@ class StyleEditor {
         this.deleteValue();
         return this;
     }
+
+    /**
+     * 获取父 Editor（用于链式调用）
+     */
+    public getParent(): Formula | StyleEditor | null {
+        return this._parent;
+    }
+
+    /**
+     * 获取当前路径（用于调试）
+     */
+    public getPath(): readonly string[] {
+        return this._path;
+    }
+
+    /**
+     * 获取样式数据（用于 Proxy 访问）
+     */
+    public getStyleData(): DestraStyle {
+        return this._style;
+    }
 }
 
 /**
@@ -426,23 +447,25 @@ function createStyleEditorProxy(editor: StyleEditor): StyleEditor {
             if (typeof arg === "function") {
                 // 回调形式：editor(e => { ... })
                 arg(target);
-                return target._parent || target;
+                return target.getParent() || target;
             } else if (arg && typeof arg === "object") {
                 // 对象合并形式：editor({ ... })
-                if (target._path.length === 0) {
+                const path = target.getPath();
+                const styleData = target.getStyleData();
+                if (path.length === 0) {
                     // 根路径，直接合并
-                    deepMerge(target._style, arg);
+                    deepMerge(styleData, arg);
                 } else {
                     // 子路径，需要合并到当前路径
                     const currentValue = (target as any).getValue() || {};
                     deepMerge(currentValue, arg);
                     (target as any).setValue(currentValue);
                 }
-                return target._parent || target;
+                return target.getParent() || target;
             } else {
                 // 快捷设置：editor(value) - 直接设置当前路径的值
                 (target as any).setValue(arg);
-                return target._parent || target;
+                return target.getParent() || target;
             }
         },
     }) as StyleEditor;
@@ -471,7 +494,8 @@ declare module "./base" {
          * - `formula.style({ ... })` - 对象合并形式
          * 
          * 作为属性访问时：
-         * - `formula.style` - 返回只读样式数据（通过 `.data` 属性）
+         * - `formula.style.point.size` - 直接访问只读样式数据
+         * - `formula.style.color` - 访问颜色等一级属性
          * 
          * @example
          * ```typescript
@@ -488,15 +512,15 @@ declare module "./base" {
          *     label: { text: "My Point" }
          * });
          * 
-         * // 读取样式（通过 .data 属性）
-         * const currentStyle = myPoint.style.data;
+         * // 读取样式（直接访问）
+         * const pointSize = myPoint.style.point?.size;
+         * const color = myPoint.style.color;
          * ```
          */
         style: {
-            (editorOrUpdates: (editor: StyleEditor) => void): this;
-            (updates: Partial<DestraStyle>): this;
-            readonly data: Readonly<DestraStyle>;
-        };
+            (editorOrUpdates: (editor: StyleEditor) => void): Formula;
+            (updates: Partial<DestraStyle>): Formula;
+        } & Readonly<DestraStyle>;
 
         /**
          * 便利快捷方式：点样式编辑
@@ -558,49 +582,96 @@ function getStyleData(formula: Formula): DestraStyle {
 
 /**
  * 创建一个可调用的 style 对象
- * 它既可以是函数（用于编辑），也可以是属性（用于读取）
+ * 参考 FuncExpl 的实现方式，创建一个既是函数又是对象的混合类型
+ * 
+ * 它既可以是函数（用于编辑）：`formula.style(editor => { ... })`
+ * 也可以是对象（用于读取）：`formula.style.point.size`
  */
 function createStyleAccessor(formula: Formula): any {
+    // 获取样式数据
+    const styleData = getStyleData(formula);
+    
+    // 创建只读样式数据的代理，支持深层访问
+    const createReadonlyProxy = (obj: any): any => {
+        if (obj === null || obj === undefined) {
+            return obj;
+        }
+        if (typeof obj !== "object" || Array.isArray(obj)) {
+            return obj;
+        }
+        return new Proxy(obj, {
+            get(target, prop) {
+                const value = target[prop];
+                if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+                    return createReadonlyProxy(value);
+                }
+                return value;
+            },
+            set() {
+                throw new TypeError("样式数据是只读的，请使用 .style(editor => { ... }) 进行修改");
+            },
+            deleteProperty() {
+                throw new TypeError("样式数据是只读的，请使用 .style(editor => { ... }) 进行修改");
+            },
+        });
+    };
+    
+    // 创建只读样式对象
+    const readonlyStyle = Object.freeze(createReadonlyProxy(cloneStyle(styleData)));
+    
+    // 创建编辑函数
     const styleFunction = function(
         this: Formula,
         editorOrUpdates: ((editor: StyleEditor) => void) | Partial<DestraStyle>,
     ): Formula {
-        const styleData = getStyleData(this);
-        const editor = createStyleEditorProxy(new StyleEditor(styleData, this));
+        const currentStyleData = getStyleData(this);
+        const editor = createStyleEditorProxy(new StyleEditor(currentStyleData, this));
 
         if (typeof editorOrUpdates === "function") {
             editorOrUpdates(editor);
         } else {
-            deepMerge(styleData, editorOrUpdates);
+            deepMerge(currentStyleData, editorOrUpdates);
         }
 
         return this;
     };
-
-    // 添加只读数据属性
-    Object.defineProperty(styleFunction, "data", {
-        get(): Readonly<DestraStyle> {
-            const styleData = getStyleData(formula);
-            return Object.freeze(cloneStyle(styleData));
-        },
-        enumerable: true,
-        configurable: true,
-    });
-
-    // 使 styleFunction 本身也可以作为属性访问器
-    // 通过 Proxy 实现：当作为属性访问时返回 data，当作为函数调用时执行编辑逻辑
+    
+    // 将只读样式对象的属性复制到函数对象上
+    // 这样 formula.style.point.size 就可以直接访问了
+    Object.assign(styleFunction, readonlyStyle);
+    
+    // 使用 Proxy 包装，实现动态更新只读数据
     return new Proxy(styleFunction, {
         get(target, prop) {
-            if (prop === "data") {
-                const styleData = getStyleData(formula);
-                return Object.freeze(cloneStyle(styleData));
+            // 如果访问的是函数自身的属性（如 name, length 等），直接返回
+            if (prop in target && typeof prop !== "symbol") {
+                return (target as any)[prop];
             }
-            // 其他属性访问返回 undefined（或者可以返回 styleFunction 本身）
-            return (target as any)[prop];
+            
+            // 否则从最新的样式数据中获取
+            const currentStyleData = getStyleData(formula);
+            const currentReadonlyStyle = Object.freeze(createReadonlyProxy(cloneStyle(currentStyleData)));
+            const value = currentReadonlyStyle[prop];
+            
+            // 如果值是对象，继续创建只读代理
+            if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+                return createReadonlyProxy(value);
+            }
+            
+            return value;
         },
-        apply(target, thisArg, args) {
+        set() {
+            throw new TypeError("样式数据是只读的，请使用 .style(editor => { ... }) 进行修改");
+        },
+        deleteProperty() {
+            throw new TypeError("样式数据是只读的，请使用 .style(editor => { ... }) 进行修改");
+        },
+        apply(target, thisArg, args: any[]) {
             // 函数调用：执行编辑逻辑
-            return target.apply(thisArg, args);
+            if (args.length === 0) {
+                throw new TypeError("style() 方法需要至少一个参数");
+            }
+            return target.apply(thisArg, args as [((editor: StyleEditor) => void) | Partial<DestraStyle>]);
         },
     });
 }
@@ -631,7 +702,7 @@ function _Formula_point(
 
     if (typeof editorOrUpdates === "function") {
         editorOrUpdates(pointEditor);
-    } else {
+    } else if (editorOrUpdates) {
         deepMerge(styleData.point, editorOrUpdates);
     }
 
@@ -655,7 +726,7 @@ function _Formula_label(
 
     if (typeof editorOrUpdates === "function") {
         editorOrUpdates(labelEditor);
-    } else {
+    } else if (editorOrUpdates) {
         deepMerge(styleData.label, editorOrUpdates);
     }
 
@@ -679,7 +750,7 @@ function _Formula_line(
 
     if (typeof editorOrUpdates === "function") {
         editorOrUpdates(lineEditor);
-    } else {
+    } else if (editorOrUpdates) {
         deepMerge(styleData.line, editorOrUpdates);
     }
 
@@ -703,7 +774,7 @@ function _Formula_fill(
 
     if (typeof editorOrUpdates === "function") {
         editorOrUpdates(fillEditor);
-    } else {
+    } else if (editorOrUpdates) {
         deepMerge(styleData.fill, editorOrUpdates);
     }
 
