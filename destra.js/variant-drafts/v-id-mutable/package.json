@@ -12,7 +12,8 @@
     "vite-plugin"
   ],
   "scripts": {
-    "test:basic": "node --import tsx test/basic.test.ts"
+    "test:basic": "node --import tsx test/basic.test.ts",
+    "test:style": "node --import tsx test/style.test.ts"
   },
   "devDependencies": {
     "magic-regexp": "^0.10.0",
