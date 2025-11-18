@@ -14,7 +14,7 @@ export const lineEnd = exactly("").at.lineEnd();
 // 规则：一个或多个 id 段，用点号 "." 连接。整体不能等于任何 reservedWords；第一个 id 段不能以数字开头；当 id 段数量大于 1 时，最后一个 id 段不能为 suffixReservedWords 中的任何一个。
 // 例如： a, a_b, a.b, a.b.c
 export const idPattern = exactly(
-    wordBoundary.or(lineStart)
+    wordBoundary
         .notAfter(".")
         .notBefore(
             anyOf(
@@ -24,7 +24,7 @@ export const idPattern = exactly(
                 anyOf(...reservedWords4),
                 anyOf(...reservedWords5),
             ),
-            wordBoundary.notBefore(".").or(lineEnd)
+            wordBoundary.notBefore(".")
         ),
     firstIdSegmentPattern,
     maybe(
@@ -37,7 +37,7 @@ export const idPattern = exactly(
             )
             .and(idSegmentPattern),
     ),
-    wordBoundary.notBefore(".").or(lineEnd)
+    wordBoundary.notBefore(".")
 );
 
 // 大致界定 Expr DSL 中纯表达式 (expression) 内容的字符范围
