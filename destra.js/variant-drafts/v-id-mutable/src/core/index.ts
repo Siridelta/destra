@@ -45,3 +45,19 @@ export * from "./factories";
 
 export * from "./expr-dsl/analyzeType";
 
+// ============================================================================
+// 导出样式相关类型和枚举（可选，供高级用户使用）
+// ============================================================================
+
+export {
+    LineStyle,
+    PointStyle,
+    DragMode,
+    LabelOrientation,
+    type NumericPrimitiveValue,
+    type NumericStyleValue,
+    type ColorStyleValue,
+    type DestraStyle,
+    type StyleEditorCallable,
+} from "./formula/style";
+
