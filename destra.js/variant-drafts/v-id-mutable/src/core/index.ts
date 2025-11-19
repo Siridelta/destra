@@ -23,8 +23,8 @@ import {
 // ID 相关方法的原型注入
 import "./formula/id";
 
-// 样式相关方法的原型注入（待实现）
-import "./formula/style";
+// 样式相关方法的原型注入，并导出样式相关类型
+export * from "./formula/style";
 
 export { 
     Expression, ExplicitEquation, ImplicitEquation, Regression, 
