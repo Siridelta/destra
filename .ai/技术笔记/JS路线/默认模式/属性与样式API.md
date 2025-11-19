@@ -48,88 +48,138 @@ const n = expl`1 in 0 : 0.1 : 10`;
 
 ## 3. 显示属性的可变 API 设计
 
-与 Slider 属性相反，显示属性被设计为高度灵活、可动态修改的。其 API 设计的核心是**读写分离**与 **Editor 模式**，在概念清晰度、API 表面积和灵活性之间取得了理想的平衡。
+与 Slider 属性相反，显示属性被设计为高度灵活、可动态修改的。
 
-### 3.1 核心原则：读写分离
+### 3.1 样式数据结构
 
--   **读取**: 依靠读取 `expr.style` 及其所有子属性（如 `expr.style.point.size`）来获取样式数据。这些属性都是**只读的数据访问器**。它们返回纯净的、可序列化的数据。
--   **写入**: 所有修改操作都必须通过一个明确的“编辑会话”来启动。这个会话会提供一个功能强大的 **`Editor`** 对象，用于进行原子化的修改。
+首先，我们的目标是让用户在一个关于“样式”的数据模型上配置、编辑、读取、修改。Desmos 里关于样式的数据是伴随其他数据直接挂载在 ExpressionState 对象上的，而且很明显因为一些历史包袱原因数据结构其实设计的不是很好。因此我们也借此机会重构 style 相关的数据结构，即 Destra Style Schema，这个数据结构能提供一个比 Desmos 原生 `ExpressionState` 更直观、更有组织性的模型。
 
-### 3.2 最终 API 设计：核心入口 + 便利快捷方式
+> **详情请参阅：[样式数据结构](./样式数据结构.md)**
 
-1.  **核心修改入口**: `expr.style(editor => { ... })`
-    这是功能最全面的入口。它接受一个回调函数，并向其提供一个 `Style Editor`，允许用户在回调中进行任意复杂的、多层次的原子化修改。
+### 3.1 三类功能 API 设计
 
+我们需要满足用户在 IDE 中的声明式编写体验和 Console 中的调试需求，因此目前我们采用了一个明确区分 **配置(Configuration) / 编辑(Mutation) / 内省(Introspection)** 三类功能的 API 设计。
+
+1.  **配置 (Configuration)**: `expr.style({ ... })`, `expr.setStyle({ ... })`
+    *   面向 IDE 开发场景。
+    *   提供声明式的对象结构，`.style({ ... })` 进行的是增量更新 / 深度合并 (Deep Merge)，`.setStyle({ ... })` 进行的是完全覆盖。
+    *   返回表达式本身，支持链式调用。
+
+2.  **编辑 (Mutation)**: `expr.style(editor => { ... })`
+    *   面向需要精细控制或程序化修改的场景。
+    *   提供一个强大的 **`Editor`** 句柄，支持原子化的读写操作和删除操作。
+
+3.  **内省 (Introspection)**: `expr.styleData`
+    *   面向 Console 调试和数据查看。
+    *   这是一个**只读 Getter 属性**，返回当前样式的纯净、深拷贝、平凡对象的数据副本。
+    *   完全“所见即所得”，无任何魔法属性。
+
+#### 一级属性快捷方式
+
+为了方便使用，在 Formula 对象上我们也为所有一级属性提供了快捷方式，例如 `myPoint.line(...)`，`myPoint.setLine(...)`，而不是 `myPoint.style({ color: ... })`。
+
+根据我们的样式数据结构 (style schema)，目前支持的一级属性有：`hidden`, `color`, `line`, `point`, `fill`, `label`, `theta`, `phi`, `t`, `u`, `v`。因此在 Formula 对象上也会有以它们命名的方法以及 setField 方法。
+
+### 3.2 使用示例
+
+#### 声明式配置 (IDE 常用)
+
+```javascript
+// 链式调用配置
+myPoint
+    .style({
+        color: "red",
+        point: { size: 10 }
+    })
+    .line({ width: 2 }); // 快捷方式
+```
+
+#### 精细化编辑 (Editor 模式)
+
+```javascript
+myPoint.style(s => {
+    // s 是 Root Editor 句柄
+    
+    // 1. 原生赋值：直接写入值
+    s.color = "blue";
+    s.point.size = 15;
+    
+    // 2. 中间节点赋值：自动进行 Merge
+    s.label = { text: "Origin", size: 24 };
+    
+    // 3. 删除属性
+    s.point.opacity = undefined; // 删除 opacity 属性
+    s.fill.delete();             // 删除整个 fill 配置
+});
+```
+
+可见，这个 API 设计可以很好地和其他功能的 API 进行链式调用的结合，获得的声明式配置体验。例如：
+
+```javascript
+const mosaicGrid = expl.with`
+    Points = ${For`i = [0, ..., ${N}-1], j = [0, ..., ${N}-1]` (({i, j}) => 
+        expr`(${i}, ${j})`
+    )},
+    Filter = ${For`i = [0, ..., ${N}-1], j = [0, ..., ${N}-1]` (({i, j}) => 
+        expr`mod(${i} + ${j}, 2)`
+    )},
+`(({Points, Filter}) => 
+    For`P = ${Points}[${Filter} = 0]`(({P}) => 
+        expr`polygon(${P}, ${P}+(1, 0), ${P}+(1, 1), ${P}+(0, 1))`
+    )
+)
+    .id("mosaicGrid")
+    .realName("M_osaicGrid")
+    .style({
+        color: "red",
+        line: { width: 2 },
+        fill: { opacity: 0.5 },
+    })
+```
+
+### 3.3 `Editor` 对象详解
+
+`Editor` 是仅在编辑回调中存在的操作句柄。我们需要借助这个 Editor 句柄，既给予用户自由编辑样式内容的能力，又保证用户的编辑操作限制在 Style Schema 的范围内。目前我们采用了一种 **“全 Editor 节点 + 不对称读写”** 的设计模式，可以提供统一且强大的操作体验。
+
+#### 核心特性
+
+1.  **全 Editor 节点**: 
+    无论你访问的是中间节点（如 `s.point`）还是叶子节点（如 `s.point.size`），Getter 返回的永远是一个 **`Editor` 实例**。这保证了你可以在任何层级调用 Editor 的方法（如 `.delete()`）。
+
+2.  **不对称原生读写 (Asymmetric Native Access)**:
+    *   **写入 (Setter)**: 直接接受**值**。
+        *   `s.point.size = 10` —— 写入数字 `10`。
+        *   `s.point = { size: 10 }` —— 写入配置对象（完全覆盖）。
+    *   **读取 (Getter)**: 返回 **Editor 实例**（句柄）。
+        *   `s.point.size` —— 返回一个 `LeafEditor` 对象。
+    
+    这种设计让我们既能享受原生赋值（`=`）的便利，又能保持操作句柄的统一性。
+
+3.  **显式读值**:
+    由于 Getter 返回的是 Editor 句柄，如果你需要获取当前的真实值（例如用于计算），必须显式调用 `.value` 属性。
+    
     ```javascript
-    myPoint.style(s => {
-        s.point.size = 12;
-        s.label.text = "Origin";
-        s.color = "rgb(255, 0, 0)";
+    s.style(e => {
+        // 错误！e.point.size 是一个对象
+        // const doubleSize = e.point.size * 2; 
+        
+        // 正确：显式读取真实值
+        const currentSize = e.point.size.value || 10;
+        e.point.size = currentSize * 2;
     });
     ```
 
-2.  **便利快捷方式**:
-    *   **一级属性快捷入口**: 为常用的一级属性（如 `point`, `label`）提供直接的 Editor 式修改方法，以减少代码嵌套。
-        ```javascript
-        // 等效于 myPoint.style(s => { s.point(p => { ... }) })
-        myPoint.point(p => {
-            p.size = 12;
-            p.opacity = 0.8;
-        });
-        ```
+#### Editor 方法 API
 
-    *   **属性更新快捷方式**: `expr.style({ ... })` 和 `expr.point({ ... })` 接受一个对象，并将其与现有样式进行**深层合并 (Deep Merge) + 更新**，作为 “edit/update” 语义的简便写法。
-        ```javascript
-        // 将 point.size 设置为 12, opacity 设置为 undefined（即取消设置，Desmos state 里对应数据也会成为 undefined，让 Desmos 取默认值）,其他 point 属性不变
-        myPoint.point({ size: 12, opacity: undefined });
+所有 Editor 节点（无论层级）都提供以下方法：
 
-        // 同时修改颜色和标签
-        myPoint.style({
-            color: "blue",
-            label: { text: "My Point" }
-        });
-        ```
-        > 注意：此快捷方式只用于 “edit/update” 功能。完整的 “set/rewrite” 功能必须通过在 `Editor` API 内部进行赋值来完成。
-
-### 3.3 API 详细结构
-
-关于样式 API 的具体数据结构，我们进行了深入的讨论和设计，旨在提供一个比 Desmos 原生 `ExpressionState` 更直观、更有组织性的模型。
-
-最终的 API 结构被定义在一个独立的文档中，以保持本文档的聚焦。
-
-> **详情请参阅：[样式API结构](./样式API结构.md)**
-
-### 3.4 `Editor` 对象详解
-
-`Editor` 是进行样式修改的核心交互句柄，它被设计为一个功能强大的混合类型对象。
-
--   **混合类型**: `Editor` 的子属性（如 `editor.point`）本身也是一个 `Editor`，它既可以被读取（`editor.point.size`），也可以作为函数被调用（`editor.point(...)`），还可以调用其自身的方法 (`editor.point.set(...)`)。
-    - 同时这使得 `Editor` 可以模拟为"其上层 field 的一个可链式调用的方法"，对链式调用写法友好。例如，`styleEditor.point({ size: 12 })` 看似是调用了一个 `styleEditor` 对象身上的 `point` 方法，但实际上是 `styleEditor.point` 属性上，作为一个代表 "point 字段" 的 `Editor` 对象，被作为函数调用了，传入一个对象作为参数，调用完后返回上层 `styleEditor` 对象，方便继续“链式调用”。
-
--   **安全的深层路径创建**: 访问 `Editor` 上一个不存在的属性（如 `editor.a.b.c`）会自动创建路径上的中间对象，从而避免繁琐的空值检查。
-
--   **赋值 API (`set/rewrite` 语义)**:
-    `editor.field = value;` 或 `editor.field.set(value)`
-    这会完全覆写 `field` 的内容。
-
--   **删除 API (`delete` 语义)**:
-    `delete editor.field;` 或 `editor.field.delete()`
-    这会从样式对象中移除 `field` 属性。
-    > 注意：`editor.field = undefined` 会触发 `set` 语义，而不是 `delete` 语义。
-
--   **可调用体 API (`edit/update` 语义)**:
-    `editor` 自身可以作为函数调用，提供两种便捷的 `edit/update` 签名，并支持链式调用：
-    1.  **回调形式**: `editor(e => { ... })`
-        在回调里再次提供 `Editor` 对象，允许用户在回调函数中开辟新的操作域进行有组织的多层操作。
-        ```javascript
-        // 链式调用示例
-        myLine.style(s => {
-            s.color("red") // 调用可调用体，传入字符串，是 set 的快捷方式
-             .width(4);    // 返回 s，继续链式调用
-        });
-        ```
-    2.  **对象合并形式**: `editor({ ... })`
-        接受一个对象，作为深层合并的简便写法。
-
--   **数据导出**: `editor.toJSON()`
-    提供 `.toJSON()` 方法，允许从 `Editor` 中获取一个纯净、可序列化的数据对象，方便在会话内部快速地进行一次真实的“查看”，而不用走顶层 `style` 只读属性 API。该方法也能被 `JSON.stringify()` 自动调用。
+-   **`.delete()`**: 删除该节点对应的数据。
+    *   等效于 `s.field = undefined`。
+-   **`.set(value)`, `.set(value => newValue)`**: 显式赋值，完全覆盖当前值。
+-   **`.update(value)`**: 显式更新值。
+    *   对于中间节点，执行 Deep Merge。
+    *   对于叶子节点，直接覆写值。
+-   **`.edit(callback)`**: 进入子作用域进行编辑。
+    *   `s.point.edit(p => p.size = 10)`。
+-   **`.value` (Getter)**: 获取当前节点的真实数据（Plain Object 或 Primitive Value）。
+    *   这也是 `.toJSON()` 的实现，方便序列化。

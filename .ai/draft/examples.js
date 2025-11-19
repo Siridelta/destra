@@ -5,6 +5,12 @@ c = For`a = 3, b = ${expr`4`}` (ctx =>
     
 ); 
 
+c1 = For`a = 3, b = ${expr`4`}` (({a, b}) =>
+
+    expr`${a}^2 + ${b}^2`
+    
+); 
+
 sigmoid = Fn`x` (ctx =>
     expr`1 / (1 + e^(-${ctx.x}))`
 );
