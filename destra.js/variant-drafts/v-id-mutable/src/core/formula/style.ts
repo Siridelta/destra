@@ -122,7 +122,7 @@ export interface DestraStyle {
     };
 
     /**
-     * 域 (Domain) 定义
+     * 参数方程 & 极坐标/柱坐标/球坐标 的域 (Domain) 定义
      */
     theta?: { min: NumericStyleValue; max: NumericStyleValue };
     phi?: { min: NumericStyleValue; max: NumericStyleValue };
@@ -132,7 +132,52 @@ export interface DestraStyle {
 }
 
 // ============================================================================
-// 3. 内部存储 (WeakMap)
+// 3. Runtime Schema (用于生成显式 Getter)
+// ============================================================================
+
+/**
+ * 运行时样式结构描述
+ * true 表示叶子节点，对象表示嵌套结构
+ */
+const styleSchema = {
+    hidden: true,
+    showParts: {
+        lines: true,
+        points: true,
+        fill: true,
+        label: true,
+    },
+    color: true,
+    line: {
+        style: true,
+        width: true,
+        opacity: true,
+    },
+    point: {
+        style: true,
+        size: true,
+        opacity: true,
+        dragMode: true,
+    },
+    fill: {
+        opacity: true,
+    },
+    label: {
+        text: true,
+        size: true,
+        orientation: true,
+        angle: true,
+    },
+    // Domains
+    theta: { min: true, max: true },
+    phi: { min: true, max: true },
+    t: { min: true, max: true },
+    u: { min: true, max: true },
+    v: { min: true, max: true },
+} as const;
+
+// ============================================================================
+// 4. 内部存储 (WeakMap)
 // ============================================================================
 
 // 使用 WeakMap 存储每个 Formula 实例的样式数据，避免修改 Formula 基类结构
@@ -152,7 +197,7 @@ const getFormulaStyle = (formula: Formula): DestraStyle => {
 };
 
 // ============================================================================
-// 4. Editor 模式实现
+// 5. Editor 模式实现 (显式 Getter 模式)
 // ============================================================================
 
 /**
@@ -180,184 +225,112 @@ type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } 
 
 /**
  * 创建 StyleEditor 的工厂函数
+ * 使用 Object.defineProperties 代替 Proxy，提供更好的 IDE 提示和 Console 调试体验
  *
  * @param rootData 根数据对象 (DestraStyle)
  * @param path 当前 Editor 对应的数据路径 (e.g., ['point', 'size'])
  * @param parent 父级 Editor (用于链式调用返回)
- * @param onUpdate 回调，当数据发生变更时触发（这里主要是为了确保根对象存在，或者处理一些副作用）
+ * @param schemaNode 对应的 schema 节点，用于生成显式属性
  */
 const createStyleEditor = <T, P>(
     getData: () => T | undefined,
     setData: (val: T | undefined) => void,
-    parent: P
+    parent: P,
+    schemaNode: any 
 ): StyleEditor<T, P> => {
     
-    // 核心调用逻辑
-    const invoke = (arg: any) => {
+    // 1. 核心函数体
+    const editorFunc = function(arg: any) {
+        const target = editorFunc as any; // Self reference
+
         if (typeof arg === 'function') {
             // Callback 模式: editor(e => ...)
-            arg(proxy);
+            arg(target);
         } else if (typeof arg === 'object' && arg !== null && !isPrimitiveStyleValue(arg)) {
              // Object merge 模式 (简化的 deep merge，或者直接视为 update)
              // 注意：这里需要区分是 Expression/VarExpl 还是纯配置对象
              // 如果是 Expression/VarExpl，它应该被视为"值"，走 set 逻辑
              if (isStyleValue(arg)) {
                  // 是样式值 (Expression | VarExpl)，直接 set
-                 proxy.set(arg as any);
+                 target.set(arg as any);
              } else {
                  // 是配置对象，进行合并
-                 // 这里我们需要一个 merge 逻辑。
-                 // 简单起见，我们遍历 arg 的 key 并递归调用子 editor 的 set/invoke
-                 // 但为了性能和正确性，我们也可以直接修改数据。
-                 // 既然有了 proxy 机制，不如直接利用它?
                  // 遍历 arg:
                  for (const key in arg) {
                     const value = arg[key];
-                    // 访问子 editor 并调用它，传入 value
-                    // 这样可以复用子 editor 的逻辑 (比如处理 undefined, merge 等)
-                    (proxy as any)[key](value);
+                    // 只有在 schema 中存在的 key 才能被处理 (安全检查)
+                    // 且确保 target[key] 存在 (即子 editor getter 存在)
+                    if (schemaNode && schemaNode[key]) {
+                        // 访问子 editor 并调用它，传入 value
+                        (target as any)[key](value);
+                    }
                  }
              }
         } else {
             // Value 模式: editor(value) -> set(value)
-            proxy.set(arg);
+            target.set(arg);
         }
         return parent;
     };
 
-    // 构造混合对象
-    const target = invoke as any;
+    // 2. 挂载显式方法
+    const target = editorFunc as any;
 
-    // 挂载显式方法
     target.set = (value: T | undefined) => {
         setData(value);
     };
 
     target.delete = () => {
-        // delete 语义：从父对象中移除该 key
-        // 但我们这里是 setData(undefined) 吗？
-        // Desmos 中 undefined通常意味着"使用默认值"或者"移除 override"
-        // 在 JS 对象层面， delete 是移除 key。
-        // 由于我们的 setData 封装了父对象的 key 访问，我们可以传递一个特殊标记或者 setData(undefined)
-        // 约定：setData(undefined) 实际上就是把那个字段设为 undefined。
-        // 如果要真 delete key，可能需要更底层的 access。
-        // 鉴于 `editor.field = undefined` 和 `delete editor.field` 的区别：
-        // editor.field = undefined -> data[field] = undefined
-        // delete editor.field -> delete data[field]
-        // 我们的 setData 目前无法区分。
-        // 让我们改进 setData 的语义，或者简单地让 set(undefined) 能够工作。
-        // 实际上，对于 JSON 序列化，key: undefined 通常会被忽略，或者显式输出 null。
-        // 让我们暂且认为 set(undefined) 足够了。如果需要真 delete，可以在 Proxy trap 里处理。
+        // delete 语义：setData(undefined)
         setData(undefined);
     };
-    
-    // 为了支持 `delete editor.field` 语法，我们需要在 Parent 的 Proxy trap 里处理 deleteProperty。
-    // 但 target.delete() 是显式方法。
-    // 如果要支持 `delete proxy.field`，我们需要在 Proxy handler 里做。
 
     target.toJSON = () => {
         return getData();
     };
 
-    // 创建 Proxy
-    const proxy = new Proxy(target, {
-        get(target, prop, receiver) {
-            // 1. 拦截显式方法和已知属性
-            if (prop === 'set' || prop === 'delete' || prop === 'toJSON') {
-                return Reflect.get(target, prop, receiver);
-            }
+    // 3. 动态挂载显式 Getter 属性
+    if (schemaNode && typeof schemaNode === 'object') {
+        const descriptors: PropertyDescriptorMap = {};
+        
+        for (const key in schemaNode) {
+            const childSchema = schemaNode[key];
             
-            // 2. 拦截 invoke (作为函数调用时) - 其实不需要拦截，target 本身就是函数
-
-            // 3. 访问子属性 -> 返回子 Editor
-            if (typeof prop === 'string') {
-                // 构造子属性的 getter/setter
-                const childGetData = () => {
-                    const data = getData();
-                    return (data as any)?.[prop];
-                };
-                const childSetData = (val: any) => {
-                    const data = getData();
-                    // 如果当前层级数据不存在，需要自动创建
-                    if (data === undefined || data === null) {
-                        // 这里有个问题：如果当前 data 是 undefined，我们无法设置属性。
-                        // 所以 setData 必须能够“向上追溯”并创建对象？
-                        // 或者我们要求 parent 必须存在？
-                        // 为了实现 "Auto path creation"，我们需要能够修改 parent 的数据。
-                        // 所以 createStyleEditor 最好持有 "parentData" 和 "key"。
-                        // 但这里的结构是 getData/setData 闭包。
-                        // 这意味着 setData 内部必须处理 "如果 parent 是 undefined，则无法设置" 的情况？
-                        // 不，createStyleEditor 的 setData 已经是 "ensure parent exists and set prop" 的逻辑封装吗？
-                        // 让我们重新设计 createStyleEditor 的参数，改用 (parentObj, key) 模式可能更稳健？
-                        // 但是 root 没有 parentObj (或者说 parent 是 weakMap)。
-                        
-                        // 修正方案：
-                        // 我们不检查 data，直接尝试设置。如果 data 是 undefined，我们在 setData 内部无法解决。
-                        // 所以必须在 childSetData 里解决。
-                        // 但 childSetData 只能拿到 data (value of current node)。它无法修改 current node 变成 object。
-                        
-                        // 因此，我们需要一种机制来 "ensure current node is object"。
-                        // 这只有在 "get current node" 的时候做不到，必须在 "set child" 的时候做。
-                        // 所以：childSetData 需要调用 `ensureData()` ?
-                        
-                        // 让我们回头看：childSetData 是定义在这里的。
-                        // 它可以调用 `setData` (current node's setter) 来初始化当前节点！
-                        const currentData = getData();
-                        if (currentData === undefined || currentData === null) {
+            descriptors[key] = {
+                enumerable: true, // 允许在 console.dir 中被枚举看到
+                configurable: true,
+                get: () => {
+                    // 构造子 Editor 的数据访问器
+                    const childGetData = () => {
+                        const data = getData();
+                        return (data as any)?.[key];
+                    };
+                    const childSetData = (val: any) => {
+                        const data = getData();
+                        // 如果当前层级数据不存在，需要自动创建
+                        if (data === undefined || data === null) {
                              setData({} as any);
                         }
-                        // Now getData() should return the new object
+                        // 重新获取 data (因为它可能刚刚被创建)
                         const newData = getData() as any;
                         if (val === undefined) {
-                            // 如果是 set undefined, 并不一定要 delete key
-                            newData[prop] = undefined;
-                            // 如果要真 delete: delete newData[prop];
+                            // set undefined
+                            newData[key] = undefined;
                         } else {
-                            newData[prop] = val;
+                            newData[key] = val;
                         }
-                    } else {
-                        (data as any)[prop] = val;
-                    }
-                };
-                
-                // 返回子 Proxy
-                // 注意：parent 传的是当前 proxy (this level)
-                return createStyleEditor(childGetData, childSetData, proxy);
-            }
-
-            return Reflect.get(target, prop, receiver);
-        },
-
-        set(target, prop, value, receiver) {
-            // 拦截赋值: editor.field = value
-            if (typeof prop === 'string') {
-                // 获取子 Editor (为了复用逻辑，或者直接操作数据)
-                // 直接操作数据更高效，但要处理 path creation
-                const data = getData();
-                if (data === undefined || data === null) {
-                    setData({} as any);
+                    };
+                    
+                    // 递归创建，传入当前 editor (target) 作为 parent
+                    return createStyleEditor(childGetData, childSetData, target, childSchema);
                 }
-                const newData = getData() as any;
-                newData[prop] = value;
-                return true;
-            }
-            return Reflect.set(target, prop, value, receiver);
-        },
-
-        deleteProperty(target, prop) {
-            // 拦截 delete editor.field
-            if (typeof prop === 'string') {
-                const data = getData();
-                if (data && typeof data === 'object') {
-                    delete (data as any)[prop];
-                    return true;
-                }
-            }
-            return Reflect.deleteProperty(target, prop);
+            };
         }
-    });
+        
+        Object.defineProperties(target, descriptors);
+    }
 
-    return proxy;
+    return target as StyleEditor<T, P>;
 };
 
 // 辅助：判断是否为样式值（非纯配置对象）
@@ -369,7 +342,7 @@ const isPrimitiveStyleValue = (v: any): boolean => {
 }
 
 // ============================================================================
-// 5. 声明合并与原型注入
+// 6. 声明合并与原型注入
 // ============================================================================
 
 declare module "./base" {
@@ -402,37 +375,18 @@ declare module "./base" {
     }
 }
 
-// 注入 style 属性 (Hybrid Getter)
+// 注入 style 属性 (Hybrid Getter w/ Explicit Properties)
 Object.defineProperty(Formula.prototype, "style", {
     get() {
         const self = this as Formula;
         
-        // The Edit Function
-        const editFn = (arg?: any) => {
-            const getData = () => getFormulaStyle(self);
-            const setData = (val: DestraStyle | undefined) => formulaStyles.set(self, val || {});
-            const editor = createStyleEditor(getData, setData, self);
-            if (arg !== undefined) {
-                editor(arg);
-            }
-            return self;
-        };
+        const getData = () => getFormulaStyle(self);
+        const setData = (val: DestraStyle | undefined) => formulaStyles.set(self, val || {});
         
-        // Make it look like the Data via Proxy
-        return new Proxy(editFn, {
-            get(target, prop, receiver) {
-                const currentData = getFormulaStyle(self);
-                // 优先尝试从数据中读取
-                if (currentData && prop in currentData) {
-                    return (currentData as any)[prop];
-                }
-                // 否则返回函数自身的属性
-                return Reflect.get(target, prop, receiver);
-            },
-            set() {
-                throw new Error("Style properties are read-only via direct access. Use .style(s => ...) or .style({ ... }) to modify.");
-            }
-        });
+        // 使用 Schema 创建绑定到当前实例的 Editor
+        const editor = createStyleEditor(getData, setData, self, styleSchema);
+        
+        return editor;
     }
 });
 

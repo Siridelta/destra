@@ -12,10 +12,13 @@
     "vite-plugin"
   ],
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:basic": "node --import tsx test/basic.test.ts"
   },
   "devDependencies": {
     "magic-regexp": "^0.10.0",
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "vitest": "^4.0.1"
   }
 }
