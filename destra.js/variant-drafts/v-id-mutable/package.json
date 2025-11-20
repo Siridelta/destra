@@ -13,8 +13,7 @@
   ],
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest",
-    "test:basic": "node --import tsx test/basic.test.ts"
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "magic-regexp": "^0.10.0",
