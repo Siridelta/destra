@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { 
+    Formula,
     Expression, ExplicitEquation, ImplicitEquation, Regression, 
     VarExpl, type FuncExpl, Expl,
     type Substitutable
@@ -27,6 +28,7 @@ import "./formula/id";
 export * from "./formula/style";
 
 export { 
+    Formula,
     Expression, ExplicitEquation, ImplicitEquation, Regression, 
     VarExpl, type FuncExpl, Expl, 
     type Substitutable 

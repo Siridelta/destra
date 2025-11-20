@@ -4,6 +4,7 @@
  * 本模块使用"声明合并+原型注入"模式为 Formula 类实现样式相关方法。
  */
 
+import { Assignable, Expect } from "../../types/utils";
 import { Formula, Expression, VarExpl } from "./base";
 
 // ============================================================================
@@ -131,10 +132,22 @@ export interface DestraStyle {
     v?: { min: NumericStyleValue; max: NumericStyleValue };
 }
 
-// ============================================================================
-// 3. Runtime Schema (用于生成显式 Getter)
-// ============================================================================
+// 定义所有一级属性 Key，维持与 Destra Style Schema 的一致性
+const styleKeys = [
+    'hidden', 'showParts', 'color', 'line', 'point', 'fill', 'label',
+    'theta', 'phi', 't', 'u', 'v',
+] as const;
 
+type CheckDestraStyle = Expect<Assignable<DestraStyle, { [K in typeof styleKeys[number]]?: any }>>;
+
+type LeafType = boolean | number | string | Expression | VarExpl;
+
+type StyleSchema<T> = {
+    [K in keyof T]: 
+        NonNullable<T[K]> extends LeafType
+        ? true 
+        : StyleSchema<NonNullable<T[K]>>;
+};
 /**
  * 运行时样式结构描述
  * true 表示叶子节点，对象表示嵌套结构
@@ -174,19 +187,331 @@ const styleSchema = {
     t: { min: true, max: true },
     u: { min: true, max: true },
     v: { min: true, max: true },
-} as const;
+} as const satisfies StyleSchema<DestraStyle>;
+
+
+export type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
 
 // ============================================================================
-// 4. 内部存储 (WeakMap)
+// 3. Editor 类型定义 (Explicit Interfaces)
 // ============================================================================
-
-// 使用 WeakMap 存储每个 Formula 实例的样式数据，避免修改 Formula 基类结构
-const formulaStyles = new WeakMap<Formula, DestraStyle>();
 
 /**
- * 获取 Formula 的样式数据（只读副本，或者直接引用？为了性能直接引用，但在 API 层做只读保护）
- * 实际上 StyleEditor 需要直接修改这个对象。
+ * Editor 基础接口
  */
+export interface EditorBase<T> {
+    readonly value: T | undefined;
+    set(value: DeepPartial<T> | undefined | ((current: T | undefined) => DeepPartial<T> | undefined)): void;
+    update(value: DeepPartial<T>): void;
+    delete(): void;
+    edit(callback: (editor: this) => void): void;
+    toJSON(): T | undefined;
+}
+
+/**
+ * 叶子节点 Editor (Primitive Values)
+ */
+export interface LeafEditor<T> extends EditorBase<T> {
+    // 叶子节点不需要子属性访问器
+}
+
+/**
+ * ShowParts Editor
+ */
+export interface ShowPartsEditor extends EditorBase<NonNullable<DestraStyle['showParts']>> {
+    get lines(): LeafEditor<boolean>;
+    set lines(v: boolean | undefined);
+
+    get points(): LeafEditor<boolean>;
+    set points(v: boolean | undefined);
+
+    get fill(): LeafEditor<boolean>;
+    set fill(v: boolean | undefined);
+
+    get label(): LeafEditor<boolean>;
+    set label(v: boolean | undefined);
+}
+
+/**
+ * Line Editor
+ */
+export interface LineEditor extends EditorBase<NonNullable<DestraStyle['line']>> {
+    get style(): LeafEditor<LineStyle>;
+    set style(v: LineStyle | undefined);
+
+    get width(): LeafEditor<NumericStyleValue>;
+    set width(v: NumericStyleValue | undefined);
+
+    get opacity(): LeafEditor<NumericStyleValue>;
+    set opacity(v: NumericStyleValue | undefined);
+}
+
+/**
+ * Point Editor
+ */
+export interface PointEditor extends EditorBase<NonNullable<DestraStyle['point']>> {
+    get style(): LeafEditor<PointStyle>;
+    set style(v: PointStyle | undefined);
+
+    get size(): LeafEditor<NumericStyleValue>;
+    set size(v: NumericStyleValue | undefined);
+
+    get opacity(): LeafEditor<NumericStyleValue>;
+    set opacity(v: NumericStyleValue | undefined);
+
+    get dragMode(): LeafEditor<DragMode>;
+    set dragMode(v: DragMode | undefined);
+}
+
+/**
+ * Fill Editor
+ */
+export interface FillEditor extends EditorBase<NonNullable<DestraStyle['fill']>> {
+    get opacity(): LeafEditor<NumericStyleValue>;
+    set opacity(v: NumericStyleValue | undefined);
+}
+
+/**
+ * Label Editor
+ */
+export interface LabelEditor extends EditorBase<NonNullable<DestraStyle['label']>> {
+    get text(): LeafEditor<string>;
+    set text(v: string | undefined);
+
+    get size(): LeafEditor<NumericStyleValue>;
+    set size(v: NumericStyleValue | undefined);
+
+    get orientation(): LeafEditor<LabelOrientation>;
+    set orientation(v: LabelOrientation | undefined);
+
+    get angle(): LeafEditor<NumericStyleValue>;
+    set angle(v: NumericStyleValue | undefined);
+}
+
+/**
+ * Domain Editor (Generic for theta, phi, t, u, v)
+ */
+export interface DomainEditor extends EditorBase<{ min: NumericStyleValue; max: NumericStyleValue }> {
+    get min(): LeafEditor<NumericStyleValue>;
+    set min(v: NumericStyleValue | undefined);
+
+    get max(): LeafEditor<NumericStyleValue>;
+    set max(v: NumericStyleValue | undefined);
+}
+
+/**
+ * Root Style Editor
+ */
+export interface RootStyleEditor extends EditorBase<DestraStyle> {
+    get hidden(): LeafEditor<boolean>;
+    set hidden(v: boolean | undefined);
+
+    get showParts(): ShowPartsEditor;
+    set showParts(v: DeepPartial<NonNullable<DestraStyle['showParts']>> | undefined);
+
+    get color(): LeafEditor<NonNullable<DestraStyle['color']>>;
+    set color(v: NonNullable<DestraStyle['color']> | undefined);
+
+    get line(): LineEditor;
+    set line(v: DeepPartial<NonNullable<DestraStyle['line']>> | undefined);
+
+    get point(): PointEditor;
+    set point(v: DeepPartial<NonNullable<DestraStyle['point']>> | undefined);
+
+    get fill(): FillEditor;
+    set fill(v: DeepPartial<NonNullable<DestraStyle['fill']>> | undefined);
+
+    get label(): LabelEditor;
+    set label(v: DeepPartial<NonNullable<DestraStyle['label']>> | undefined);
+
+    // Domains
+    get theta(): DomainEditor;
+    set theta(v: DeepPartial<{ min: NumericStyleValue; max: NumericStyleValue }> | undefined);
+
+    get phi(): DomainEditor;
+    set phi(v: DeepPartial<{ min: NumericStyleValue; max: NumericStyleValue }> | undefined);
+
+    get t(): DomainEditor;
+    set t(v: DeepPartial<{ min: NumericStyleValue; max: NumericStyleValue }> | undefined);
+
+    get u(): DomainEditor;
+    set u(v: DeepPartial<{ min: NumericStyleValue; max: NumericStyleValue }> | undefined);
+
+    get v(): DomainEditor;
+    set v(v: DeepPartial<{ min: NumericStyleValue; max: NumericStyleValue }> | undefined);
+}
+
+// ============================================================================
+// 4. Factory
+// ============================================================================
+
+// 辅助：判断值是否为复杂对象（需要 Merge）
+const isMergeableObject = (v: any): boolean => {
+    if (v === null || typeof v !== 'object') return false;
+    if (v instanceof Expression || v instanceof VarExpl) return false;
+    if (Array.isArray(v)) return false;
+    return true;
+};
+
+// 深度合并函数
+const deepMerge = (target: any, source: any, schemaNode: any) => {
+    if (source === undefined) return undefined;
+    if (!isMergeableObject(source) || !isMergeableObject(target) || schemaNode === true) {
+        return source;
+    }
+
+    const result = { ...target };
+    for (const key in source) {
+        if (schemaNode[key]) {
+            const val = source[key];
+            if (val === undefined) {
+                delete result[key];
+            } else {
+                result[key] = deepMerge(result[key], val, schemaNode[key]);
+            }
+        }
+    }
+    return result;
+};
+
+// 自定义深拷贝函数
+const deepCloneStyle = (obj: any): any => {
+    if (obj === undefined || obj === null) return obj;
+    if (!isMergeableObject(obj)) {
+        if (Array.isArray(obj)) {
+            return obj.map(item => deepCloneStyle(item));
+        }
+        return obj;
+    }
+
+    const result: any = {};
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            result[key] = deepCloneStyle(obj[key]);
+        }
+    }
+    return result;
+};
+
+
+/**
+ * 创建 Editor 节点 (Type-unsafe internal implementation)
+ */
+const createEditorNode = <T>(
+    getData: () => T,
+    setData: (val: T | undefined) => void,
+    schemaNode: any
+): EditorBase<T> => {
+    const editor = {} as EditorBase<T>;
+
+    // 使用闭包变量作为缓存
+    const childrenCache = new Map<string, any>();
+
+    // 1. 基础方法实现
+
+    Object.defineProperty(editor, 'value', {
+        get: () => deepCloneStyle(getData()),
+        enumerable: true
+    });
+
+    editor.set = (arg: any) => {
+        const current = getData();
+        let val = arg;
+        if (typeof arg === 'function') {
+            val = arg(deepCloneStyle(current));
+        }
+        setData(val);
+    };
+
+    editor.update = (val: any) => {
+        if (val === undefined) return;
+        const current = getData();
+        if (schemaNode === true || !isMergeableObject(val)) {
+            setData(val);
+        } else {
+            const merged = deepMerge(current, val, schemaNode);
+            setData(merged);
+        }
+    };
+
+    editor.delete = () => {
+        setData(undefined);
+    };
+
+    editor.edit = (callback: (e: any) => void) => {
+        callback(editor);
+    };
+
+    editor.toJSON = () => deepCloneStyle(getData());
+
+    // 2. 生成子属性的 Getter/Setter
+    if (typeof schemaNode === 'object' && schemaNode !== null) {
+        for (const key in schemaNode) {
+            const childSchema = schemaNode[key];
+
+            Object.defineProperty(editor, key, {
+                enumerable: true,
+                get: () => {
+                    // 优先从闭包缓存中读取
+                    if (childrenCache.has(key)) {
+                        return childrenCache.get(key);
+                    }
+
+                    const childGetData = () => {
+                        const data = getData();
+                        return (data as any)?.[key];
+                    };
+                    const childSetData = (val: any) => {
+                        const data = getData();
+                        // 如果当前节点本身是 undefined，需要初始化为空对象才能设置子属性
+                        const parentData = (data && typeof data === 'object') ? data : {};
+
+                        if (val === undefined) {
+                            delete (parentData as any)[key];
+                        } else {
+                            (parentData as any)[key] = val;
+                        }
+
+                        // 只有当父对象引用发生变化（比如从 undefined 变为 {}）时才需要回写
+                        // 但为了保险起见，以及处理 createEditorNode 的上层 setData 逻辑，总是回写是安全的
+                        if (data !== parentData) {
+                            setData(parentData as any);
+                        }
+                    };
+
+                    const childEditor = createEditorNode(childGetData, childSetData, childSchema);
+                    // 写入缓存
+                    childrenCache.set(key, childEditor);
+
+                    return childEditor;
+                },
+                set: (val: any) => {
+                    const data = getData();
+                    const parentData = (data && typeof data === 'object') ? data : {};
+
+                    if (val === undefined) {
+                        delete (parentData as any)[key];
+                    } else {
+                        (parentData as any)[key] = val;
+                    }
+
+                    if (data !== parentData) {
+                        setData(parentData as any);
+                    }
+                }
+            });
+        }
+    }
+
+    return editor;
+};
+
+// ============================================================================
+// 5. 内部存储 (WeakMap)
+// ============================================================================
+
+const formulaStyles = new WeakMap<Formula, DestraStyle>();
+
 const getFormulaStyle = (formula: Formula): DestraStyle => {
     let style = formulaStyles.get(formula);
     if (!style) {
@@ -197,213 +522,139 @@ const getFormulaStyle = (formula: Formula): DestraStyle => {
 };
 
 // ============================================================================
-// 5. Editor 模式实现 (显式 Getter 模式)
-// ============================================================================
-
-/**
- * StyleEditor 接口定义
- * 这是一个递归的、混合类型的接口
- */
-export type StyleEditor<T, P = any> = {
-    // 1. 字段访问: 递归返回子属性的 Editor
-    readonly [K in keyof T]-?: StyleEditor<NonNullable<T[K]>, StyleEditor<T, P>>;
-} & {
-    // 2. 可调用体 (Edit/Update)
-    // - callback: (editor) => void
-    // - object: T (Deep merge)
-    // - value: T (Set value, treated as 'set' shortcut for leaf nodes mostly, but works for objects too)
-    (arg: ((editor: StyleEditor<T, P>) => void) | DeepPartial<T> | T): P;
-
-    // 3. 显式方法
-    set(value: T | undefined): void;
-    delete(): void;
-    toJSON(): T | undefined;
-};
-
-// 辅助类型: DeepPartial
-type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
-
-/**
- * 创建 StyleEditor 的工厂函数
- * 使用 Object.defineProperties 代替 Proxy，提供更好的 IDE 提示和 Console 调试体验
- *
- * @param rootData 根数据对象 (DestraStyle)
- * @param path 当前 Editor 对应的数据路径 (e.g., ['point', 'size'])
- * @param parent 父级 Editor (用于链式调用返回)
- * @param schemaNode 对应的 schema 节点，用于生成显式属性
- */
-const createStyleEditor = <T, P>(
-    getData: () => T | undefined,
-    setData: (val: T | undefined) => void,
-    parent: P,
-    schemaNode: any 
-): StyleEditor<T, P> => {
-    
-    // 1. 核心函数体
-    const editorFunc = function(arg: any) {
-        const target = editorFunc as any; // Self reference
-
-        if (typeof arg === 'function') {
-            // Callback 模式: editor(e => ...)
-            arg(target);
-        } else if (typeof arg === 'object' && arg !== null && !isPrimitiveStyleValue(arg)) {
-             // Object merge 模式 (简化的 deep merge，或者直接视为 update)
-             // 注意：这里需要区分是 Expression/VarExpl 还是纯配置对象
-             // 如果是 Expression/VarExpl，它应该被视为"值"，走 set 逻辑
-             if (isStyleValue(arg)) {
-                 // 是样式值 (Expression | VarExpl)，直接 set
-                 target.set(arg as any);
-             } else {
-                 // 是配置对象，进行合并
-                 // 遍历 arg:
-                 for (const key in arg) {
-                    const value = arg[key];
-                    // 只有在 schema 中存在的 key 才能被处理 (安全检查)
-                    // 且确保 target[key] 存在 (即子 editor getter 存在)
-                    if (schemaNode && schemaNode[key]) {
-                        // 访问子 editor 并调用它，传入 value
-                        (target as any)[key](value);
-                    }
-                 }
-             }
-        } else {
-            // Value 模式: editor(value) -> set(value)
-            target.set(arg);
-        }
-        return parent;
-    };
-
-    // 2. 挂载显式方法
-    const target = editorFunc as any;
-
-    target.set = (value: T | undefined) => {
-        setData(value);
-    };
-
-    target.delete = () => {
-        // delete 语义：setData(undefined)
-        setData(undefined);
-    };
-
-    target.toJSON = () => {
-        return getData();
-    };
-
-    // 3. 动态挂载显式 Getter 属性
-    if (schemaNode && typeof schemaNode === 'object') {
-        const descriptors: PropertyDescriptorMap = {};
-        
-        for (const key in schemaNode) {
-            const childSchema = schemaNode[key];
-            
-            descriptors[key] = {
-                enumerable: true, // 允许在 console.dir 中被枚举看到
-                configurable: true,
-                get: () => {
-                    // 构造子 Editor 的数据访问器
-                    const childGetData = () => {
-                        const data = getData();
-                        return (data as any)?.[key];
-                    };
-                    const childSetData = (val: any) => {
-                        const data = getData();
-                        // 如果当前层级数据不存在，需要自动创建
-                        if (data === undefined || data === null) {
-                             setData({} as any);
-                        }
-                        // 重新获取 data (因为它可能刚刚被创建)
-                        const newData = getData() as any;
-                        if (val === undefined) {
-                            // set undefined
-                            newData[key] = undefined;
-                        } else {
-                            newData[key] = val;
-                        }
-                    };
-                    
-                    // 递归创建，传入当前 editor (target) 作为 parent
-                    return createStyleEditor(childGetData, childSetData, target, childSchema);
-                }
-            };
-        }
-        
-        Object.defineProperties(target, descriptors);
-    }
-
-    return target as StyleEditor<T, P>;
-};
-
-// 辅助：判断是否为样式值（非纯配置对象）
-const isStyleValue = (v: any): boolean => {
-    return v instanceof Expression || v instanceof VarExpl;
-};
-const isPrimitiveStyleValue = (v: any): boolean => {
-     return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
-}
-
-// ============================================================================
 // 6. 声明合并与原型注入
 // ============================================================================
 
 declare module "./base" {
-    /**
-     * 样式方法与数据的混合类型
-     */
-    export type StyleMethodAndData = {
-        (callback?: (editor: StyleEditor<DestraStyle, Formula>) => void): Formula;
-        (config: DeepPartial<DestraStyle>): Formula;
-    } & Readonly<DestraStyle>;
-
     interface Formula {
         /**
-         * 样式入口：
-         * - 调用 .style(...) 进行修改
-         * - 访问 .style.xxx 读取数据 (只读)
+         * 样式配置 (增量更新 / Merge)
          */
-        readonly style: StyleMethodAndData;
-        
+        style(configOrEditor: DeepPartial<DestraStyle> | ((editor: RootStyleEditor) => void)): this;
+
         /**
-         * 获取样式的纯数据副本 (同 .style 读取)
+         * 样式设置 (完全覆盖 / Overwrite)
+         */
+        setStyle(config: DestraStyle): this;
+
+        /**
+         * 获取样式的只读数据副本 (Introspection, Deep Cloned)
          */
         readonly styleData: DestraStyle;
-        
-        // 快捷方式
-        line(arg: ((editor: StyleEditor<NonNullable<DestraStyle['line']>, Formula>) => void) | DeepPartial<NonNullable<DestraStyle['line']>>): Formula;
-        point(arg: ((editor: StyleEditor<NonNullable<DestraStyle['point']>, Formula>) => void) | DeepPartial<NonNullable<DestraStyle['point']>>): Formula;
-        fill(arg: ((editor: StyleEditor<NonNullable<DestraStyle['fill']>, Formula>) => void) | DeepPartial<NonNullable<DestraStyle['fill']>>): Formula;
-        label(arg: ((editor: StyleEditor<NonNullable<DestraStyle['label']>, Formula>) => void) | DeepPartial<NonNullable<DestraStyle['label']>>): Formula;
+
+        // 一级属性快捷方式 (Merge 语义)
+        hidden(config: boolean | ((editor: LeafEditor<boolean>) => void)): this;
+        showParts(config: DeepPartial<NonNullable<DestraStyle['showParts']>> | ((editor: ShowPartsEditor) => void)): this;
+        color(config: NonNullable<DestraStyle['color']> | ((editor: LeafEditor<NonNullable<DestraStyle['color']>>) => void)): this;
+        line(config: DeepPartial<NonNullable<DestraStyle['line']>> | ((editor: LineEditor) => void)): this;
+        point(config: DeepPartial<NonNullable<DestraStyle['point']>> | ((editor: PointEditor) => void)): this;
+        fill(config: DeepPartial<NonNullable<DestraStyle['fill']>> | ((editor: FillEditor) => void)): this;
+        label(config: DeepPartial<NonNullable<DestraStyle['label']>> | ((editor: LabelEditor) => void)): this;
+        // Domain shortcuts
+        theta(config: DeepPartial<NonNullable<DestraStyle['theta']>> | ((editor: DomainEditor) => void)): this;
+        phi(config: DeepPartial<NonNullable<DestraStyle['phi']>> | ((editor: DomainEditor) => void)): this;
+        t(config: DeepPartial<NonNullable<DestraStyle['t']>> | ((editor: DomainEditor) => void)): this;
+        u(config: DeepPartial<NonNullable<DestraStyle['u']>> | ((editor: DomainEditor) => void)): this;
+        v(config: DeepPartial<NonNullable<DestraStyle['v']>> | ((editor: DomainEditor) => void)): this;
+
+        // 一级属性 Setters (Overwrite 语义)
+        setHidden(val: boolean): this;
+        setShowParts(val: NonNullable<DestraStyle['showParts']>): this;
+        setColor(val: NonNullable<DestraStyle['color']>): this;
+        setLine(val: NonNullable<DestraStyle['line']>): this;
+        setPoint(val: NonNullable<DestraStyle['point']>): this;
+        setFill(val: NonNullable<DestraStyle['fill']>): this;
+        setLabel(val: NonNullable<DestraStyle['label']>): this;
+        setTheta(val: NonNullable<DestraStyle['theta']>): this;
+        setPhi(val: NonNullable<DestraStyle['phi']>): this;
+        setT(val: NonNullable<DestraStyle['t']>): this;
+        setU(val: NonNullable<DestraStyle['u']>): this;
+        setV(val: NonNullable<DestraStyle['v']>): this;
     }
 }
 
-// 注入 style 属性 (Hybrid Getter w/ Explicit Properties)
+type MakeSetterName<K extends string> = `set${Capitalize<K>}`;
+type CheckFormulaStyle = Expect<Assignable<Formula,
+    & { [K in typeof styleKeys[number]]: (config: any) => Formula }
+    & { [K in MakeSetterName<typeof styleKeys[number]>]: (config: any) => Formula }
+>>;
+
+// 注入 style 方法 (Merge 语义)
 Object.defineProperty(Formula.prototype, "style", {
-    get() {
+    value: function (arg: any) {
         const self = this as Formula;
-        
         const getData = () => getFormulaStyle(self);
         const setData = (val: DestraStyle | undefined) => formulaStyles.set(self, val || {});
-        
-        // 使用 Schema 创建绑定到当前实例的 Editor
-        const editor = createStyleEditor(getData, setData, self, styleSchema);
-        
-        return editor;
-    }
+
+        // 1. 配置模式 (Arg is Object) -> Deep Merge
+        if (typeof arg === 'object' && arg !== null) {
+            const current = getData();
+            const merged = deepMerge(current, arg, styleSchema);
+            setData(merged);
+            return self;
+        }
+
+        // 2. 编辑模式 (Arg is Function)
+        if (typeof arg === 'function') {
+            const rootEditor = createEditorNode(getData, setData, styleSchema);
+            arg(rootEditor);
+            return self;
+        }
+
+        return self;
+    },
+    enumerable: true
+});
+
+// 注入 setStyle 方法 (Overwrite 语义)
+Object.defineProperty(Formula.prototype, "setStyle", {
+    value: function (config: DestraStyle) {
+        const self = this as Formula;
+        formulaStyles.set(self, config); // 直接覆写
+        return self;
+    },
+    enumerable: true
 });
 
 // 注入 styleData 属性
 Object.defineProperty(Formula.prototype, "styleData", {
     get() {
-        return getFormulaStyle(this as Formula);
-    }
+        return deepCloneStyle(getFormulaStyle(this as Formula));
+    },
+    enumerable: true
 });
 
-// 注入快捷方式
-['line', 'point', 'fill', 'label'].forEach(key => {
+// 注入一级属性快捷方式 (Merge) 和 Setters (Overwrite)
+styleKeys.forEach(key => {
+    // 1. Shortcut (style-like, Merge)
     Object.defineProperty(Formula.prototype, key, {
-        value: function(arg: any) {
-            return this.style((s: any) => (s as any)[key](arg));
+        value: function (arg: any) {
+            // 复用 .style()
+            return this.style((s: any) => {
+                if (typeof arg === 'object') {
+                    // s[key] = arg 会触发 Setter -> Merge
+                    s[key] = arg;
+                } else if (typeof arg === 'function') {
+                    s[key].edit(arg);
+                } else {
+                    // Primitive values (e.g. color("red"))
+                    s[key] = arg;
+                }
+            });
         },
-        writable: true,
-        configurable: true
+        enumerable: true
+    });
+
+    // 2. Setter (setStyle-like, Overwrite)
+    // 命名规则: set + CapitalizedKey
+    const setterName = `set${key.charAt(0).toUpperCase() + key.slice(1)}`;
+    Object.defineProperty(Formula.prototype, setterName, {
+        value: function (val: any) {
+            return this.style((s: any) => {
+                s[key].delete();
+                s[key] = val;
+            });
+        },
+        enumerable: true
     });
 });
