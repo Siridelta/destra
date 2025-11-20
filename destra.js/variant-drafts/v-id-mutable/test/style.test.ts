@@ -1,6 +1,6 @@
 
 import { describe, test, expect } from 'vitest';
-import { expl } from '../src/core/index';
+import { expl, expr, Expression, VarExpl } from '../src/core/index';
 import { LineStyle, PointStyle } from '../src/core/formula/style';
 
 // ============================================================================
@@ -230,6 +230,50 @@ describe('Style API Tests (New Architecture)', () => {
 
         expect(e.styleData.point?.size).toBe(20);
         expect(e.styleData.point?.opacity).toBeUndefined(); // opacity 应该被清除
+    });
+
+    test('应该支持 Expression 和 VarExpl 作为样式值', () => {
+        const e = expl`x^2`;
+        
+        // 1. 创建用于样式的变量和表达式
+        const C = expl`C` as VarExpl; // Color variable
+        const w = expl`w` as VarExpl; // Width variable
+        const widthExpr = expl`${w} * 2` as VarExpl;
+        
+        e.style({
+            color: C,
+            line: {
+                width: widthExpr,
+                opacity: expr`0.5 + ${w}/10` as Expression
+            }
+        });
+
+        // 验证存储的是引用
+        expect(e.styleData.color).toBe(C);
+        expect(e.styleData.line?.width).toBe(widthExpr);
+        
+        // 验证 VarExpl 作为 Expression 的一部分也能被正确存储
+        // (opacity 是一个新的 Expression 实例)
+        const opacity = e.styleData.line?.opacity;
+        expect(opacity).toBeInstanceOf(Expression);
+    });
+
+    test('Editor 应该能处理 Expression 和 VarExpl 类型的读写', () => {
+        const e = expr`y = x^2`;
+        const C1 = expl`C_1` as VarExpl;
+        const C2 = expl`C_2` as VarExpl;
+        
+        e.style({ color: C1 });
+        
+        e.style(s => {
+            // 读取
+            expect(s.color.value).toBe(C1);
+            
+            // 写入
+            s.color = C2;
+        });
+        
+        expect(e.styleData.color).toBe(C2);
     });
 
 });
