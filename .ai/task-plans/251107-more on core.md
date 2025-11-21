@@ -125,9 +125,8 @@ Expl.prototype.idPrepend = function(segment) {
 - `.ai/技术笔记/JS路线/默认模式/样式API结构.md`
 
 ### Step 2.3: `formula` 模块 - 样式属性 API
-
 **负责人**: AI Coder
-**状态**: 可开始
+**状态**: 已完成
 **前置文档**: 
 - `属性与样式API.md`
 - `样式API结构.md`
@@ -136,7 +135,31 @@ Expl.prototype.idPrepend = function(segment) {
 1.  在 `formula/style.ts` 中，遵循与 ID 逻辑相同的“声明合并+原型注入”模式，为 `Formula` 类实现 `.style()` 方法。
 2.  根据 `属性与样式API.md` 中关于“可变显示属性”的设计，以及 `样式API结构.md` 中定义的详细数据模型，实现 `Editor` 模式及相关类型。
 
-### Step 2.4: `selection` 模块实现
+### Step 2.3-post: 样式辅助功能补全 (Factories & Label)
+**负责人**: AI Coder
+**状态**: 待办
+**前置文档**: 无
+
+**任务**:
+1.  **Label 类与工厂**: 
+    *   在 `formula/base.ts` 中增加 `Label` 类定义 (继承自 `Formula`)。
+    *   在 `factories.ts` 中实现 `label` 模版标签函数。
+    *   更新 `formula/style.ts` 中的 `DestraStyle` 定义，使 `label.text` 支持 `Label` 类型。
+2.  **样式 Enum 导出**:
+    *   确保 `core/index.ts` 导出了 `LineStyle`, `PointStyle` 等枚举。
+
+### Step 2.4: 上下文语句工厂 (Scope & Function)
+**负责人**: AI Coder
+**状态**: 待讨论
+**前置文档**: `简化的计算模型.md`
+
+**任务**:
+1.  **For / Sum / Int 工厂**: 实现列表推导、求和、积分的上下文工厂。
+2.  **With 工厂**: 实现局部变量绑定工厂，并包含嵌套限制检查。
+3.  **expl 语法糖**: 实现 `expl.For` 和 `expl.With`。
+4.  **Function 定义 API**: 确定并实现函数定义的 API (Func 工厂 vs expl 扩展 vs 箭头函数反射)。
+
+### Step 2.5: `selection` 模块实现
 
 **负责人**: AI Coder
 **状态**: 待办
@@ -147,7 +170,7 @@ Expl.prototype.idPrepend = function(segment) {
 2.  实现 `selection()` 工厂函数，该函数接收一个包含 `Formula` 对象的普通 JavaScript 对象，并返回一个“选区”实例。
 3.  为“选区”实例实现 `.idPrepend()` 等批量操作方法。这些方法需要**可变地 (mutably)** 修改选区内所有 `Formula` 对象的 ID。
 
-### Step 2.5: `builder` API 实现
+### Step 2.6: `builder` API 实现
 
 **负责人**: AI Coder
 **状态**: 待办
@@ -157,7 +180,7 @@ Expl.prototype.idPrepend = function(segment) {
 1.  创建 `core/builder.ts` 文件。
 2.  根据文档，实现 `builder()` API，其核心是正确处理和传递 `idDrvs` (ID derivation) 函数，以确保动态生成的表达式能正确应用外部的 ID 变换。
 
-### Step 2.6: 图表编译与状态导出
+### Step 2.7: 图表编译与状态导出
 
 **负责人**: static, Gemini
 **状态**: **待讨论 / 待计划**
