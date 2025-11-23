@@ -30,14 +30,6 @@ export interface TemplatePayload {
 }
 
 /**
- * ID 元数据，记录 ID 的值和是否为隐式生成
- */
-export interface IdMetadata {
-    segments: readonly string[];
-    isImplicit: boolean;
-}
-
-/**
  * 公式类型枚举
  */
 export enum FormulaType {
@@ -180,20 +172,25 @@ export abstract class Formula {
  */
 export abstract class Expl extends Formula {
     public readonly isEmbeddable = true as const;
-    protected idMeta: IdMetadata;
-    protected _realname?: string;
+
+    /**
+     * [Internal Stub] 获取 ID
+     * 将由 id.ts 模块通过原型注入覆盖
+     */
     protected get _id(): string | undefined {
-        if (this.idMeta.segments.length === 0) {
-            return undefined;
-        }
-        return this.idMeta.segments.join(".");
+        return undefined;
     }
-    // 内部使用 _id 获取 computed id 值，同时直接使用 idMeta 进行设置或者细度读取
-    // 运行时 _id getter 在调试环境里可见，但在 ts 源代码语境里不可见
+
+    /**
+     * [Internal Stub] 获取 Realname
+     * 将由 id.ts 模块通过原型注入覆盖
+     */
+    protected get _realname(): string | undefined {
+        return undefined;
+    }
 
     protected constructor(template: TemplatePayload) {
         super(template);
-        this.idMeta = { segments: [], isImplicit: false };
     }
 }
 
@@ -408,4 +405,3 @@ export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplSignatureB
  * Substitutable：可代入模板字符串插值的值类型（原始值或可嵌入的表达式）
  */
 export type Substitutable = Embeddable | PrimitiveValue;
-

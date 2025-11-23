@@ -148,7 +148,31 @@ Expl.prototype.idPrepend = function(segment) {
 2.  **样式 Enum 导出**:
     *   确保 `core/index.ts` 导出了 `LineStyle`, `PointStyle` 等枚举。
 
-### Step 2.4: 上下文语句工厂 (Scope & Function)
+### Step 2.4: 统一状态管理重构 (FormulaState)
+**负责人**: AI Coder
+**状态**: 待办
+**前置文档**: 无
+
+**任务**:
+1.  **创建 `core/state.ts`**: 实现统一的 `FormulaState` 接口和基于 `WeakMap` 的全局状态存储。
+    ```typescript
+    export interface FormulaState { }
+    // 使用 interface merging 允许 id.ts, style.ts 等模块扩展它
+    
+    const states = new WeakMap<Object, FormulaState>();
+    export const getState = (obj: Object) => { ... }
+    ```
+2.  **重构 `core/formula/id.ts`**:
+    *   使用 `declare module "../state"` 扩展 `FormulaState` 接口。
+    *   通过 `getState(this).idData` 访问和存储 ID 数据。
+3.  **重构 `core/formula/style.ts`**:
+    *   移除原本独立的 WeakMap。
+    *   使用 `declare module "../state"` 扩展 `FormulaState` 接口。
+    *   通过 `getState(this).styleData` 访问和存储样式数据。
+4.  **更新 `core/formula/base.ts`**:
+    *   更新 `_content` getter 或其他可能访问内部状态的地方，使其适配新的 `getState` 模式（或者保持通过公开 API 访问）。
+
+### Step 2.5: 上下文语句工厂 (Scope & Function)
 **负责人**: AI Coder
 **状态**: 待讨论
 **前置文档**: `简化的计算模型.md`
@@ -159,7 +183,7 @@ Expl.prototype.idPrepend = function(segment) {
 3.  **expl 语法糖**: 实现 `expl.For` 和 `expl.With`。
 4.  **Function 定义 API**: 确定并实现函数定义的 API (Func 工厂 vs expl 扩展 vs 箭头函数反射)。
 
-### Step 2.5: `selection` 模块实现
+### Step 2.6: `selection` 模块实现
 
 **负责人**: AI Coder
 **状态**: 待办
@@ -170,7 +194,7 @@ Expl.prototype.idPrepend = function(segment) {
 2.  实现 `selection()` 工厂函数，该函数接收一个包含 `Formula` 对象的普通 JavaScript 对象，并返回一个“选区”实例。
 3.  为“选区”实例实现 `.idPrepend()` 等批量操作方法。这些方法需要**可变地 (mutably)** 修改选区内所有 `Formula` 对象的 ID。
 
-### Step 2.6: `builder` API 实现
+### Step 2.7: `builder` API 实现
 
 **负责人**: AI Coder
 **状态**: 待办
@@ -180,7 +204,7 @@ Expl.prototype.idPrepend = function(segment) {
 1.  创建 `core/builder.ts` 文件。
 2.  根据文档，实现 `builder()` API，其核心是正确处理和传递 `idDrvs` (ID derivation) 函数，以确保动态生成的表达式能正确应用外部的 ID 变换。
 
-### Step 2.7: 图表编译与状态导出
+### Step 2.8: 图表编译与状态导出
 
 **负责人**: static, Gemini
 **状态**: **待讨论 / 待计划**

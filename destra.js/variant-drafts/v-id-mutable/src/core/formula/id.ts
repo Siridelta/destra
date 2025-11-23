@@ -13,9 +13,29 @@ import { anyOf, createRegExp, digit, exactly, letter, maybe, oneOrMore } from "m
 import { idPattern, idSegmentPattern } from "../expr-dsl/syntax/commonRegExpPatterns";
 import { specialSymbolsChars, specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/syntax/specialSymbols";
 import { Expl } from "./base";
+import { getState } from "../state";
 
 // ============================================================================
-// 声明合并：扩展 Expl 接口类型定义
+// 0. 数据结构与状态扩展
+// ============================================================================
+
+/**
+ * ID 元数据，记录 ID 的值和是否为隐式生成
+ */
+export interface IdMetadata {
+    segments: readonly string[];
+    isImplicit: boolean;
+}
+
+declare module "../state" {
+    interface FormulaState {
+        idData?: IdMetadata;
+        realname?: string;
+    }
+}
+
+// ============================================================================
+// 1. 声明合并：扩展 Expl 接口类型定义
 // ============================================================================
 
 declare module "./base" {
@@ -102,8 +122,12 @@ declare module "./base" {
 }
 
 // ============================================================================
-// 原型注入：提供运行时实现
+// 2. 原型注入：提供运行时实现
 // ============================================================================
+
+const idRegex = createRegExp(idPattern);
+
+const idDataInit = (): IdMetadata => ({ segments: [], isImplicit: false });
 
 /**
  * 实现 .id() 方法
@@ -114,21 +138,29 @@ declare module "./base" {
 function _Expl_id(this: Expl): string | undefined;
 function _Expl_id(this: Expl, value: string, isImplicit?: boolean): Expl;
 function _Expl_id(this: Expl, value?: string, isImplicit: boolean = false): Expl | string | undefined {
+    const state = getState(this);
+
     // get 功能
     if (value === undefined) {
-        return this._id;
+        const idData = state.idData;
+        if (!idData || idData.segments.length === 0) {
+            return undefined;
+        }
+        return idData.segments.join(".");
     }
 
     // set 功能
     // 验证 ID 格式
-    if (!createRegExp(idPattern).test(value)) {
+    if (!idRegex.test(value)) {
         throw new TypeError("无效 ID 格式。");
     }
 
-    const segmentMatchs = [...value.matchAll(createRegExp(idSegmentPattern, ['g']))]
-    const segments = segmentMatchs.map(match => match[0]!);
+    const idSegmentRegex = createRegExp(idSegmentPattern, ['g']);
+    const segments =
+        [...value.matchAll(idSegmentRegex)]
+            .map(match => match[0]!);
 
-    this.idMeta = {
+    state.idData = {
         segments,
         isImplicit,
     }
@@ -145,12 +177,16 @@ Expl.prototype.id = _Expl_id;
  * 这是一个可变 API，直接修改表达式对象本身。
  */
 Expl.prototype.idPrepend = function (this: Expl, segment: string): Expl {
-    if (!segment || !createRegExp(idSegmentPattern).test(segment)) {
+    const idSegmentRegex = createRegExp(idSegmentPattern);
+    if (!segment || !idSegmentRegex.test(segment)) {
         throw new TypeError("无效的 ID 段格式。");
     }
 
-    const currentSegments = this.idMeta.segments;
-    this.idMeta.segments = [segment, ...currentSegments];
+    const state = getState(this);
+    // 如果 idData 不存在，初始化它
+    state.idData ??= idDataInit();
+
+    state.idData.segments = [segment, ...state.idData.segments];
 
     return this;
 };
@@ -190,9 +226,11 @@ const realnamePattern = exactly(
 function _Expl_realname(this: Expl): string | undefined;
 function _Expl_realname(this: Expl, name: string): Expl;
 function _Expl_realname(this: Expl, name?: string): Expl | string | undefined {
+    const state = getState(this);
+
     // get 功能
     if (name === undefined) {
-        return this._realname;
+        return state.realname;
     }
 
     // set 功能
@@ -200,20 +238,47 @@ function _Expl_realname(this: Expl, name?: string): Expl | string | undefined {
     if (!match) {
         throw new TypeError("无效的 Desmos 变量名。");
     }
+
+    let finalName = name;
     const head = match.groups.head!;
-    if (specialSymbolsChars.includes(head as any)) {
-        const normalizedHead = Object.entries(specialSymbolsMap).find(([_, char]) => char === head)![0];
-        const subscript = match.groups.subscript;
-        if (subscript) {
-            this._realname = `${normalizedHead}_${subscript}`;
-        } else {
-            this._realname = normalizedHead;
-        }
-        return this;
+    const maybeSpecialSymbol = 
+            Object.entries(specialSymbolsMap)
+                .find(([_, char]) => char === head);
+    if (maybeSpecialSymbol) {
+        const [alias, _] = maybeSpecialSymbol;
+        const maybeSubscript = match.groups.subscript;
+        finalName = maybeSubscript ? `${alias}_${maybeSubscript}` : alias;
     }
-    this._realname = name;
+
+    state.realname = finalName;
     return this;
 }
 
 Expl.prototype.realname = _Expl_realname;
 
+
+// ============================================================================
+// Console DevEx: 注入内部 getter
+// ============================================================================
+
+// 注入 _id getter
+Object.defineProperty(Expl.prototype, "_id", {
+    get: function(this: Expl) {
+        const idData = getState(this).idData;
+        if (!idData || idData.segments.length === 0) {
+            return undefined;
+        }
+        return idData.segments.join(".");
+    },
+    enumerable: true, // 允许在 Console 中遍历看到
+    configurable: true,
+});
+
+// 注入 _realname getter
+Object.defineProperty(Expl.prototype, "_realname", {
+    get: function(this: Expl) {
+        return getState(this).realname;
+    },
+    enumerable: true,
+    configurable: true,
+});

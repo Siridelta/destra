@@ -6,6 +6,7 @@
 
 import { Assignable, Expect } from "../../types/utils";
 import { Formula, Expression, VarExpl } from "./base";
+import { getState } from "../state";
 
 // ============================================================================
 // 1. 枚举定义 (Desmos Styles)
@@ -411,7 +412,8 @@ const createEditorNode = <T>(
 
     Object.defineProperty(editor, 'value', {
         get: () => deepCloneStyle(getData()),
-        enumerable: true
+        enumerable: true,
+        configurable: true,
     });
 
     editor.set = (arg: any) => {
@@ -451,6 +453,7 @@ const createEditorNode = <T>(
 
             Object.defineProperty(editor, key, {
                 enumerable: true,
+                configurable: true,
                 get: () => {
                     // 优先从闭包缓存中读取
                     if (childrenCache.has(key)) {
@@ -507,19 +510,14 @@ const createEditorNode = <T>(
 };
 
 // ============================================================================
-// 5. 内部存储 (WeakMap)
+// 5. 内部存储与状态扩展
 // ============================================================================
 
-const formulaStyles = new WeakMap<Formula, DestraStyle>();
-
-const getFormulaStyle = (formula: Formula): DestraStyle => {
-    let style = formulaStyles.get(formula);
-    if (!style) {
-        style = {};
-        formulaStyles.set(formula, style);
+declare module "../state" {
+    interface FormulaState {
+        styleData?: DestraStyle;
     }
-    return style;
-};
+}
 
 // ============================================================================
 // 6. 声明合并与原型注入
@@ -583,8 +581,9 @@ type CheckFormulaStyle = Expect<Assignable<Formula,
 Object.defineProperty(Formula.prototype, "style", {
     value: function (arg: any) {
         const self = this as Formula;
-        const getData = () => getFormulaStyle(self);
-        const setData = (val: DestraStyle | undefined) => formulaStyles.set(self, val || {});
+        const state = getState(self);
+        const getData = () => state.styleData || {};
+        const setData = (val: DestraStyle | undefined) => state.styleData = val || {};
 
         // 1. 配置模式 (Arg is Object) -> Deep Merge
         if (typeof arg === 'object' && arg !== null) {
@@ -603,25 +602,29 @@ Object.defineProperty(Formula.prototype, "style", {
 
         return self;
     },
-    enumerable: true
+    enumerable: true,
+    configurable: true,
 });
 
 // 注入 setStyle 方法 (Overwrite 语义)
 Object.defineProperty(Formula.prototype, "setStyle", {
     value: function (config: DestraStyle) {
         const self = this as Formula;
-        formulaStyles.set(self, config); // 直接覆写
+        getState(self).styleData = config; // 直接覆写
         return self;
     },
-    enumerable: true
+    enumerable: true,
+    configurable: true,
 });
 
 // 注入 styleData 属性
 Object.defineProperty(Formula.prototype, "styleData", {
     get() {
-        return deepCloneStyle(getFormulaStyle(this as Formula));
+        const state = getState(this as Formula);
+        return deepCloneStyle(state.styleData || {});
     },
-    enumerable: true
+    enumerable: true,
+    configurable: true,
 });
 
 // 注入一级属性快捷方式 (Merge) 和 Setters (Overwrite)
@@ -642,7 +645,8 @@ styleKeys.forEach(key => {
                 }
             });
         },
-        enumerable: true
+        enumerable: true,
+        configurable: true,
     });
 
     // 2. Setter (setStyle-like, Overwrite)
@@ -655,6 +659,7 @@ styleKeys.forEach(key => {
                 s[key] = val;
             });
         },
-        enumerable: true
+        enumerable: true,
+        configurable: true,
     });
 });
