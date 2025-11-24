@@ -11,17 +11,19 @@
 // ============================================================================
 
 import { 
-    Formula,
+    Formula, FormulaType,
     Expression, ExplicitEquation, ImplicitEquation, Regression, 
     VarExpl, type FuncExpl, Expl,
-    type Substitutable
+    type Substitutable,
+    type CtxVar, type CtxExpression, type CtxVarExpl, type CtxFuncExpl, type CtxExpBody, type CtxExp
 } from "./formula/base";
 
 export { 
-    type Formula,
+    type Formula, FormulaType,
     type Expression, type ExplicitEquation, type ImplicitEquation, type Regression, 
     type VarExpl, type FuncExpl, type Expl, 
-    type Substitutable 
+    type Substitutable,
+    type CtxVar, type CtxExpression, type CtxVarExpl, type CtxFuncExpl, type CtxExpBody, type CtxExp
 };
 
 import "./state";

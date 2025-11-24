@@ -12,7 +12,7 @@
 import { anyOf, createRegExp, digit, exactly, letter, maybe, oneOrMore } from "magic-regexp";
 import { idPattern, idSegmentPattern } from "../expr-dsl/syntax/commonRegExpPatterns";
 import { specialSymbolsChars, specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/syntax/specialSymbols";
-import { Expl } from "./base";
+import { CtxVar, Expl } from "./base";
 import { getState } from "../state";
 
 // ============================================================================
@@ -22,20 +22,23 @@ import { getState } from "../state";
 /**
  * ID 元数据，记录 ID 的值和是否为隐式生成
  */
-export interface IdMetadata {
+export interface IdData {
     segments: readonly string[];
     isImplicit: boolean;
 }
 
 declare module "../state" {
-    interface FormulaState {
-        idData?: IdMetadata;
+    interface ExplIdState {
+        idData?: IdData;
+        realname?: string;
+    }
+    interface CtxVarState {
         realname?: string;
     }
 }
 
 // ============================================================================
-// 1. 声明合并：扩展 Expl 接口类型定义
+// 1. 声明合并：扩展 Expl / CtxVar 接口类型定义
 // ============================================================================
 
 declare module "./base" {
@@ -119,6 +122,31 @@ declare module "./base" {
          */
         realname(): string | undefined;
     }
+
+    interface CtxVar {
+        /**
+         * 强制指定上下文变量的最终 Desmos 真名
+         * 
+         * @param name - Desmos 变量名，必须符合 Desmos 命名规则
+         * @returns 返回自身，支持链式调用
+         */
+        realname(name: string): this;
+        /**
+         * 获取上下文变量的强制指定的 Desmos 真名
+         * 
+         * @returns 返回 Desmos 真名，如果未设置则返回 undefined
+         * 
+         * @example
+         * ```typescript
+         * const points = For`i = [1...10]`(({i}) => {
+         *     i.realname("i");
+         *     console.log(i.realname()); // "i"
+         *     return expr`(i, i^2)`;
+         * });
+         * ```
+         */
+        realname(): string | undefined;
+    }
 }
 
 // ============================================================================
@@ -127,7 +155,7 @@ declare module "./base" {
 
 const idRegex = createRegExp(idPattern);
 
-const idDataInit = (): IdMetadata => ({ segments: [], isImplicit: false });
+const idDataInit = (): IdData => ({ segments: [], isImplicit: false });
 
 /**
  * 实现 .id() 方法
@@ -142,7 +170,7 @@ function _Expl_id(this: Expl, value?: string, isImplicit: boolean = false): Expl
 
     // get 功能
     if (value === undefined) {
-        const idData = state.idData;
+        const idData = state.explId?.idData;
         if (!idData || idData.segments.length === 0) {
             return undefined;
         }
@@ -160,9 +188,11 @@ function _Expl_id(this: Expl, value?: string, isImplicit: boolean = false): Expl
         [...value.matchAll(idSegmentRegex)]
             .map(match => match[0]!);
 
-    state.idData = {
-        segments,
-        isImplicit,
+    state.explId = {
+        idData: {
+            segments,
+            isImplicit,
+        },
     }
 
     return this;
@@ -183,10 +213,10 @@ Expl.prototype.idPrepend = function (this: Expl, segment: string): Expl {
     }
 
     const state = getState(this);
-    // 如果 idData 不存在，初始化它
-    state.idData ??= idDataInit();
+    state.explId ??= {};
+    state.explId.idData ??= idDataInit();
 
-    state.idData.segments = [segment, ...state.idData.segments];
+    state.explId.idData.segments = [segment, ...state.explId.idData.segments];
 
     return this;
 };
@@ -214,6 +244,37 @@ const realnamePattern = exactly(
 );
 
 /**
+ * Expl 和 CtxVar 共用的 规范化名字的方法
+ * @param name - 要规范化的名字
+ * @returns 规范化后的名字
+ * @throws {TypeError} 当名字不符合规范时抛出
+ * @example
+ * ```typescript
+ * const a = normalizeName("a");
+ * console.log(a); // "a"
+ * const alpha = normalizeName("α");
+ * console.log(alpha); // "alpha"
+ * ```
+ */
+function normalizeName(name: string): string {
+    const match = name.match(createRegExp(realnamePattern));
+    if (!match) {
+        throw new TypeError("无效的 Desmos 变量名。");
+    }
+
+    let finalName = name;
+    const head = match.groups.head!;
+    const maybeSpecialSymbol =
+        Object.entries(specialSymbolsMap)
+            .find(([_, char]) => char === head);
+    if (maybeSpecialSymbol) {
+        const [alias, _] = maybeSpecialSymbol;
+        const maybeSubscript = match.groups.subscript;
+        finalName = maybeSubscript ? `${alias}_${maybeSubscript}` : alias;
+    }
+    return finalName;
+}
+/**
  * 实现 .realname() 方法
  * 
  * 强制指定表达式的最终 Desmos 真名，覆盖自动命名生成器。
@@ -227,35 +288,32 @@ function _Expl_realname(this: Expl): string | undefined;
 function _Expl_realname(this: Expl, name: string): Expl;
 function _Expl_realname(this: Expl, name?: string): Expl | string | undefined {
     const state = getState(this);
-
     // get 功能
     if (name === undefined) {
-        return state.realname;
+        return state.explId?.realname;
     }
-
     // set 功能
-    const match = name.match(createRegExp(realnamePattern));
-    if (!match) {
-        throw new TypeError("无效的 Desmos 变量名。");
-    }
-
-    let finalName = name;
-    const head = match.groups.head!;
-    const maybeSpecialSymbol = 
-            Object.entries(specialSymbolsMap)
-                .find(([_, char]) => char === head);
-    if (maybeSpecialSymbol) {
-        const [alias, _] = maybeSpecialSymbol;
-        const maybeSubscript = match.groups.subscript;
-        finalName = maybeSubscript ? `${alias}_${maybeSubscript}` : alias;
-    }
-
-    state.realname = finalName;
+    state.explId ??= {};
+    state.explId.realname = normalizeName(name);
     return this;
 }
 
 Expl.prototype.realname = _Expl_realname;
 
+function _CtxVar_realname(this: CtxVar): string | undefined;
+function _CtxVar_realname(this: CtxVar, name: string): CtxVar;
+function _CtxVar_realname(this: CtxVar, name?: string): CtxVar | string | undefined {
+    const state = getState(this);
+    // get 功能
+    if (name === undefined) {
+        return state.ctxVar?.realname;
+    }
+    // set 功能
+    state.ctxVar ??= {};
+    state.ctxVar.realname = normalizeName(name);
+    return this;
+}
+CtxVar.prototype.realname = _CtxVar_realname;
 
 // ============================================================================
 // Console DevEx: 注入内部 getter
@@ -263,8 +321,8 @@ Expl.prototype.realname = _Expl_realname;
 
 // 注入 _id getter
 Object.defineProperty(Expl.prototype, "_id", {
-    get: function(this: Expl) {
-        const idData = getState(this).idData;
+    get: function (this: Expl) {
+        const idData = getState(this).explId?.idData;
         if (!idData || idData.segments.length === 0) {
             return undefined;
         }
@@ -276,8 +334,8 @@ Object.defineProperty(Expl.prototype, "_id", {
 
 // 注入 _realname getter
 Object.defineProperty(Expl.prototype, "_realname", {
-    get: function(this: Expl) {
-        return getState(this).realname;
+    get: function (this: Expl) {
+        return getState(this).explId?.realname;
     },
     enumerable: true,
     configurable: true,

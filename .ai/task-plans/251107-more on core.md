@@ -174,7 +174,7 @@ Expl.prototype.idPrepend = function(segment) {
 
 ### Step 2.5: 上下文语句工厂 (Scope & Function)
 **负责人**: AI Coder
-**状态**: 待讨论
+**状态**: 已完成
 **前置文档**: `简化的计算模型.md`
 
 **任务**:

@@ -14,21 +14,31 @@ import { Formula } from "./formula/base";
 /**
  * Formula 对象的内部状态接口。
  * 
- * 默认是一个空接口。各个功能模块应使用 declare module 扩展此接口，
+ * 包含多个子状态接口，分别用于不同的功能模块。
+ * 
+ * 子状态接口默认是一个空接口。各个功能模块应使用 declare module 扩展此接口，
  * 添加其所需的特定状态字段。
  * 
  * @example
  * ```typescript
  * // in id.ts
  * declare module "../state" {
- *     interface FormulaState {
- *         idMeta?: IdMetadata;
+ *     interface ExplIdState {
+ *         idData?: IdData;
+ *         realname?: string;
  *     }
  * }
  * ```
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface FormulaState { }
+export interface CtxVarState { }
+export interface ExplIdState { }
+export interface StyleState { }
+export interface FormulaState {
+    ctxVar?: CtxVarState;
+    explId?: ExplIdState;
+    style?: StyleState;
+}
 
 /**
  * 全局状态存储 (WeakMap)

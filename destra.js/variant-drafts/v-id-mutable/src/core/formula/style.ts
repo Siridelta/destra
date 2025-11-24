@@ -519,8 +519,8 @@ const createEditorNode = <T>(
 // ============================================================================
 
 declare module "../state" {
-    interface FormulaState {
-        styleData?: DestraStyle;
+    interface StyleState {
+        styleData: DestraStyle;
     }
 }
 
@@ -587,8 +587,8 @@ Object.defineProperty(Formula.prototype, "style", {
     value: function (arg: any) {
         const self = this as Formula;
         const state = getState(self);
-        const getData = () => state.styleData || {};
-        const setData = (val: DestraStyle | undefined) => state.styleData = val || {};
+        const getData = () => state.style?.styleData || {};
+        const setData = (val: DestraStyle | undefined) => state.style ??= { styleData: val ?? {}};
 
         // 1. 配置模式 (Arg is Object) -> Deep Merge
         if (typeof arg === 'object' && arg !== null) {
@@ -615,7 +615,7 @@ Object.defineProperty(Formula.prototype, "style", {
 Object.defineProperty(Formula.prototype, "setStyle", {
     value: function (config: DestraStyle) {
         const self = this as Formula;
-        getState(self).styleData = config; // 直接覆写
+        getState(self).style ??= { styleData: config }; // 直接覆写
         return self;
     },
     enumerable: true,
@@ -626,7 +626,7 @@ Object.defineProperty(Formula.prototype, "setStyle", {
 Object.defineProperty(Formula.prototype, "styleData", {
     get() {
         const state = getState(this as Formula);
-        return deepCloneStyle(state.styleData || {});
+        return deepCloneStyle(state.style?.styleData || {});
     },
     enumerable: true,
     configurable: true,
