@@ -137,7 +137,7 @@ Expl.prototype.idPrepend = function(segment) {
 
 ### Step 2.3-post: 样式辅助功能补全 (Factories & Label)
 **负责人**: AI Coder
-**状态**: 待办
+**状态**: 已完成
 **前置文档**: 无
 
 **任务**:
@@ -150,7 +150,7 @@ Expl.prototype.idPrepend = function(segment) {
 
 ### Step 2.4: 统一状态管理重构 (FormulaState)
 **负责人**: AI Coder
-**状态**: 待办
+**状态**: 已完成
 **前置文档**: 无
 
 **任务**:
@@ -178,10 +178,13 @@ Expl.prototype.idPrepend = function(segment) {
 **前置文档**: `简化的计算模型.md`
 
 **任务**:
-1.  **For / Sum / Int 工厂**: 实现列表推导、求和、积分的上下文工厂。
-2.  **With 工厂**: 实现局部变量绑定工厂，并包含嵌套限制检查。
-3.  **expl 语法糖**: 实现 `expl.For` 和 `expl.With`。
-4.  **Function 定义 API**: 确定并实现函数定义的 API (Func 工厂 vs expl 扩展 vs 箭头函数反射)。
+1.  **CtxVar 类**: 实现上下文变量类，同时修改其他代码以和 CtxVar 兼容。
+2.  **analyzeCtxVarDefinition**: 实现分析上下文变量定义的函数，用于创建 CtxVar 对象。
+    *   **实现思路**: 从分隔了各个变量定义的逗号入手。由于 DSL 语法的复杂性（如列表 `[1, 2]` 或函数调用 `f(a, b)`），不能简单地检测所有逗号并分割。必须复用 `iterativeCheckBrackets` 函数（基于括号平衡）来识别处于顶层（括号层级之外）的逗号，将其作为真正的变量定义分隔符。然后对分割后的每个片段，复用 `buildInspectableSource` 生成可检查的字符串，并应用正则提取变量名。建议将 `analyzeType.ts` 中的辅助函数（如 `buildInspectableSource`, `iterativeCheckBrackets`）抽离到 `core/expr-dsl/utils.ts` 以便复用。
+3.  **For / Sum / Int 工厂**: 实现列表推导、求和、积分的上下文工厂。
+4.  **With 工厂**: 实现局部变量绑定工厂，并包含嵌套限制检查。
+5.  **expl 语法糖**: 实现 `expl.For` 和 `expl.With`。
+6.  **Func 工厂**: 实现函数定义的工厂函数，包含基于正则的参数列表解析。
 
 ### Step 2.6: `selection` 模块实现
 

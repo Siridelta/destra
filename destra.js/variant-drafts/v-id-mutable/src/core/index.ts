@@ -17,6 +17,13 @@ import {
     type Substitutable
 } from "./formula/base";
 
+export { 
+    type Formula,
+    type Expression, type ExplicitEquation, type ImplicitEquation, type Regression, 
+    type VarExpl, type FuncExpl, type Expl, 
+    type Substitutable 
+};
+
 import "./state";
 
 // ============================================================================
@@ -27,17 +34,29 @@ import "./state";
 import "./formula/id";
 
 // 样式相关方法的原型注入，并导出样式相关类型
-export * from "./formula/style";
-
-// Label 相关功能
-export * from "./formula/label";
+import {
+    LineStyle, PointStyle, DragMode, LabelOrientation,
+    NumericStyleValue, ColorStyleValue, LabelTextValue,
+    DestraStyle,
+    EditorBase, LeafEditor,
+    ShowPartsEditor, LineEditor, PointEditor, FillEditor,
+    LabelEditor, DomainEditor, RootStyleEditor,
+} from "./formula/style";
 
 export { 
-    Formula,
-    Expression, ExplicitEquation, ImplicitEquation, Regression, 
-    VarExpl, type FuncExpl, Expl, 
-    type Substitutable 
+    LineStyle, PointStyle, DragMode, LabelOrientation,
+    NumericStyleValue, ColorStyleValue, LabelTextValue,
+    DestraStyle,
+    EditorBase, LeafEditor,
+    ShowPartsEditor, LineEditor, PointEditor, FillEditor,
+    LabelEditor, DomainEditor, RootStyleEditor,
 };
+
+// Label 相关功能
+import { Label, label } from "./formula/label";
+export { type Label, label };
+
+
 // ============================================================================
 // 导出工厂函数和 API
 // ============================================================================
@@ -50,5 +69,5 @@ export * from "./factories";
 // 导出解析器相关（可选，供高级用户使用）
 // ============================================================================
 
-export * from "./expr-dsl/analyzeType";
+// export * from "./expr-dsl/analyzeType";
 
