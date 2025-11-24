@@ -7,9 +7,10 @@ import { specialSymbolsMap } from "./specialSymbols";
 
 // 保留字(常量、保留变量、内置函数)；
 // 要求：在 wordChar 范围内
-export const reservedWords1 = [
-    // 保留变量
+export const reservedWordsReservedVars = [
     "x", "y", "z", "t", "r", "theta", specialSymbolsMap.theta, "phi", specialSymbolsMap.phi, "rho", specialSymbolsMap.rho,
+] as const;
+export const reservedWords1 = [
     // 常量
     "e", "pi", specialSymbolsMap.pi, "tau", specialSymbolsMap.tau, "i", "infty", specialSymbolsMap.infty,
     // 视图 API 变量
@@ -47,6 +48,7 @@ export const reservedWords5 = [
     "random",
 ] as const;
 export const reservedWords = [
+    ...reservedWordsReservedVars,
     ...reservedWords1,
     ...reservedWords2,
     ...reservedWords3,

@@ -16,15 +16,15 @@ describe('Label API Tests', () => {
     });
 
     test('Label 应该能捕获插值变量', () => {
-        const x = expl`10`.id("x") as VarExpl;
-        const y = expl`20`.id("y") as VarExpl;
+        const _x = expl`10`.id("_x") as VarExpl;
+        const _y = expl`20`.id("_y") as VarExpl;
 
-        const l = label`Position: (${x}, ${y})`;
+        const l = label`Position: (${_x}, ${_y})`;
 
         // 验证捕获了正确的值
         expect(l.values).toHaveLength(2);
-        expect(l.values[0]).toBe(x);
-        expect(l.values[1]).toBe(y);
+        expect(l.values[0]).toBe(_x);
+        expect(l.values[1]).toBe(_y);
         
         // 验证模板部分
         expect(l.template[0]).toBe('Position: (');
@@ -33,9 +33,9 @@ describe('Label API Tests', () => {
     });
 
     test('Label 的编译输出目前应为占位符 (Pending State)', () => {
-        const x = expl`10`.id("x") as VarExpl;
+        const _x = expl`10`.id("_x") as VarExpl;
         
-        const l = label`Value: ${x}`;
+        const l = label`Value: ${_x}`;
 
         // 目前实现返回占位符，因为还没有接入编译系统
         expect(l.compiled).toBe('Value: ${<pending>}');
@@ -54,29 +54,29 @@ describe('Label API Tests', () => {
     });
 
     test('Label 应该能作为 Formula 的样式属性被设置', () => {
-        const e = expl`(0,0)`.id("P") as VarExpl;
-        const x = expl`10`.id("x") as VarExpl;
+        const P = expl`(0,0)`.id("P") as VarExpl;
+        const _x = expl`10`.id("_x") as VarExpl;
         
-        const myLabel = label`X: ${x}`;
+        const myLabel = label`X: ${_x}`;
 
         // 1. 通过 style 配置对象设置
-        e.style({
+        P.style({
             label: {
                 text: myLabel,
                 size: 24
             }
         });
 
-        expect(e.styleData.label?.text).toBe(myLabel);
-        expect(e.styleData.label?.size).toBe(24);
+        expect(P.styleData.label?.text).toBe(myLabel);
+        expect(P.styleData.label?.size).toBe(24);
 
         // 2. 通过 style 编辑器修改
-        const newLabel = label`New X: ${x}`;
-        e.style(s => {
+        const newLabel = label`New X: ${_x}`;
+        P.style(s => {
             s.label.text = newLabel;
         });
 
-        expect(e.styleData.label?.text).toBe(newLabel);
+        expect(P.styleData.label?.text).toBe(newLabel);
     });
 
     test('Label 对象在样式合并中应该被整体替换 (视为叶子节点)', () => {

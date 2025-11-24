@@ -3,7 +3,7 @@
  */
 
 import { oneOrMore, wordChar, anyOf, letter, exactly, wordBoundary, maybe, whitespace, digit } from "magic-regexp";
-import { reservedWords1, reservedWords2, reservedWords3, reservedWords4, reservedWords5, suffixReservedWords } from "./reservedWords";
+import { reservedWords1, reservedWords2, reservedWords3, reservedWords4, reservedWords5, reservedWordsReservedVars, suffixReservedWords } from "./reservedWords";
 
 export const idSegmentPattern = oneOrMore(wordChar);
 export const firstIdSegmentPattern = anyOf(letter, "_").and(wordChar.times.any());
@@ -18,6 +18,7 @@ export const idPattern = exactly(
         .notAfter(".")
         .notBefore(
             anyOf(
+                anyOf(...reservedWordsReservedVars),
                 anyOf(...reservedWords1),
                 anyOf(...reservedWords2),
                 anyOf(...reservedWords3),
