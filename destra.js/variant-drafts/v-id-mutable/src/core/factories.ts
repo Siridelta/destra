@@ -135,7 +135,7 @@ const checkNoNestedWith = (formula: Formula, isStarterWith = false, visited = ne
     for (const dep of checkRange) {
         // If meet a CtxExp, skip it since it is already checked
         // And exclude the case of the dep is PrimitiveValue
-        if (dep instanceof Formula && !isCtxExp(dep)) {
+        if (dep instanceof Formula) {
             checkNoNestedWith(dep, false, visited);
         }
     }
@@ -148,21 +148,25 @@ const checkNoCtxVarPassingToOuter = (formula: CtxExp) => {
     const seenCtxVars = new Set<CtxVar>();
 
     const visited = new Set<Formula>();
-    const iterate = (formula: Formula) => {
-        if (visited.has(formula)) return;
-        visited.add(formula);
+    const iterate = (f: Formula) => {
+        if (visited.has(f)) return;
+        visited.add(f);
 
-        if (isCtxExp(formula)) {
-            seenCtxExps.add(formula);
+        if (isCtxExp(f) && f !== formula) {
+            seenCtxExps.add(f);
+            return; // Stop recursion for nested CtxExp
+        }
+
+        if (f instanceof CtxVar) {
+            seenCtxVars.add(f);
             return;
         }
 
-        if (formula instanceof CtxVar) {
-            seenCtxVars.add(formula);
-            return;
+        f.deps.forEach(dep => iterate(dep));
+        // Check body for CtxExp
+        if (isCtxExp(f) && f.body instanceof Formula) {
+            iterate(f.body);
         }
-
-        formula.deps.forEach(dep => iterate(dep));
     }
     iterate(formula);
     seenCtxVars.forEach(v => {
@@ -177,27 +181,30 @@ const checkNoExternalCtxVarPassingToFunc = (srcFormula: FuncExpl<FuncExplSignatu
     const seenCtxVars = new Set<CtxVar>();
 
     const visited = new Set<Formula>();
-    const iterate = (formula: Formula) => {
-        if (visited.has(formula)) return;
-        visited.add(formula);
+    const iterate = (f: Formula) => {
+        if (visited.has(f)) return;
+        visited.add(f);
 
-        if (formula.type === FormulaType.Function) {
+        if (f.type === FormulaType.Function && f !== srcFormula) {
             return;
         }
 
-        if (formula instanceof CtxVar) {
-            seenCtxVars.add(formula);
+        if (f instanceof CtxVar) {
+            seenCtxVars.add(f);
             return;
         }
 
-        formula.deps.forEach(dep => iterate(dep));
-        if (isCtxExp(formula) && formula.body instanceof Formula) {
-            iterate(formula.body);
+        f.deps.forEach(dep => iterate(dep));
+        if (isCtxExp(f) && f.body instanceof Formula) {
+            iterate(f.body);
         }
     }
     iterate(srcFormula);
+
+    const internalVars: readonly CtxVar[] = 'ctxVars' in srcFormula ? srcFormula.ctxVars : [];
+
     seenCtxVars.forEach(v => {
-        if (v.sourceCtx && v.sourceCtx !== srcFormula) {
+        if (!internalVars.includes(v)) {
             throw new TypeError("检测到外源上下文变量被传递到函数定义内。");
         }
     });
@@ -206,7 +213,7 @@ const checkNoExternalCtxVarPassingToFunc = (srcFormula: FuncExpl<FuncExplSignatu
 // 检查同语句内变量定义重名
 const checkNoDuplicateVarDefinitions = (defs: readonly CtxVarDef[]) => {
     const names = defs.map(d => d.name)
-    if(new Set(names).size !== names.length) {
+    if (new Set(names).size !== names.length) {
         throw new TypeError("在同个上下文语句中，变量名不能重复。");
     }
 }
@@ -227,7 +234,7 @@ const createGenericCtxExpressionIntermediate = (
     return callback => {
         const body = callback(ctx);
         const result = new CtxExpression(template, ctxVars, body, kind);
-        
+
         // With 语句嵌套检查
         if (kind === 'with') {
             checkNoNestedWith(result, true);
@@ -377,7 +384,7 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
     ): CtxFuncExpl<TSignature> => {
         const body = callback(ctx);
         const result = createCallableCtxFuncExpl<TSignature>(template, params, ctxVars, body);
-        
+
         // 检查函数定义内是否收到外源上下文变量
         checkNoExternalCtxVarPassingToFunc(result);
         // 检查本 CtxExp 可视范围内，是否存在内层 CtxExp 的 CtxVar 被传递到外层

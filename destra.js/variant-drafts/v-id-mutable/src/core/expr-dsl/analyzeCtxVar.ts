@@ -1,7 +1,7 @@
 import { type TemplatePayload, type Substitutable } from "../formula/base";
 import { buildInspectableSource, iterativeCheckBrackets } from "./utils";
 import { createRegExp, exactly, whitespace } from "magic-regexp";
-import { idPattern } from "./syntax/commonRegExpPatterns";
+import { ctxVarNamePattern } from "./syntax/commonRegExpPatterns";
 
 export interface CtxVarDef {
     name: string;
@@ -18,7 +18,7 @@ export interface CtxVarBoundsDef {
 const definitionStartRegex = createRegExp(
     exactly(
         whitespace.times.any(),
-        idPattern.groupedAs("name"),
+        ctxVarNamePattern.groupedAs("name"),
         whitespace.times.any(),
         "=",
     )

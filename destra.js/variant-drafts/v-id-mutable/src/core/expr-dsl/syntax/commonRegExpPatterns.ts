@@ -55,4 +55,28 @@ export const inExpressionCharRangePattern =
         ...expressionCharRange,
     ).times.any();
 
-export const paramNamePattern = firstIdSegmentPattern;
+export const paramNamePattern = exactly(
+    wordBoundary
+        .notAfter(".")
+        .notBefore(
+            anyOf(
+                anyOf(...reservedWords1),
+                anyOf(...reservedWords2),
+                anyOf(...reservedWords3),
+                anyOf(...reservedWords4),
+                anyOf(...reservedWords5),
+            ),
+            wordBoundary.notBefore(".")
+        ),
+    firstIdSegmentPattern,
+    wordBoundary.notBefore(".")
+);
+
+// ctxVar 名称——不用考虑与保留字冲突
+// （只要是使用 CtxExp 工厂创建的。这时只可能通过插值代入方式使用该变量，而不是在 DSL 内容中直接引用符号。
+// 如果是后者就需要考虑保留字冲突了。）
+export const ctxVarNamePattern = exactly(
+    wordBoundary.notAfter("."),
+    firstIdSegmentPattern,
+    wordBoundary.notBefore(".")
+);
