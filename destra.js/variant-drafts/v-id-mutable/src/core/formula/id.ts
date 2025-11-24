@@ -12,7 +12,7 @@
 import { anyOf, createRegExp, digit, exactly, letter, maybe, oneOrMore } from "magic-regexp";
 import { idPattern, idSegmentPattern } from "../expr-dsl/syntax/commonRegExpPatterns";
 import { specialSymbolsChars, specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/syntax/specialSymbols";
-import { Expl } from "./base";
+import { CtxVar, Expl } from "./base";
 import { getState } from "../state";
 
 // ============================================================================
@@ -35,7 +35,7 @@ declare module "../state" {
 }
 
 // ============================================================================
-// 1. 声明合并：扩展 Expl 接口类型定义
+// 1. 声明合并：扩展 Expl / CtxVar 接口类型定义
 // ============================================================================
 
 declare module "./base" {
@@ -115,6 +115,31 @@ declare module "./base" {
          * ```typescript
          * const vec = expl`(1, 2)`.realname("v");
          * console.log(vec.realname()); // "v"
+         * ```
+         */
+        realname(): string | undefined;
+    }
+
+    interface CtxVar {
+        /**
+         * 强制指定上下文变量的最终 Desmos 真名
+         * 
+         * @param name - Desmos 变量名，必须符合 Desmos 命名规则
+         * @returns 返回自身，支持链式调用
+         */
+        realname(name: string): this;
+        /**
+         * 获取上下文变量的强制指定的 Desmos 真名
+         * 
+         * @returns 返回 Desmos 真名，如果未设置则返回 undefined
+         * 
+         * @example
+         * ```typescript
+         * const points = For`i = [1...10]`(({i}) => {
+         *     i.realname("i");
+         *     console.log(i.realname()); // "i"
+         *     return expr`(i, i^2)`;
+         * });
          * ```
          */
         realname(): string | undefined;
@@ -214,26 +239,19 @@ const realnamePattern = exactly(
 );
 
 /**
- * 实现 .realname() 方法
- * 
- * 强制指定表达式的最终 Desmos 真名，覆盖自动命名生成器。
- * 这是实现"键盘输入 Hack"等高级技巧所必需的。
- * 
- * 规则：以单个字母或单个希腊字母(在 Destra 里可以使用 alias，或者希腊字母字符本身)开头；可拥有一个下标，在头字母后用下划线连接，下标为一串可以包含至少一个字母或数字的字符串；真名整体必须符合此规则。
- * 例如：a, a_b, α, α_1, α_1xy, alpha_1xy2z
- * 注意：设置时会将真名头部的希腊字母本体转化为对应的 alias。因为这两种写法只能对应 Desmos 里的同一种变量名。
+ * Expl 和 CtxVar 共用的 规范化名字的方法
+ * @param name - 要规范化的名字
+ * @returns 规范化后的名字
+ * @throws {TypeError} 当名字不符合规范时抛出
+ * @example
+ * ```typescript
+ * const a = normalizeName("a");
+ * console.log(a); // "a"
+ * const alpha = normalizeName("α");
+ * console.log(alpha); // "alpha"
+ * ```
  */
-function _Expl_realname(this: Expl): string | undefined;
-function _Expl_realname(this: Expl, name: string): Expl;
-function _Expl_realname(this: Expl, name?: string): Expl | string | undefined {
-    const state = getState(this);
-
-    // get 功能
-    if (name === undefined) {
-        return state.realname;
-    }
-
-    // set 功能
+function normalizeName(name: string): string {
     const match = name.match(createRegExp(realnamePattern));
     if (!match) {
         throw new TypeError("无效的 Desmos 变量名。");
@@ -249,13 +267,46 @@ function _Expl_realname(this: Expl, name?: string): Expl | string | undefined {
         const maybeSubscript = match.groups.subscript;
         finalName = maybeSubscript ? `${alias}_${maybeSubscript}` : alias;
     }
-
-    state.realname = finalName;
+    return finalName;
+}
+/**
+ * 实现 .realname() 方法
+ * 
+ * 强制指定表达式的最终 Desmos 真名，覆盖自动命名生成器。
+ * 这是实现"键盘输入 Hack"等高级技巧所必需的。
+ * 
+ * 规则：以单个字母或单个希腊字母(在 Destra 里可以使用 alias，或者希腊字母字符本身)开头；可拥有一个下标，在头字母后用下划线连接，下标为一串可以包含至少一个字母或数字的字符串；真名整体必须符合此规则。
+ * 例如：a, a_b, α, α_1, α_1xy, alpha_1xy2z
+ * 注意：设置时会将真名头部的希腊字母本体转化为对应的 alias。因为这两种写法只能对应 Desmos 里的同一种变量名。
+ */
+function _Expl_realname(this: Expl): string | undefined;
+function _Expl_realname(this: Expl, name: string): Expl;
+function _Expl_realname(this: Expl, name?: string): Expl | string | undefined {
+    const state = getState(this);
+    // get 功能
+    if (name === undefined) {
+        return state.realname;
+    }
+    // set 功能
+    state.realname = normalizeName(name);
     return this;
 }
 
 Expl.prototype.realname = _Expl_realname;
 
+function _CtxVar_realname(this: CtxVar): string | undefined;
+function _CtxVar_realname(this: CtxVar, name: string): CtxVar;
+function _CtxVar_realname(this: CtxVar, name?: string): CtxVar | string | undefined {
+    const state = getState(this);
+    // get 功能
+    if (name === undefined) {
+        return state.realname;
+    }
+    // set 功能
+    state.realname = normalizeName(name);
+    return this;
+}
+CtxVar.prototype.realname = _CtxVar_realname;
 
 // ============================================================================
 // Console DevEx: 注入内部 getter

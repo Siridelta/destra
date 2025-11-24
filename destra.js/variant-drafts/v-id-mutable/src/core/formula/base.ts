@@ -35,7 +35,9 @@ export interface TemplatePayload {
 export enum FormulaType {
     Expression = "expression",
     Variable = "variable",
+    ContextVariable = "context-variable",
     Function = "function",
+    ContextFunction = "context-function",
     ExplicitEquation = "explicit-equation",
     ImplicitEquation = "implicit-equation",
     Regression = "regression",
@@ -393,13 +395,138 @@ export const createFunctionCallExpression = <TSignature extends FuncExplSignatur
 };
 
 // ============================================================================
+// CtxExp 相关类型定义和实现
+// ============================================================================
+
+/**
+ * 上下文表达式接口
+ */
+export interface CtxExp {
+    readonly ctxVars: readonly CtxVar[];
+    readonly body: Formula;
+}
+
+/**
+ * 上下文变量类
+ */
+export class CtxVar extends Formula {
+    public readonly type = FormulaType.ContextVariable;
+    public readonly isEmbeddable = true as const;
+
+    // Context variable name
+    public readonly name: string;
+    // The context statement that this context variable is defined in
+    public sourceCtx?: CtxExp;
+
+    constructor(name: string) {
+        super({ strings: Object.freeze([""]), values: Object.freeze([]) });
+        this.name = name;
+    }
+
+    protected get _content(): string {
+        return this.name;
+    }
+}
+
+/**
+ * 上下文语句纯表达式类：Sum, Int, For, With 工厂的返回类型
+ */
+export class CtxExpression extends Expression implements CtxExp {
+    public readonly ctxVars: readonly CtxVar[];
+    public readonly body: Formula;
+
+    constructor(
+        template: TemplatePayload, 
+        ctxVars: readonly CtxVar[], 
+        body: Formula
+    ) {
+        super(template);
+        this.ctxVars = ctxVars;
+        this.body = body;
+    }
+}
+
+/**
+ * 上下文语句变量声明类：expl.Sum, expl.Int, expl.For, expl.With 工厂的返回类型
+ */
+export class CtxVarExpl extends VarExpl implements CtxExp {
+    public readonly ctxVars: readonly CtxVar[];
+    public readonly body: Formula;
+
+    constructor(
+        template: TemplatePayload, 
+        ctxVars: readonly CtxVar[], 
+        body: Formula
+    ) {
+        super(template);
+        this.ctxVars = ctxVars;
+        this.body = body;
+    }
+}
+
+/**
+ * 上下文语句函数声明类：Func 工厂的返回类型
+ */
+class CtxFuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplClass<TSignature> implements CtxExp {
+    public readonly ctxVars: readonly CtxVar[];
+    public readonly body: Formula;
+
+    constructor(
+        template: TemplatePayload,
+        options: { readonly params: readonly string[] },
+        ctxVars: readonly CtxVar[],
+        body: Formula
+    ) {
+        super(template, options);
+        this.ctxVars = ctxVars;
+        this.body = body;
+    }
+}
+
+/**
+ * CtxFuncExplClassWithPublicInvoke 类：CtxFuncExplClass 的辅助类，公开 invoke 方法
+ */
+class CtxFuncExplClassWithPublicInvoke<TSignature extends FuncExplSignatureBase> extends CtxFuncExplClass<TSignature> {
+    public invoke(funcExpl: FuncExpl<TSignature>, ...args: Parameters<TSignature>): Expression {
+        return super.invoke(funcExpl, ...args);
+    }
+}
+
+/**
+ * CtxFuncExpl 类型
+ */
+export type CtxFuncExpl<TSignature extends FuncExplSignatureBase> = 
+    CtxFuncExplClass<TSignature> 
+    & FuncExplSignature<TSignature>;
+
+/**
+ * 创建可调用的 CtxFuncExpl 实例
+ */
+export const createCallableCtxFuncExpl = <TSignature extends FuncExplSignatureBase>(
+    template: TemplatePayload,
+    params: readonly string[],
+    ctxVars: readonly CtxVar[],
+    body: Formula
+): CtxFuncExpl<TSignature> => {
+    const instance = new CtxFuncExplClassWithPublicInvoke<TSignature>
+        (template, { params }, ctxVars, body);
+
+    const funcExpl = ((...args: Parameters<TSignature>) => 
+        instance.invoke(funcExpl as any, ...args)) as CtxFuncExpl<TSignature>;
+    
+    Object.assign(funcExpl, instance);
+    Object.setPrototypeOf(funcExpl, CtxFuncExplClass.prototype);
+    return funcExpl;
+}
+
+// ============================================================================
 // 并集类型
 // ============================================================================
 
 /**
  * Embeddable：可嵌入的表达式类型（可用于其他表达式中）
  */
-export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplSignatureBase>;
+export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplSignatureBase> | CtxVar;
 
 /**
  * Substitutable：可代入模板字符串插值的值类型（原始值或可嵌入的表达式）
