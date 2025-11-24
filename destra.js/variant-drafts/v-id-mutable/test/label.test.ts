@@ -1,6 +1,5 @@
-import { describe, test, expect, vi } from 'vitest';
-import { expl, label, VarExpl } from '../src/core/index';
-import { Label } from '../src/core/formula/label';
+import { describe, test, expect } from 'vitest';
+import { expl, label, type VarExpl } from '../src/core/index';
 
 // ============================================================================
 // Label 功能测试
@@ -12,7 +11,7 @@ describe('Label API Tests', () => {
         // 纯文本标签
         const l = label`Hello World`;
         
-        expect(l).toBeInstanceOf(Label);
+        expect(l.constructor.name).toBe('Label');
         expect(l.compiled).toBe('Hello World');
     });
 

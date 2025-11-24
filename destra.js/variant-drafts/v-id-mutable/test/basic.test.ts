@@ -9,7 +9,7 @@
  */
 
 import { describe, test, expect } from 'vitest';
-import { expr, expl, type Expression, type VarExpl, type FuncExpl, type Substitutable, type Expl } from "../src/core/index";
+import { expr, expl, type Expression, type VarExpl, type FuncExpl, type Substitutable } from "../src/core/index";
 
 describe('Basic Functionality Tests', () => {
 

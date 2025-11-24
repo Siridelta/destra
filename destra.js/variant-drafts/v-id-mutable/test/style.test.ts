@@ -1,7 +1,6 @@
 
 import { describe, test, expect } from 'vitest';
-import { expl, expr, Expression, VarExpl } from '../src/core/index';
-import { LineStyle, PointStyle } from '../src/core/formula/style';
+import { expl, expr, Expression, VarExpl, LineStyle, PointStyle } from '../src/core/index';
 
 // ============================================================================
 // 测试用例 (针对新版 API)
@@ -255,7 +254,7 @@ describe('Style API Tests (New Architecture)', () => {
         // 验证 VarExpl 作为 Expression 的一部分也能被正确存储
         // (opacity 是一个新的 Expression 实例)
         const opacity = e.styleData.line?.opacity;
-        expect(opacity).toBeInstanceOf(Expression);
+        expect(opacity?.constructor.name).toBe('Expression');
     });
 
     test('Editor 应该能处理 Expression 和 VarExpl 类型的读写', () => {
