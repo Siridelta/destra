@@ -6,6 +6,7 @@
  */
 
 import { type FormulaTypeInfo } from "../expr-dsl/analyzeType";
+import { getState } from "../state";
 
 // ============================================================================
 // 类型定义
@@ -37,7 +38,6 @@ export enum FormulaType {
     Variable = "variable",
     ContextVariable = "context-variable",
     Function = "function",
-    ContextFunction = "context-function",
     ExplicitEquation = "explicit-equation",
     ImplicitEquation = "implicit-equation",
     Regression = "regression",
@@ -398,12 +398,23 @@ export const createFunctionCallExpression = <TSignature extends FuncExplSignatur
 // CtxExp 相关类型定义和实现
 // ============================================================================
 
+export type CtxKind = 'with' | 'for' | 'sum' | 'int' | 'func';
+
+export type CtxExpBody = PrimitiveValue | Expression | VarExpl;
+
 /**
  * 上下文表达式接口
  */
-export interface CtxExp {
+export interface CtxExp extends Formula {
     readonly ctxVars: readonly CtxVar[];
-    readonly body: Formula;
+    readonly body: CtxExpBody;
+    readonly ctxKind: CtxKind;
+}
+
+declare module "../state" {
+    interface CtxVarState {
+        sourceCtx?: CtxExp;
+    }
 }
 
 /**
@@ -416,7 +427,9 @@ export class CtxVar extends Formula {
     // Context variable name
     public readonly name: string;
     // The context statement that this context variable is defined in
-    public sourceCtx?: CtxExp;
+    public get sourceCtx(): CtxExp | undefined {
+        return getState(this).ctxVar?.sourceCtx;
+    }
 
     constructor(name: string) {
         super({ strings: Object.freeze([""]), values: Object.freeze([]) });
@@ -433,16 +446,19 @@ export class CtxVar extends Formula {
  */
 export class CtxExpression extends Expression implements CtxExp {
     public readonly ctxVars: readonly CtxVar[];
-    public readonly body: Formula;
+    public readonly body: CtxExpBody;
+    public readonly ctxKind: CtxKind;
 
     constructor(
         template: TemplatePayload, 
         ctxVars: readonly CtxVar[], 
-        body: Formula
+        body: CtxExpBody,
+        ctxKind: CtxKind
     ) {
         super(template);
         this.ctxVars = ctxVars;
         this.body = body;
+        this.ctxKind = ctxKind;
     }
 }
 
@@ -451,16 +467,19 @@ export class CtxExpression extends Expression implements CtxExp {
  */
 export class CtxVarExpl extends VarExpl implements CtxExp {
     public readonly ctxVars: readonly CtxVar[];
-    public readonly body: Formula;
+    public readonly body: CtxExpBody;
+    public readonly ctxKind: CtxKind;
 
     constructor(
         template: TemplatePayload, 
         ctxVars: readonly CtxVar[], 
-        body: Formula
+        body: CtxExpBody,
+        ctxKind: CtxKind
     ) {
         super(template);
         this.ctxVars = ctxVars;
         this.body = body;
+        this.ctxKind = ctxKind;
     }
 }
 
@@ -469,13 +488,14 @@ export class CtxVarExpl extends VarExpl implements CtxExp {
  */
 class CtxFuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplClass<TSignature> implements CtxExp {
     public readonly ctxVars: readonly CtxVar[];
-    public readonly body: Formula;
+    public readonly body: CtxExpBody;
+    public readonly ctxKind = 'func' as const;
 
     constructor(
         template: TemplatePayload,
         options: { readonly params: readonly string[] },
         ctxVars: readonly CtxVar[],
-        body: Formula
+        body: CtxExpBody
     ) {
         super(template, options);
         this.ctxVars = ctxVars;
@@ -506,7 +526,7 @@ export const createCallableCtxFuncExpl = <TSignature extends FuncExplSignatureBa
     template: TemplatePayload,
     params: readonly string[],
     ctxVars: readonly CtxVar[],
-    body: Formula
+    body: CtxExpBody
 ): CtxFuncExpl<TSignature> => {
     const instance = new CtxFuncExplClassWithPublicInvoke<TSignature>
         (template, { params }, ctxVars, body);
@@ -517,6 +537,11 @@ export const createCallableCtxFuncExpl = <TSignature extends FuncExplSignatureBa
     Object.assign(funcExpl, instance);
     Object.setPrototypeOf(funcExpl, CtxFuncExplClass.prototype);
     return funcExpl;
+}
+
+// 要求：所有 CtxExp 创建时不要绕过 CtxExp 接口内各属性的存在性检查，以保证类型安全
+export const isCtxExp = (formula: Formula): formula is CtxExp => {
+    return 'ctxKind' in formula && formula.ctxKind !== undefined;
 }
 
 // ============================================================================

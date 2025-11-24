@@ -22,14 +22,17 @@ import { getState } from "../state";
 /**
  * ID 元数据，记录 ID 的值和是否为隐式生成
  */
-export interface IdMetadata {
+export interface IdData {
     segments: readonly string[];
     isImplicit: boolean;
 }
 
 declare module "../state" {
-    interface FormulaState {
-        idData?: IdMetadata;
+    interface ExplIdState {
+        idData?: IdData;
+        realname?: string;
+    }
+    interface CtxVarState {
         realname?: string;
     }
 }
@@ -152,7 +155,7 @@ declare module "./base" {
 
 const idRegex = createRegExp(idPattern);
 
-const idDataInit = (): IdMetadata => ({ segments: [], isImplicit: false });
+const idDataInit = (): IdData => ({ segments: [], isImplicit: false });
 
 /**
  * 实现 .id() 方法
@@ -167,7 +170,7 @@ function _Expl_id(this: Expl, value?: string, isImplicit: boolean = false): Expl
 
     // get 功能
     if (value === undefined) {
-        const idData = state.idData;
+        const idData = state.explId?.idData;
         if (!idData || idData.segments.length === 0) {
             return undefined;
         }
@@ -185,9 +188,11 @@ function _Expl_id(this: Expl, value?: string, isImplicit: boolean = false): Expl
         [...value.matchAll(idSegmentRegex)]
             .map(match => match[0]!);
 
-    state.idData = {
-        segments,
-        isImplicit,
+    state.explId = {
+        idData: {
+            segments,
+            isImplicit,
+        },
     }
 
     return this;
@@ -208,10 +213,10 @@ Expl.prototype.idPrepend = function (this: Expl, segment: string): Expl {
     }
 
     const state = getState(this);
-    // 如果 idData 不存在，初始化它
-    state.idData ??= idDataInit();
+    state.explId ??= {};
+    state.explId.idData ??= idDataInit();
 
-    state.idData.segments = [segment, ...state.idData.segments];
+    state.explId.idData.segments = [segment, ...state.explId.idData.segments];
 
     return this;
 };
@@ -259,9 +264,9 @@ function normalizeName(name: string): string {
 
     let finalName = name;
     const head = match.groups.head!;
-    const maybeSpecialSymbol = 
-            Object.entries(specialSymbolsMap)
-                .find(([_, char]) => char === head);
+    const maybeSpecialSymbol =
+        Object.entries(specialSymbolsMap)
+            .find(([_, char]) => char === head);
     if (maybeSpecialSymbol) {
         const [alias, _] = maybeSpecialSymbol;
         const maybeSubscript = match.groups.subscript;
@@ -285,10 +290,11 @@ function _Expl_realname(this: Expl, name?: string): Expl | string | undefined {
     const state = getState(this);
     // get 功能
     if (name === undefined) {
-        return state.realname;
+        return state.explId?.realname;
     }
     // set 功能
-    state.realname = normalizeName(name);
+    state.explId ??= {};
+    state.explId.realname = normalizeName(name);
     return this;
 }
 
@@ -300,10 +306,11 @@ function _CtxVar_realname(this: CtxVar, name?: string): CtxVar | string | undefi
     const state = getState(this);
     // get 功能
     if (name === undefined) {
-        return state.realname;
+        return state.ctxVar?.realname;
     }
     // set 功能
-    state.realname = normalizeName(name);
+    state.ctxVar ??= {};
+    state.ctxVar.realname = normalizeName(name);
     return this;
 }
 CtxVar.prototype.realname = _CtxVar_realname;
@@ -314,8 +321,8 @@ CtxVar.prototype.realname = _CtxVar_realname;
 
 // 注入 _id getter
 Object.defineProperty(Expl.prototype, "_id", {
-    get: function(this: Expl) {
-        const idData = getState(this).idData;
+    get: function (this: Expl) {
+        const idData = getState(this).explId?.idData;
         if (!idData || idData.segments.length === 0) {
             return undefined;
         }
@@ -327,8 +334,8 @@ Object.defineProperty(Expl.prototype, "_id", {
 
 // 注入 _realname getter
 Object.defineProperty(Expl.prototype, "_realname", {
-    get: function(this: Expl) {
-        return getState(this).realname;
+    get: function (this: Expl) {
+        return getState(this).explId?.realname;
     },
     enumerable: true,
     configurable: true,

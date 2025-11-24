@@ -8,6 +8,12 @@ export interface CtxVarDef {
     definitionPayload: TemplatePayload;
 }
 
+export interface CtxVarBoundsDef {
+    name: string;
+    lower: TemplatePayload;
+    upper: TemplatePayload;
+}
+
 // Match "name = ..." at start of string
 const definitionStartRegex = createRegExp(
     exactly(
@@ -40,7 +46,8 @@ const reconstructPayload = (segment: string, originalValues: readonly Substituta
     };
 };
 
-export const analyzeCtxVarDefinition = (payload: TemplatePayload): CtxVarDef[] => {
+// Analyze "name1 = value1, name2 = value2, ..." definitions
+export const analyzeCtxVarDefinitions = (payload: TemplatePayload): CtxVarDef[] => {
     const source = buildInspectableSource(payload);
     const definitions: CtxVarDef[] = [];
 
@@ -75,7 +82,7 @@ export const analyzeCtxVarDefinition = (payload: TemplatePayload): CtxVarDef[] =
         const name = match.groups!.name!;
         const matchLength = match[0]!.length;
         // The rest of the segment is the right-hand side source.
-        const rhsSource = segment.substring(matchLength).trim(); 
+        const rhsSource = segment.substring(matchLength).trim();
 
         const definitionPayload = reconstructPayload(rhsSource, payload.values);
         definitions.push({ name, definitionPayload });
@@ -84,3 +91,60 @@ export const analyzeCtxVarDefinition = (payload: TemplatePayload): CtxVarDef[] =
     return definitions;
 };
 
+// Analyze "name = lower, upper" bounds definition
+export const analyzeCtxVarBoundsDefinition = (payload: TemplatePayload): CtxVarBoundsDef => {
+    const source = buildInspectableSource(payload);
+
+    // Find comma positions that are at top level
+    const commaIndices: number[] = [];
+    const bracketsValid = iterativeCheckBrackets(source, (index, _, stack) => {
+        if (source[index] === ',' && stack.length === 0) {
+            commaIndices.push(index);
+        }
+    });
+    
+    if (!bracketsValid) {
+        throw new TypeError(`括号不匹配：${source}`);
+    }
+
+    let lastIndex = 0;
+    const segments: string[] = [];
+    for (const commaIndex of commaIndices) {
+        segments.push(source.substring(lastIndex, commaIndex));
+        lastIndex = commaIndex + 1;
+    }
+    segments.push(source.substring(lastIndex));
+
+    if (segments.length !== 2) {
+        throw new TypeError(`无效的变量定义: "${source}"。应为 "name = lower, upper" 格式。`);
+    }
+
+    const lowerSegment = segments[0];
+    const upperSegment = segments[1];
+
+    // Extract the name & the lower payload
+    if (lowerSegment.trim().length === 0) {
+        throw new TypeError(`无效的变量定义: "${lowerSegment}"。应为 "name = lower" 格式。`);
+    }
+
+    const match = lowerSegment.match(definitionStartRegex);
+    if (!match) {
+        throw new TypeError(`无效的变量定义: "${lowerSegment}"。应为 "name = lower" 格式。`);
+    }
+
+    const name = match.groups!.name!;
+    const matchLength = match[0]!.length;
+    // The rest of the segment is the right-hand side source.
+    const rhsSource = lowerSegment.substring(matchLength).trim();
+
+    const lowerPayload = reconstructPayload(rhsSource, payload.values);
+
+    // Extract the name & the upper payload
+    if (upperSegment.trim().length === 0) {
+        throw new TypeError(`无效的变量定义: "${upperSegment}"。应不为空段。`);    // 棍母
+    }
+    const upperPayload = reconstructPayload(upperSegment, payload.values);
+    
+    return { name, lower: lowerPayload, upper: upperPayload };
+    
+}
