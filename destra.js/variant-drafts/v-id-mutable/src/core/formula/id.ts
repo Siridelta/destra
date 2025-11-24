@@ -188,12 +188,11 @@ function _Expl_id(this: Expl, value?: string, isImplicit: boolean = false): Expl
         [...value.matchAll(idSegmentRegex)]
             .map(match => match[0]!);
 
-    state.explId = {
-        idData: {
-            segments,
-            isImplicit,
-        },
-    }
+    state.explId ??= {};
+    state.explId.idData = {
+        segments,
+        isImplicit,
+    };
 
     return this;
 }
