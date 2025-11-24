@@ -29,6 +29,9 @@ import "./formula/id";
 // 样式相关方法的原型注入，并导出样式相关类型
 export * from "./formula/style";
 
+// Label 相关功能
+export * from "./formula/label";
+
 export { 
     Formula,
     Expression, ExplicitEquation, ImplicitEquation, Regression, 

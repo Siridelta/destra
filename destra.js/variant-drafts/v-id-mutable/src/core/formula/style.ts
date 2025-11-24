@@ -6,6 +6,7 @@
 
 import { Assignable, Expect } from "../../types/utils";
 import { Formula, Expression, VarExpl } from "./base";
+import { Label } from "./label";
 import { getState } from "../state";
 
 // ============================================================================
@@ -66,6 +67,9 @@ export type NumericStyleValue = number | string | Expression | VarExpl;
 // 颜色
 export type ColorStyleValue = VarExpl | string;
 
+// 标签文本值类型
+export type LabelTextValue = string | Label;
+
 export interface DestraStyle {
     /**
      * 主可见性开关，对应 Desmos 的 `hidden` 属性。
@@ -117,7 +121,7 @@ export interface DestraStyle {
      * 标签样式
      */
     label?: {
-        text?: string;
+        text?: LabelTextValue;
         size?: NumericStyleValue;
         orientation?: LabelOrientation;
         angle?: NumericStyleValue;
@@ -141,7 +145,7 @@ const styleKeys = [
 
 type CheckDestraStyle = Expect<Assignable<DestraStyle, { [K in typeof styleKeys[number]]?: any }>>;
 
-type LeafType = boolean | number | string | Expression | VarExpl;
+type LeafType = boolean | number | string | Expression | VarExpl | Label;
 
 type StyleSchema<T> = {
     [K in keyof T]: 
@@ -276,8 +280,8 @@ export interface FillEditor extends EditorBase<NonNullable<DestraStyle['fill']>>
  * Label Editor
  */
 export interface LabelEditor extends EditorBase<NonNullable<DestraStyle['label']>> {
-    get text(): LeafEditor<string>;
-    set text(v: string | undefined);
+    get text(): LeafEditor<LabelTextValue>;
+    set text(v: LabelTextValue | undefined);
 
     get size(): LeafEditor<NumericStyleValue>;
     set size(v: NumericStyleValue | undefined);
@@ -347,9 +351,10 @@ export interface RootStyleEditor extends EditorBase<DestraStyle> {
 // ============================================================================
 
 // 辅助：判断值是否为复杂对象（需要 Merge）
+// 如果是 Formula 或 Label，则不进行合并，像原始值一样持有其引用
 const isMergeableObject = (v: any): boolean => {
     if (v === null || typeof v !== 'object') return false;
-    if (v instanceof Expression || v instanceof VarExpl) return false;
+    if (v instanceof Expression || v instanceof VarExpl || v instanceof Label) return false;
     if (Array.isArray(v)) return false;
     return true;
 };
