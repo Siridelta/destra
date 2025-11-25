@@ -4,6 +4,7 @@
  * 本文件作为 @destra/core 包的统一出口，导入所有功能模块并重新导出公共 API。
  *
  * 注意：某些模块的导入具有副作用（原型注入），这些导入必须被执行以确保功能正常工作。
+ * 并且需要留意顺序。各文件内只能导入我们在这里设计的顺序里已被导入的模块，以免破坏原型注入的顺序。
  */
 
 // ============================================================================
@@ -35,6 +36,10 @@ import "./state";
 // ID 相关方法的原型注入
 import "./formula/id";
 
+// Label 相关功能
+import { Label, label } from "./formula/label";
+export { type Label, label };
+
 // 样式相关方法的原型注入，并导出样式相关类型
 import {
     LineStyle, PointStyle, DragMode, LabelOrientation,
@@ -54,18 +59,18 @@ export {
     LabelEditor, DomainEditor, RootStyleEditor,
 };
 
-// Label 相关功能
-import { Label, label } from "./formula/label";
-export { type Label, label };
-
 
 // ============================================================================
 // 导出工厂函数和 API
 // ============================================================================
 
-export * from "./factories";
-// export * from "./selection";
-// export * from "./builder";
+import {
+    expr, expl, For, With, Sum, Int, Func,
+} from "./factories";
+export { expr, expl, For, With, Sum, Int, Func };
+
+export * from "./selection";
+export * from "./builder";
 
 // ============================================================================
 // 导出解析器相关（可选，供高级用户使用）

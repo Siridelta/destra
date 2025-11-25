@@ -1,17 +1,18 @@
 /**
  * ID 相关方法模块（原型注入）
  *
- * 本模块使用"声明合并+原型注入"模式为 Expl 类实现 ID 相关方法。
+ * 本模块使用"声明合并+原型注入"模式为 Expl 类和 CtxVar 类实现 ID 相关方法。
  * 
  * 这些方法支持：
- * - `.id(value, isImplicit)`: 设置或更新表达式的 Destra ID
- * - `.idPrepend(segment)`: 在现有 ID 前添加前缀段（用于批量操作）
- * - `.realname(name)`: 强制指定表达式的最终 Desmos 真名（覆盖自动命名生成器）
+ * - `Expl.id(value, isImplicit)`: 设置或更新表达式的 Destra ID
+ * - `Expl.idPrepend(segment)`: 在现有 ID 前添加前缀段（用于批量操作）
+ * - `Expl.realname(name)`: 强制指定表达式的最终 Desmos 真名（覆盖自动命名生成器）
+ * - `CtxVar.realname(name)`: 强制指定上下文变量的最终 Desmos 真名（覆盖自动命名生成器）
  */
 
 import { anyOf, createRegExp, digit, exactly, letter, maybe, oneOrMore } from "magic-regexp";
 import { idPattern, idSegmentPattern } from "../expr-dsl/syntax/commonRegExpPatterns";
-import { specialSymbolsChars, specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/syntax/specialSymbols";
+import { specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/syntax/specialSymbols";
 import { CtxVar, Expl } from "./base";
 import { getState } from "../state";
 

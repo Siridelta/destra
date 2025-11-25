@@ -6,8 +6,8 @@
 
 import { Assignable, Expect } from "../../types/utils";
 import { Formula, Expression, VarExpl } from "./base";
-import { Label } from "./label";
 import { getState } from "../state";
+import { Label } from "./label";
 
 // ============================================================================
 // 1. 枚举定义 (Desmos Styles)

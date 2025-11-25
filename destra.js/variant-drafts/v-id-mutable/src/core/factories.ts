@@ -19,7 +19,7 @@ import {
     CtxExpression,
     CtxVarExpl,
     createCallableCtxFuncExpl,
-    type FuncExplSignatureBase,
+    type FuncExplTFuncBase,
     type CtxFuncExpl,
     type CtxKind,
     type CtxExp,
@@ -177,7 +177,7 @@ const checkNoCtxVarPassingToOuter = (formula: CtxExp) => {
 }
 
 // 检查 expl 创建的 FuncExpl 或 Func CtxExp 是否收到并非来源于自己的 CtxVar
-const checkNoExternalCtxVarPassingToFunc = (srcFormula: FuncExpl<FuncExplSignatureBase> | CtxFuncExpl<FuncExplSignatureBase>) => {
+const checkNoExternalCtxVarPassingToFunc = (formula: FuncExpl<FuncExplTFuncBase> | CtxFuncExpl<FuncExplTFuncBase>) => {
     const seenCtxVars = new Set<CtxVar>();
 
     const visited = new Set<Formula>();
@@ -185,7 +185,7 @@ const checkNoExternalCtxVarPassingToFunc = (srcFormula: FuncExpl<FuncExplSignatu
         if (visited.has(f)) return;
         visited.add(f);
 
-        if (f.type === FormulaType.Function && f !== srcFormula) {
+        if (f.type === FormulaType.Function && f !== formula) {
             return;
         }
 
@@ -199,9 +199,9 @@ const checkNoExternalCtxVarPassingToFunc = (srcFormula: FuncExpl<FuncExplSignatu
             iterate(f.body);
         }
     }
-    iterate(srcFormula);
+    iterate(formula);
 
-    const internalVars: readonly CtxVar[] = 'ctxVars' in srcFormula ? srcFormula.ctxVars : [];
+    const internalVars: readonly CtxVar[] = 'ctxVars' in formula ? formula.ctxVars : [];
 
     seenCtxVars.forEach(v => {
         if (!internalVars.includes(v)) {
@@ -379,11 +379,11 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
 
     // 返回一个接收 callback 的函数，该 callback 返回 CtxExpBody，
     // 最终返回 CtxFuncExpl (FuncExpl 的子类，可调用)
-    return <TSignature extends FuncExplSignatureBase>(
+    return <TFunc extends FuncExplTFuncBase>(
         callback: (ctx: ContextObject) => CtxExpBody
-    ): CtxFuncExpl<TSignature> => {
+    ): CtxFuncExpl<TFunc> => {
         const body = callback(ctx);
-        const result = createCallableCtxFuncExpl<TSignature>(template, params, ctxVars, body);
+        const result = createCallableCtxFuncExpl<TFunc>(template, params, ctxVars, body);
 
         // 检查函数定义内是否收到外源上下文变量
         checkNoExternalCtxVarPassingToFunc(result);

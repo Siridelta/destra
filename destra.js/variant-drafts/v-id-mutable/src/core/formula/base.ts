@@ -273,11 +273,11 @@ export class VarExpl extends Expl {
  */
 
 // 函数签名的基类型
-export type FuncExplSignatureBase = (...args: readonly Substitutable[]) => Expression;
+export type FuncExplTFuncBase = (...args: readonly Substitutable[]) => Expression;
 
 // 函数签名的泛型类型
-export type FuncExplSignature<TSignature extends FuncExplSignatureBase> = ((
-    ...args: Parameters<TSignature> & readonly Substitutable[]
+export type FuncExplFunc<TFunc extends FuncExplTFuncBase> = ((
+    ...args: Parameters<TFunc> & readonly Substitutable[]
 ) => Expression);
 
 /**
@@ -300,11 +300,11 @@ class FuncExplBaseClass extends Expl {
  * FuncExplClass 类：函数声明的类型化实现类，第1层，加上带函数签名信息的泛型类型，
  * 以及加上 protected 的 invoke 方法（不对外暴露），这个类在加入后面的 type 混合类型后对外暴露
  * 
- * TSignature 只用于存储函数签名的类型信息，其返回值类型信息我们不使用
+ * TFunc 只用于存储函数签名的类型信息，其返回值类型信息我们不使用
  * （实际返回的一定将会是 Expression 类型而不是它的子类型）
  */
-class FuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplBaseClass {
-    protected invoke(funcExpl: FuncExpl<TSignature>, ...args: Parameters<TSignature>): Expression {
+class FuncExplClass<TFunc extends FuncExplTFuncBase> extends FuncExplBaseClass {
+    protected invoke(funcExpl: FuncExpl<TFunc>, ...args: Parameters<TFunc>): Expression {
         // 运行时检查：参数必须是可代入项
         args.forEach((arg, index) => {
             if (!isSubstitutable(arg)) {
@@ -318,7 +318,7 @@ class FuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplBa
         // 创建函数调用表达式
         return createFunctionCallExpression(
             funcExpl,
-            args as Parameters<TSignature> & readonly Substitutable[],
+            args as Parameters<TFunc> & readonly Substitutable[],
         );
     }
 }
@@ -326,8 +326,8 @@ class FuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplBa
 /**
  * FuncExplClassWithPublicInvoke 类：函数声明的类型化实现类，第2层，将 invoke 方法公开，供 createCallableFuncExpl 使用，但是不对外暴露
  */
-class FuncExplClassWithPublicInvoke<TSignature extends FuncExplSignatureBase> extends FuncExplClass<TSignature> {
-    public invoke(funcExpl: FuncExpl<TSignature>, ...args: Parameters<TSignature>): Expression {
+class FuncExplClassWithPublicInvoke<TFunc extends FuncExplTFuncBase> extends FuncExplClass<TFunc> {
+    public invoke(funcExpl: FuncExpl<TFunc>, ...args: Parameters<TFunc>): Expression {
         return super.invoke(funcExpl, ...args);
     }
 }
@@ -336,20 +336,20 @@ class FuncExplClassWithPublicInvoke<TSignature extends FuncExplSignatureBase> ex
  * FuncExpl 类型：可调用的函数表达式类型
  * 这是一个混合类型，既是一个对象（继承 FuncExplBaseClass），也是一个可调用的函数
  */
-export type FuncExpl<TSignature extends FuncExplSignatureBase> =
-    FuncExplClass<TSignature>
-    & FuncExplSignature<TSignature>;
+export type FuncExpl<TFunc extends FuncExplTFuncBase> =
+    FuncExplClass<TFunc>
+    & FuncExplFunc<TFunc>;
 
 /**
  * 创建可调用的 FuncExpl 实例
  * 通过原型注入的方式，将函数调用能力注入到对象中
  */
-export const createCallableFuncExpl = <TSignature extends FuncExplSignatureBase>(
+export const createCallableFuncExpl = <TFunc extends FuncExplTFuncBase>(
     template: TemplatePayload,
     info: Extract<FormulaTypeInfo, { readonly type: FormulaType.Function }>,
-): FuncExpl<TSignature> => {
+): FuncExpl<TFunc> => {
     // 先创建 FuncExplClass 类实例
-    const instance = new FuncExplClassWithPublicInvoke<TSignature>(template, {
+    const instance = new FuncExplClassWithPublicInvoke<TFunc>(template, {
         params: info.params,
     });
     if (info.name) {
@@ -359,8 +359,8 @@ export const createCallableFuncExpl = <TSignature extends FuncExplSignatureBase>
     // Intentionally pass the funcExpl obj into invoke, let internal knows it and use it to build the Expression
     // so the resulting Expression is dependent on a 'FuncExpl' (?) and would not see a 'FuncExplClassWithPublicInvoke'
     // This is for console-side DevEx.
-    const funcExpl = ((...args: Parameters<TSignature>) =>
-        instance.invoke(funcExpl, ...args)) as FuncExpl<TSignature>;
+    const funcExpl = ((...args: Parameters<TFunc>) =>
+        instance.invoke(funcExpl, ...args)) as FuncExpl<TFunc>;
     // 把 instance 的原型链和属性都复制给 funcExpl 对象，让 funcExpl 对象看起来也像 FuncExplClass 实例一样
     Object.assign(funcExpl, instance);
     Object.setPrototypeOf(funcExpl, FuncExplClass.prototype);
@@ -371,9 +371,9 @@ export const createCallableFuncExpl = <TSignature extends FuncExplSignatureBase>
  * 创建函数调用表达式
  * 将函数调用转换为一个 Expression 对象
  */
-export const createFunctionCallExpression = <TSignature extends FuncExplSignatureBase>(
-    fn: FuncExpl<TSignature>,
-    args: Parameters<TSignature> & readonly Substitutable[],
+export const createFunctionCallExpression = <TFunc extends FuncExplTFuncBase>(
+    fn: FuncExpl<TFunc>,
+    args: Parameters<TFunc> & readonly Substitutable[],
 ): Expression => {
     const strings: string[] = [""];
     const values: Substitutable[] = [];
@@ -504,7 +504,7 @@ export class CtxVarExpl extends VarExpl implements CtxExp {
 /**
  * 上下文语句函数声明类：Func 工厂的返回类型
  */
-class CtxFuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExplClass<TSignature> implements CtxExp {
+class CtxFuncExplClass<TFunc extends FuncExplTFuncBase> extends FuncExplClass<TFunc> implements CtxExp {
     public readonly ctxVars: readonly CtxVar[];
     public readonly body: CtxExpBody;
     public readonly ctxKind = 'func' as const;
@@ -528,8 +528,8 @@ class CtxFuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExp
 /**
  * CtxFuncExplClassWithPublicInvoke 类：CtxFuncExplClass 的辅助类，公开 invoke 方法
  */
-class CtxFuncExplClassWithPublicInvoke<TSignature extends FuncExplSignatureBase> extends CtxFuncExplClass<TSignature> {
-    public invoke(funcExpl: FuncExpl<TSignature>, ...args: Parameters<TSignature>): Expression {
+class CtxFuncExplClassWithPublicInvoke<TFunc extends FuncExplTFuncBase> extends CtxFuncExplClass<TFunc> {
+    public invoke(funcExpl: FuncExpl<TFunc>, ...args: Parameters<TFunc>): Expression {
         return super.invoke(funcExpl, ...args);
     }
 }
@@ -537,24 +537,24 @@ class CtxFuncExplClassWithPublicInvoke<TSignature extends FuncExplSignatureBase>
 /**
  * CtxFuncExpl 类型
  */
-export type CtxFuncExpl<TSignature extends FuncExplSignatureBase> = 
-    CtxFuncExplClass<TSignature> 
-    & FuncExplSignature<TSignature>;
+export type CtxFuncExpl<TFunc extends FuncExplTFuncBase> = 
+    CtxFuncExplClass<TFunc> 
+    & FuncExplFunc<TFunc>;
 
 /**
  * 创建可调用的 CtxFuncExpl 实例
  */
-export const createCallableCtxFuncExpl = <TSignature extends FuncExplSignatureBase>(
+export const createCallableCtxFuncExpl = <TFunc extends FuncExplTFuncBase>(
     template: TemplatePayload,
     params: readonly string[],
     ctxVars: readonly CtxVar[],
     body: CtxExpBody
-): CtxFuncExpl<TSignature> => {
-    const instance = new CtxFuncExplClassWithPublicInvoke<TSignature>
+): CtxFuncExpl<TFunc> => {
+    const instance = new CtxFuncExplClassWithPublicInvoke<TFunc>
         (template, { params }, ctxVars, body);
 
-    const funcExpl = ((...args: Parameters<TSignature>) => 
-        instance.invoke(funcExpl as any, ...args)) as CtxFuncExpl<TSignature>;
+    const funcExpl = ((...args: Parameters<TFunc>) => 
+        instance.invoke(funcExpl as any, ...args)) as CtxFuncExpl<TFunc>;
     
     Object.assign(funcExpl, instance);
     Object.setPrototypeOf(funcExpl, CtxFuncExplClass.prototype);
@@ -573,7 +573,7 @@ export const isCtxExp = (formula: Formula): formula is CtxExp => {
 /**
  * Embeddable：可嵌入的表达式类型（可用于其他表达式中）
  */
-export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplSignatureBase> | CtxVar;
+export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplTFuncBase> | CtxVar;
 
 /**
  * Substitutable：可代入模板字符串插值的值类型（原始值或可嵌入的表达式）
