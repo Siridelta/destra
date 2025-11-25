@@ -275,4 +275,139 @@ describe('Style API Tests (New Architecture)', () => {
         expect(e.styleData.color).toBe(C2);
     });
 
+    describe('Runtime Validation (运行时校验)', () => {
+        const e = expl`x`;
+
+        test('应该拦截非法的枚举值', () => {
+            expect(() => {
+                // @ts-expect-error Testing runtime validation
+                e.style({ line: { style: 'WAVY' } });
+            }).toThrow(TypeError);
+
+            expect(() => {
+                e.style(s => {
+                    // @ts-expect-error Testing runtime validation
+                    s.point.style = 'UNKNOWN';
+                });
+            }).toThrow(TypeError);
+        });
+
+        test('应该拦截非法的类型 (期望数字/表达式，收到非预期对象)', () => {
+            expect(() => {
+                // @ts-expect-error Testing runtime validation
+                e.style({ line: { width: { random: 'obj' } } });
+            }).toThrow(TypeError);
+
+            // NumericStyleValue allows string, so we test with an Object which is definitely invalid.
+            expect(() => {
+                 e.style(s => {
+                    // @ts-expect-error Testing runtime validation
+                    s.point.size = { not: 'allowed' };
+                });
+            }).toThrow(TypeError);
+        });
+
+        test('应该拦截非法的 Boolean 值', () => {
+            expect(() => {
+                // @ts-expect-error Testing runtime validation
+                e.style({ hidden: 'yes' });
+            }).toThrow(TypeError);
+        });
+
+        test('应该拦截非法的 Label 值', () => {
+             expect(() => {
+                 // @ts-expect-error
+                 e.style({ label: { text: 12345 } });
+             }).toThrow(TypeError);
+        });
+
+        test('Update/Merge 时也应触发校验', () => {
+             expect(() => {
+                 e.style(s => {
+                     // @ts-expect-error
+                     s.line.update({ width: { invalid: true } });
+                 });
+             }).toThrow(TypeError);
+        });
+        
+        test('叶子节点赋值时应触发校验', () => {
+             expect(() => {
+                 e.style(s => {
+                     // @ts-expect-error
+                     s.line.width.set({ invalid: true });
+                 });
+             }).toThrow(TypeError);
+        });
+    });
+
+    describe('Editor Safety Checks (防止误传 Editor)', () => {
+        const e1 = expl`x`;
+        const e2 = expl`y`;
+        e2.style({ line: { width: 10 } });
+
+        test('应该拦截将 Editor 传给 .style() 的尝试', () => {
+            // 模拟用户试图将一个 Editor 对象直接传给 style 方法
+            e1.style(s1 => {
+                e2.style(s2 => {
+                    expect(() => {
+                        // @ts-expect-error
+                        e1.style(s2.line); 
+                    }).toThrow('Invalid style argument: expected data object or callback function, got editor');
+                });
+            });
+        });
+
+        test('应该拦截将 Editor 赋值给属性的尝试', () => {
+            e1.style(s1 => {
+                e2.style(s2 => {
+                    expect(() => {
+                        // @ts-expect-error
+                        s1.line = s2.line;
+                    }).toThrow('Invalid style argument: expected data object, got editor');
+                });
+            });
+        });
+
+        test('应该拦截将 Editor 传给 .set() 的尝试', () => {
+            e1.style(s1 => {
+                e2.style(s2 => {
+                    expect(() => {
+                        // @ts-expect-error
+                        s1.line.set(s2.line);
+                    }).toThrow('Invalid style argument: expected data object, got editor');
+                });
+            });
+        });
+
+        test('应该拦截将 Editor 传给 .update() 的尝试', () => {
+            e1.style(s1 => {
+                e2.style(s2 => {
+                    expect(() => {
+                        // @ts-expect-error
+                        s1.line.update(s2.line);
+                    }).toThrow('Invalid style argument: expected data object, got editor');
+                });
+            });
+        });
+    });
+
+    test('应该拦截 null 值 (应使用 undefined 或 .delete())', () => {
+        const e = expl`x`;
+        e.style({ line: { width: 5 } });
+
+        expect(() => {
+             e.style(s => {
+                 // @ts-expect-error Testing null safety
+                 s.line.width = null;
+             });
+        }).toThrow(TypeError); // Invalid style value: null
+
+         expect(() => {
+             e.style(s => {
+                 // @ts-expect-error Testing null safety
+                 s.line.width.set(null);
+             });
+        }).toThrow(TypeError);
+    });
+
 });

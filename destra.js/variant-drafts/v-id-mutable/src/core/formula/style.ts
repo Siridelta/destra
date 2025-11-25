@@ -147,51 +147,80 @@ type CheckDestraStyle = Expect<Assignable<DestraStyle, { [K in typeof styleKeys[
 
 type LeafType = boolean | number | string | Expression | VarExpl | Label;
 
-type StyleSchema<T> = {
-    [K in keyof T]: 
-        NonNullable<T[K]> extends LeafType
-        ? true 
-        : StyleSchema<NonNullable<T[K]>>;
+// Validator 定义
+type Validator<T> = (v: unknown) => v is T;
+
+const isBoolean: Validator<boolean> = (v): v is boolean => typeof v === 'boolean';
+const isNumber: Validator<number> = (v): v is number => typeof v === 'number';
+const isString: Validator<string> = (v): v is string => typeof v === 'string';
+
+const optional = <T>(validator: Validator<T>): Validator<T | undefined> =>
+    (v): v is T | undefined => v === undefined || validator(v);
+
+const oneOf = <T extends string>(enumObj: Record<string, T>): Validator<T> => {
+    const values = new Set(Object.values(enumObj));
+    return (v): v is T => typeof v === 'string' && values.has(v as T);
 };
+
+const isExpression = (v: unknown): v is Expression => v instanceof Expression;
+const isVarExpl = (v: unknown): v is VarExpl => v instanceof VarExpl;
+const isLabel = (v: unknown): v is Label => v instanceof Label;
+
+const isNumericStyleValue: Validator<NumericStyleValue> = (v): v is NumericStyleValue =>
+    isNumber(v) || isString(v) || isExpression(v) || isVarExpl(v);
+
+const isColorStyleValue: Validator<ColorStyleValue> = (v): v is ColorStyleValue =>
+    isString(v) || isVarExpl(v);
+
+const isLabelTextValue: Validator<LabelTextValue> = (v): v is LabelTextValue =>
+    isString(v) || isLabel(v);
+
+
+type StyleSchema<T> = {
+    [K in keyof T]:
+    NonNullable<T[K]> extends LeafType
+    ? Validator<NonNullable<T[K]>>
+    : StyleSchema<NonNullable<T[K]>>;
+};
+
 /**
- * 运行时样式结构描述
- * true 表示叶子节点，对象表示嵌套结构
+ * 运行时样式结构描述 & 校验器
  */
 const styleSchema = {
-    hidden: true,
+    hidden: isBoolean,
     showParts: {
-        lines: true,
-        points: true,
-        fill: true,
-        label: true,
+        lines: isBoolean,
+        points: isBoolean,
+        fill: isBoolean,
+        label: isBoolean,
     },
-    color: true,
+    color: isColorStyleValue,
     line: {
-        style: true,
-        width: true,
-        opacity: true,
+        style: oneOf(LineStyle),
+        width: isNumericStyleValue,
+        opacity: isNumericStyleValue,
     },
     point: {
-        style: true,
-        size: true,
-        opacity: true,
-        dragMode: true,
+        style: oneOf(PointStyle),
+        size: isNumericStyleValue,
+        opacity: isNumericStyleValue,
+        dragMode: oneOf(DragMode),
     },
     fill: {
-        opacity: true,
+        opacity: isNumericStyleValue,
     },
     label: {
-        text: true,
-        size: true,
-        orientation: true,
-        angle: true,
+        text: isLabelTextValue,
+        size: isNumericStyleValue,
+        orientation: oneOf(LabelOrientation),
+        angle: isNumericStyleValue,
     },
     // Domains
-    theta: { min: true, max: true },
-    phi: { min: true, max: true },
-    t: { min: true, max: true },
-    u: { min: true, max: true },
-    v: { min: true, max: true },
+    theta: { min: isNumericStyleValue, max: isNumericStyleValue },
+    phi: { min: isNumericStyleValue, max: isNumericStyleValue },
+    t: { min: isNumericStyleValue, max: isNumericStyleValue },
+    u: { min: isNumericStyleValue, max: isNumericStyleValue },
+    v: { min: isNumericStyleValue, max: isNumericStyleValue },
 } as const satisfies StyleSchema<DestraStyle>;
 
 
@@ -359,10 +388,16 @@ const isMergeableObject = (v: any): boolean => {
     return true;
 };
 
-// 深度合并函数
+// 深度合并函数 (回归纯粹)
 const deepMerge = (target: any, source: any, schemaNode: any) => {
     if (source === undefined) return undefined;
-    if (!isMergeableObject(source) || !isMergeableObject(target) || schemaNode === true) {
+
+    // 如果是叶子节点 Schema (Validator)，直接返回 source (Overwrite)
+    if (typeof schemaNode === 'function') {
+        return source;
+    }
+
+    if (!isMergeableObject(source) || !isMergeableObject(target)) {
         return source;
     }
 
@@ -378,6 +413,26 @@ const deepMerge = (target: any, source: any, schemaNode: any) => {
         }
     }
     return result;
+};
+
+// 递归校验函数 (用于全量校验)
+const validateRecursively = (value: any, schemaNode: any) => {
+    if (value === undefined) return;
+
+    if (typeof schemaNode === 'function') {
+        // 叶子节点校验
+        if (!schemaNode(value)) {
+            throw new TypeError(`Invalid style value: ${String(value)}`);
+        }
+    } else if (typeof schemaNode === 'object' && schemaNode !== null && isMergeableObject(value)) {
+        for (const key in value) {
+            if (schemaNode[key]) {
+                validateRecursively(value[key], schemaNode[key]);
+            } else {
+                throw new TypeError(`Invalid style key: ${key}`);
+            }
+        }
+    }
 };
 
 // 自定义深拷贝函数
@@ -401,6 +456,30 @@ const deepCloneStyle = (obj: any): any => {
 
 
 /**
+ * 统一的公式样式数据读写接口
+ * 方便统一执行校验和深拷贝
+ */
+
+// 读取数据：深拷贝后返回
+const getStyleData = (formula: Formula): DestraStyle => {
+    const state = getState(formula);
+    return deepCloneStyle(state.style?.styleData || {});
+};
+
+// 写入数据：校验、深拷贝后写入
+const setStyleData = (formula: Formula, data: DestraStyle | undefined) => {
+    if (data !== undefined) {
+        validateRecursively(data, styleSchema);
+    }
+
+    const state = getState(formula);
+    state.style ??= { styleData: {} };
+    state.style.styleData = deepCloneStyle(data ?? {});
+};
+
+
+
+/**
  * 创建 Editor 节点 (Type-unsafe internal implementation)
  */
 const createEditorNode = <T>(
@@ -416,7 +495,7 @@ const createEditorNode = <T>(
     // 1. 基础方法实现
 
     Object.defineProperty(editor, 'value', {
-        get: () => deepCloneStyle(getData()),
+        get: () => getData(),
         enumerable: true,
         configurable: true,
     });
@@ -424,18 +503,38 @@ const createEditorNode = <T>(
     editor.set = (arg: any) => {
         const current = getData();
         let val = arg;
+
+        // state updater 函数
         if (typeof arg === 'function') {
-            val = arg(deepCloneStyle(current));
+            val = arg(current);
         }
+
+        // 传入 editor, 抛出错误
+        if (typeof arg === 'object' && 'value' in arg) {
+            throw new TypeError('Invalid style argument: expected data object, got editor');
+        }
+
         setData(val);
     };
 
-    editor.update = (val: any) => {
-        if (val === undefined) return;
+    editor.update = (arg: any) => {
+        if (arg === undefined) return;
         const current = getData();
-        if (schemaNode === true || !isMergeableObject(val)) {
+        let val = arg;
+
+        // 传入 editor, 抛出错误
+        if (typeof arg === 'object' && 'value' in arg) {
+            throw new TypeError('Invalid style argument: expected data object, got editor');
+        }
+
+        if (typeof schemaNode === 'function') {
+            // 叶子节点 update 等同于 set
+            setData(val);
+        } else if(!isMergeableObject(val)) {
+            // 非预期结构，直接 set
             setData(val);
         } else {
+            // deepMerge 合并
             const merged = deepMerge(current, val, schemaNode);
             setData(merged);
         }
@@ -449,7 +548,7 @@ const createEditorNode = <T>(
         callback(editor);
     };
 
-    editor.toJSON = () => deepCloneStyle(getData());
+    editor.toJSON = () => editor.value;
 
     // 2. 生成子属性的 Getter/Setter
     if (typeof schemaNode === 'object' && schemaNode !== null) {
@@ -480,11 +579,8 @@ const createEditorNode = <T>(
                             (parentData as any)[key] = val;
                         }
 
-                        // 只有当父对象引用发生变化（比如从 undefined 变为 {}）时才需要回写
-                        // 但为了保险起见，以及处理 createEditorNode 的上层 setData 逻辑，总是回写是安全的
-                        if (data !== parentData) {
-                            setData(parentData as any);
-                        }
+                        // 回写给父级，最终触发 Root setData 的校验
+                        setData(parentData as any);
                     };
 
                     const childEditor = createEditorNode(childGetData, childSetData, childSchema);
@@ -498,14 +594,17 @@ const createEditorNode = <T>(
                     const parentData = (data && typeof data === 'object') ? data : {};
 
                     if (val === undefined) {
+                        // 删除
                         delete (parentData as any)[key];
+                    } else if(typeof val === 'object' && 'value' in val) {
+                        // 传入 editor, 抛出错误
+                        throw new TypeError('Invalid style argument: expected data object, got editor');
                     } else {
+                        // 直接赋值
                         (parentData as any)[key] = val;
                     }
 
-                    if (data !== parentData) {
-                        setData(parentData as any);
-                    }
+                    setData(parentData as any);
                 }
             });
         }
@@ -586,13 +685,16 @@ type CheckFormulaStyle = Expect<Assignable<Formula,
 Object.defineProperty(Formula.prototype, "style", {
     value: function (arg: any) {
         const self = this as Formula;
-        const state = getState(self);
-        const getData = () => state.style?.styleData || {};
-        const setData = (val: DestraStyle | undefined) => state.style ??= { styleData: val ?? {}};
+
+        const getData = () => getStyleData(self);
+        const setData = (val: DestraStyle | undefined) => setStyleData(self, val);
 
         // 1. 配置模式 (Arg is Object) -> Deep Merge
         if (typeof arg === 'object' && arg !== null) {
             const current = getData();
+            if(typeof arg === 'object' && 'value' in arg) {
+                throw new TypeError('Invalid style argument: expected data object or callback function, got editor');
+            }
             const merged = deepMerge(current, arg, styleSchema);
             setData(merged);
             return self;
@@ -612,11 +714,11 @@ Object.defineProperty(Formula.prototype, "style", {
 });
 
 // 注入 setStyle 方法 (Overwrite 语义)
+// 写入时进行一次深拷贝
 Object.defineProperty(Formula.prototype, "setStyle", {
     value: function (config: DestraStyle) {
-        const self = this as Formula;
-        getState(self).style ??= { styleData: config }; // 直接覆写
-        return self;
+        setStyleData(this as Formula, config);
+        return this;
     },
     enumerable: true,
     configurable: true,
@@ -625,8 +727,7 @@ Object.defineProperty(Formula.prototype, "setStyle", {
 // 注入 styleData 属性
 Object.defineProperty(Formula.prototype, "styleData", {
     get() {
-        const state = getState(this as Formula);
-        return deepCloneStyle(state.style?.styleData || {});
+        return getStyleData(this as Formula);
     },
     enumerable: true,
     configurable: true,
@@ -639,14 +740,12 @@ styleKeys.forEach(key => {
         value: function (arg: any) {
             // 复用 .style()
             return this.style((s: any) => {
-                if (typeof arg === 'object') {
-                    // s[key] = arg 会触发 Setter -> Merge
-                    s[key] = arg;
-                } else if (typeof arg === 'function') {
+                if (typeof arg === 'function') {
+                    // 函数 -> Editor 回调
                     s[key].edit(arg);
                 } else {
-                    // Primitive values (e.g. color("red"))
-                    s[key] = arg;
+                    // Update/Merge
+                    s[key].update(arg);
                 }
             });
         },
@@ -660,8 +759,7 @@ styleKeys.forEach(key => {
     Object.defineProperty(Formula.prototype, setterName, {
         value: function (val: any) {
             return this.style((s: any) => {
-                s[key].delete();
-                s[key] = val;
+                s[key].set(val);
             });
         },
         enumerable: true,
