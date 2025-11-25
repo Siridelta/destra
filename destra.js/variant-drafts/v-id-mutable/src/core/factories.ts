@@ -116,9 +116,9 @@ const checkNoNestedWith = (formula: Formula, isStarterWith = false, visited = ne
         throw new TypeError("在同个函数作用域 / 全局作用域内，with 语句不支持嵌套。");
     }
 
-    // Check if the formula is a FuncExpl / CtxFuncExpl
+    // Check if the formula is a FuncExpl / CtxFuncExpl / VarExpl
     // If so, we don't need to check for nested with; neither its DSL content.
-    if (formula.type === FormulaType.Function) {
+    if (formula.type === FormulaType.Function || formula.type === FormulaType.Variable) {
         return;
     }
 
