@@ -189,7 +189,7 @@ Expl.prototype.idPrepend = function(segment) {
 ### Step 2.6: `selection` 模块实现
 
 **负责人**: AI Coder
-**状态**: 待办
+**状态**: 已完成
 **前置文档**: `核心API与命名机制.md`
 
 **任务**:
@@ -200,7 +200,7 @@ Expl.prototype.idPrepend = function(segment) {
 ### Step 2.7: `builder` API 实现
 
 **负责人**: AI Coder
-**状态**: 待办
+**状态**: 已完成
 **前置文档**: `核心API与命名机制.md`
 
 **任务**:
