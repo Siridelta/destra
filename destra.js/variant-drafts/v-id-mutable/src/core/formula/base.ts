@@ -436,7 +436,12 @@ export class CtxVar extends Formula {
 
     // Context variable name
     public readonly name: string;
-    // The context statement that this context variable is defined in
+    /**
+     * The context statement that this context variable is defined in
+     * 注意：在 ctxVar 的合法使用范围内，其所属的 CtxExp 对象永远尚未完成创建。
+     * 因此，在 ctx 回调内访问 sourceCtx 永远返回 undefined。
+     * 此功能仅用于上下文语句构建完成后记录依赖关系，可供查询。
+     */
     public get sourceCtx(): CtxExp | undefined {
         return getState(this).ctxVar?.sourceCtx;
     }

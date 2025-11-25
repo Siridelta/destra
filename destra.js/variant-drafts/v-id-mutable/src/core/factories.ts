@@ -169,8 +169,8 @@ const checkNoCtxVarPassingToOuter = (formula: CtxExp) => {
         }
     }
     iterate(formula);
-    seenCtxVars.forEach(v => {
-        if (v.sourceCtx && seenCtxExps.has(v.sourceCtx)) {
+    seenCtxExps.forEach(e => {
+        if (e.ctxVars.some(v => seenCtxVars.has(v))) {
             throw new TypeError("检测到上下文变量被传递到上下文语句外。");
         }
     });
