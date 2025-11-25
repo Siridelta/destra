@@ -402,6 +402,16 @@ export type CtxKind = 'with' | 'for' | 'sum' | 'int' | 'func';
 
 export type CtxExpBody = PrimitiveValue | Expression | VarExpl;
 
+export const isCtxExpBody = (body: unknown): body is CtxExpBody => {
+    if (isPrimitive(body)) {
+        return true;
+    }
+    if (body instanceof Expression || body instanceof VarExpl) {
+        return true;
+    }
+    return false;
+}
+
 /**
  * 上下文表达式接口
  */
@@ -456,6 +466,10 @@ export class CtxExpression extends Expression implements CtxExp {
         ctxKind: CtxKind
     ) {
         super(template);
+        // 运行时检查 body
+        if (!isCtxExpBody(body)) {
+            throw new TypeError(`上下文语句体必须为原始值、表达式或变量声明。`);
+        }
         this.ctxVars = ctxVars;
         this.body = body;
         this.ctxKind = ctxKind;
@@ -477,6 +491,10 @@ export class CtxVarExpl extends VarExpl implements CtxExp {
         ctxKind: CtxKind
     ) {
         super(template);
+        // 运行时检查 body
+        if (!isCtxExpBody(body)) {
+            throw new TypeError(`上下文语句体必须为原始值、表达式或变量声明。`);
+        }
         this.ctxVars = ctxVars;
         this.body = body;
         this.ctxKind = ctxKind;
@@ -498,6 +516,10 @@ class CtxFuncExplClass<TSignature extends FuncExplSignatureBase> extends FuncExp
         body: CtxExpBody
     ) {
         super(template, options);
+        // 运行时检查 body
+        if (!isCtxExpBody(body)) {
+            throw new TypeError(`上下文语句体必须为原始值、表达式或变量声明。`);
+        }
         this.ctxVars = ctxVars;
         this.body = body;
     }
