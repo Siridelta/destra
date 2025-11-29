@@ -52,21 +52,6 @@ export const builder = <TFunc extends (...args: any[]) => any>(
         return mkBuilder(idDrvs)(...args);
     }) as Builder<TFunc>;
 
-    // // 实现 idPrepend
-    // Object.defineProperty(_builder, 'idPrepend', {
-    //     value: function (this: Builder<TFunc>, segment: string): Builder<TFunc> {
-    //         // 将新前缀添加到数组头部
-    //         // 例如：先 physics, 后 core
-    //         // 状态: [physics] -> [core, physics]
-    //         // 结果 ID: core.physics.initialId
-    //         segments.unshift(segment);
-    //         return this;
-    //     },
-    //     writable: false,
-    //     enumerable: false,
-    //     configurable: false
-    // });
-
     // 实现 idMutableMethods
     for (const methodName of idMutableMethods) {
         Object.defineProperty(_builder, methodName, {

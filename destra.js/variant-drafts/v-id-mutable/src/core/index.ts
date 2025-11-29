@@ -35,6 +35,8 @@ import "./state";
 
 // ID 相关方法的原型注入
 import "./formula/id";
+// Realname 相关方法的原型注入
+import "./formula/realname";
 
 // Label 相关功能
 import { Label, label } from "./formula/label";

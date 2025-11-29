@@ -70,6 +70,9 @@ export type ColorStyleValue = VarExpl | string;
 // 标签文本值类型
 export type LabelTextValue = string | Label;
 
+// Action 表达式
+export type ActionStyleValue = Expression | VarExpl;
+
 export interface DestraStyle {
     /**
      * 主可见性开关，对应 Desmos 的 `hidden` 属性。
@@ -128,6 +131,26 @@ export interface DestraStyle {
     };
 
     /**
+     * 交互设置 (Click Handler)
+     * 对应 Desmos 的 `clickableInfo` 属性。
+     */
+    click?: {
+         /**
+         * 是否启用点击交互。
+         * - `true` (默认): 显式启用。
+         * - `false`: 显式禁用。
+         * - `undefined` / 未设置: 如果设置了 handler，则默认将对应 Desmos `clickableInfo.enabled` 设为 true。
+         * - `null`: 移除该字段（对应 Desmos 里 `expressionState.clickableInfo.enabled === undefined`），Desmos 在这种情况下的默认行为表现为禁用，但保留其他记忆。
+         */
+        enabled?: boolean | null;
+        /**
+         * 点击时执行的动作。
+         * 对应 Desmos 的 `clickableInfo.latex`。
+         */
+        handler?: ActionStyleValue;
+    };
+
+    /**
      * 参数方程 & 极坐标/柱坐标/球坐标 的域 (Domain) 定义
      */
     theta?: { min: NumericStyleValue; max: NumericStyleValue };
@@ -139,13 +162,13 @@ export interface DestraStyle {
 
 // 定义所有一级属性 Key，维持与 Destra Style Schema 的一致性
 const styleKeys = [
-    'hidden', 'showParts', 'color', 'line', 'point', 'fill', 'label',
+    'hidden', 'showParts', 'color', 'line', 'point', 'fill', 'label', 'click',
     'theta', 'phi', 't', 'u', 'v',
 ] as const;
 
 type CheckDestraStyle = Expect<Assignable<DestraStyle, { [K in typeof styleKeys[number]]?: any }>>;
 
-type LeafType = boolean | number | string | Expression | VarExpl | Label;
+type LeafType = boolean | number | string | Expression | VarExpl | Label | null;
 
 // Validator 定义
 type Validator<T> = (v: unknown) => v is T;
@@ -153,9 +176,13 @@ type Validator<T> = (v: unknown) => v is T;
 const isBoolean: Validator<boolean> = (v): v is boolean => typeof v === 'boolean';
 const isNumber: Validator<number> = (v): v is number => typeof v === 'number';
 const isString: Validator<string> = (v): v is string => typeof v === 'string';
+const isNull: Validator<null> = (v): v is null => v === null;
 
 const optional = <T>(validator: Validator<T>): Validator<T | undefined> =>
     (v): v is T | undefined => v === undefined || validator(v);
+
+const or = <T1, T2>(v1: Validator<T1>, v2: Validator<T2>): Validator<T1 | T2> =>
+    (v): v is T1 | T2 => v1(v) || v2(v);
 
 const oneOf = <T extends string>(enumObj: Record<string, T>): Validator<T> => {
     const values = new Set(Object.values(enumObj));
@@ -175,12 +202,16 @@ const isColorStyleValue: Validator<ColorStyleValue> = (v): v is ColorStyleValue 
 const isLabelTextValue: Validator<LabelTextValue> = (v): v is LabelTextValue =>
     isString(v) || isLabel(v);
 
+const isActionStyleValue: Validator<ActionStyleValue> = (v): v is ActionStyleValue =>
+    isExpression(v) || isVarExpl(v);
+
+type NonUndefinedable<T> = NonNullable<T> | null;
 
 type StyleSchema<T> = {
     [K in keyof T]:
-    NonNullable<T[K]> extends LeafType
-    ? Validator<NonNullable<T[K]>>
-    : StyleSchema<NonNullable<T[K]>>;
+    NonUndefinedable<T[K]> extends LeafType
+    ? Validator<NonUndefinedable<T[K]>>
+    : StyleSchema<NonUndefinedable<T[K]>>;
 };
 
 /**
@@ -214,6 +245,10 @@ const styleSchema = {
         size: isNumericStyleValue,
         orientation: oneOf(LabelOrientation),
         angle: isNumericStyleValue,
+    },
+    click: {
+        enabled: or(isBoolean, isNull),
+        handler: isActionStyleValue,
     },
     // Domains
     theta: { min: isNumericStyleValue, max: isNumericStyleValue },
@@ -252,7 +287,7 @@ export interface LeafEditor<T> extends EditorBase<T> {
 /**
  * ShowParts Editor
  */
-export interface ShowPartsEditor extends EditorBase<NonNullable<DestraStyle['showParts']>> {
+export interface ShowPartsEditor extends EditorBase<NonUndefinedable<DestraStyle['showParts']>> {
     get lines(): LeafEditor<boolean>;
     set lines(v: boolean | undefined);
 
@@ -269,7 +304,7 @@ export interface ShowPartsEditor extends EditorBase<NonNullable<DestraStyle['sho
 /**
  * Line Editor
  */
-export interface LineEditor extends EditorBase<NonNullable<DestraStyle['line']>> {
+export interface LineEditor extends EditorBase<NonUndefinedable<DestraStyle['line']>> {
     get style(): LeafEditor<LineStyle>;
     set style(v: LineStyle | undefined);
 
@@ -283,7 +318,7 @@ export interface LineEditor extends EditorBase<NonNullable<DestraStyle['line']>>
 /**
  * Point Editor
  */
-export interface PointEditor extends EditorBase<NonNullable<DestraStyle['point']>> {
+export interface PointEditor extends EditorBase<NonUndefinedable<DestraStyle['point']>> {
     get style(): LeafEditor<PointStyle>;
     set style(v: PointStyle | undefined);
 
@@ -300,7 +335,7 @@ export interface PointEditor extends EditorBase<NonNullable<DestraStyle['point']
 /**
  * Fill Editor
  */
-export interface FillEditor extends EditorBase<NonNullable<DestraStyle['fill']>> {
+export interface FillEditor extends EditorBase<NonUndefinedable<DestraStyle['fill']>> {
     get opacity(): LeafEditor<NumericStyleValue>;
     set opacity(v: NumericStyleValue | undefined);
 }
@@ -308,7 +343,7 @@ export interface FillEditor extends EditorBase<NonNullable<DestraStyle['fill']>>
 /**
  * Label Editor
  */
-export interface LabelEditor extends EditorBase<NonNullable<DestraStyle['label']>> {
+export interface LabelEditor extends EditorBase<NonUndefinedable<DestraStyle['label']>> {
     get text(): LeafEditor<LabelTextValue>;
     set text(v: LabelTextValue | undefined);
 
@@ -320,6 +355,17 @@ export interface LabelEditor extends EditorBase<NonNullable<DestraStyle['label']
 
     get angle(): LeafEditor<NumericStyleValue>;
     set angle(v: NumericStyleValue | undefined);
+}
+
+/**
+ * Click Editor
+ */
+export interface ClickEditor extends EditorBase<NonUndefinedable<DestraStyle['click']>> {
+    get enabled(): LeafEditor<boolean | null>;
+    set enabled(v: boolean | null | undefined);
+
+    get handler(): LeafEditor<ActionStyleValue>;
+    set handler(v: ActionStyleValue | undefined);
 }
 
 /**
@@ -341,22 +387,25 @@ export interface RootStyleEditor extends EditorBase<DestraStyle> {
     set hidden(v: boolean | undefined);
 
     get showParts(): ShowPartsEditor;
-    set showParts(v: DeepPartial<NonNullable<DestraStyle['showParts']>> | undefined);
+    set showParts(v: DeepPartial<NonUndefinedable<DestraStyle['showParts']>> | undefined);
 
-    get color(): LeafEditor<NonNullable<DestraStyle['color']>>;
-    set color(v: NonNullable<DestraStyle['color']> | undefined);
+    get color(): LeafEditor<NonUndefinedable<DestraStyle['color']>>;
+    set color(v: NonUndefinedable<DestraStyle['color']> | undefined);
 
     get line(): LineEditor;
-    set line(v: DeepPartial<NonNullable<DestraStyle['line']>> | undefined);
+    set line(v: DeepPartial<NonUndefinedable<DestraStyle['line']>> | undefined);
 
     get point(): PointEditor;
-    set point(v: DeepPartial<NonNullable<DestraStyle['point']>> | undefined);
+    set point(v: DeepPartial<NonUndefinedable<DestraStyle['point']>> | undefined);
 
     get fill(): FillEditor;
-    set fill(v: DeepPartial<NonNullable<DestraStyle['fill']>> | undefined);
+    set fill(v: DeepPartial<NonUndefinedable<DestraStyle['fill']>> | undefined);
 
     get label(): LabelEditor;
-    set label(v: DeepPartial<NonNullable<DestraStyle['label']>> | undefined);
+    set label(v: DeepPartial<NonUndefinedable<DestraStyle['label']>> | undefined);
+
+    get click(): ClickEditor;
+    set click(v: DeepPartial<NonUndefinedable<DestraStyle['click']>> | undefined);
 
     // Domains
     get theta(): DomainEditor;
@@ -646,32 +695,34 @@ declare module "./base" {
 
         // 一级属性快捷方式 (Merge 语义)
         hidden(config: boolean | ((editor: LeafEditor<boolean>) => void)): this;
-        showParts(config: DeepPartial<NonNullable<DestraStyle['showParts']>> | ((editor: ShowPartsEditor) => void)): this;
-        color(config: NonNullable<DestraStyle['color']> | ((editor: LeafEditor<NonNullable<DestraStyle['color']>>) => void)): this;
-        line(config: DeepPartial<NonNullable<DestraStyle['line']>> | ((editor: LineEditor) => void)): this;
-        point(config: DeepPartial<NonNullable<DestraStyle['point']>> | ((editor: PointEditor) => void)): this;
-        fill(config: DeepPartial<NonNullable<DestraStyle['fill']>> | ((editor: FillEditor) => void)): this;
-        label(config: DeepPartial<NonNullable<DestraStyle['label']>> | ((editor: LabelEditor) => void)): this;
+        showParts(config: DeepPartial<NonUndefinedable<DestraStyle['showParts']>> | ((editor: ShowPartsEditor) => void)): this;
+        color(config: NonUndefinedable<DestraStyle['color']> | ((editor: LeafEditor<NonUndefinedable<DestraStyle['color']>>) => void)): this;
+        line(config: DeepPartial<NonUndefinedable<DestraStyle['line']>> | ((editor: LineEditor) => void)): this;
+        point(config: DeepPartial<NonUndefinedable<DestraStyle['point']>> | ((editor: PointEditor) => void)): this;
+        fill(config: DeepPartial<NonUndefinedable<DestraStyle['fill']>> | ((editor: FillEditor) => void)): this;
+        label(config: DeepPartial<NonUndefinedable<DestraStyle['label']>> | ((editor: LabelEditor) => void)): this;
+        click(config: DeepPartial<NonUndefinedable<DestraStyle['click']>> | ((editor: ClickEditor) => void)): this;
         // Domain shortcuts
-        theta(config: DeepPartial<NonNullable<DestraStyle['theta']>> | ((editor: DomainEditor) => void)): this;
-        phi(config: DeepPartial<NonNullable<DestraStyle['phi']>> | ((editor: DomainEditor) => void)): this;
-        t(config: DeepPartial<NonNullable<DestraStyle['t']>> | ((editor: DomainEditor) => void)): this;
-        u(config: DeepPartial<NonNullable<DestraStyle['u']>> | ((editor: DomainEditor) => void)): this;
-        v(config: DeepPartial<NonNullable<DestraStyle['v']>> | ((editor: DomainEditor) => void)): this;
+        theta(config: DeepPartial<NonUndefinedable<DestraStyle['theta']>> | ((editor: DomainEditor) => void)): this;
+        phi(config: DeepPartial<NonUndefinedable<DestraStyle['phi']>> | ((editor: DomainEditor) => void)): this;
+        t(config: DeepPartial<NonUndefinedable<DestraStyle['t']>> | ((editor: DomainEditor) => void)): this;
+        u(config: DeepPartial<NonUndefinedable<DestraStyle['u']>> | ((editor: DomainEditor) => void)): this;
+        v(config: DeepPartial<NonUndefinedable<DestraStyle['v']>> | ((editor: DomainEditor) => void)): this;
 
         // 一级属性 Setters (Overwrite 语义)
         setHidden(val: boolean): this;
-        setShowParts(val: NonNullable<DestraStyle['showParts']>): this;
-        setColor(val: NonNullable<DestraStyle['color']>): this;
-        setLine(val: NonNullable<DestraStyle['line']>): this;
-        setPoint(val: NonNullable<DestraStyle['point']>): this;
-        setFill(val: NonNullable<DestraStyle['fill']>): this;
-        setLabel(val: NonNullable<DestraStyle['label']>): this;
-        setTheta(val: NonNullable<DestraStyle['theta']>): this;
-        setPhi(val: NonNullable<DestraStyle['phi']>): this;
-        setT(val: NonNullable<DestraStyle['t']>): this;
-        setU(val: NonNullable<DestraStyle['u']>): this;
-        setV(val: NonNullable<DestraStyle['v']>): this;
+        setShowParts(val: NonUndefinedable<DestraStyle['showParts']>): this;
+        setColor(val: NonUndefinedable<DestraStyle['color']>): this;
+        setLine(val: NonUndefinedable<DestraStyle['line']>): this;
+        setPoint(val: NonUndefinedable<DestraStyle['point']>): this;
+        setFill(val: NonUndefinedable<DestraStyle['fill']>): this;
+        setLabel(val: NonUndefinedable<DestraStyle['label']>): this;
+        setClick(val: NonUndefinedable<DestraStyle['click']>): this;
+        setTheta(val: NonUndefinedable<DestraStyle['theta']>): this;
+        setPhi(val: NonUndefinedable<DestraStyle['phi']>): this;
+        setT(val: NonUndefinedable<DestraStyle['t']>): this;
+        setU(val: NonUndefinedable<DestraStyle['u']>): this;
+        setV(val: NonUndefinedable<DestraStyle['v']>): this;
     }
 }
 

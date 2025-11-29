@@ -202,6 +202,32 @@ declare namespace Desmos {
             labelOrientation?: keyof typeof LabelOrientations;
             // 补充 labelAngle，会整体旋转标签，并且也会影响 labelOrientation 的效果，影响最终放置位置
             labelAngle?: string;
+
+            /**
+             * Click Handler 设置。
+             * 我自己添加的，适应 v1.12 API 及更高版本。
+             * 对应 Desmos 界面上的 "Clickable" 开关和 "On Click" 动作。
+             */
+            clickableInfo?: {
+                /**
+                 * 是否启用点击交互。对应界面上的 "Clickable" 开关。
+                 */
+                enabled?: boolean;
+                /**
+                 * 点击时执行的 Action 表达式。
+                 * 对应界面上的 "On Click" 输入框。
+                 * 这里的 latex 应该是 Action 类型的表达式。
+                 */
+                latex?: string;
+                /**
+                 * 鼠标按下时的图像: blob URL
+                 */
+                depressedImage?: string;
+                /**
+                 * 鼠标悬停时的图像: blob URL
+                 */
+                hoverImage?: string;
+            };
         }
         | ...  // "table" 类型，等等
 
