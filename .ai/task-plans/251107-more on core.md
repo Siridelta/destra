@@ -209,17 +209,6 @@ Expl.prototype.idPrepend = function(segment) {
 
 ### Step 2.8: 图表编译与状态导出
 
-**负责人**: static, Gemini
-**状态**: **待讨论 / 待计划**
+**状态**: **已迁移**
 
-**任务**:
-1.  **创建新设计文档**: 在 `.ai/技术笔记/JS路线/默认模式/` 目录下新建 `图表编译与状态导出.md`。
-2.  **明确设计要点**: 在新文档中，我们需要共同讨论并定义以下内容：
-    *   **API 入口**: 导出功能的顶层 API 是什么？例如 `destra.export({ ... })`。
-    *   **输入**: API 接收什么作为输入？一个 `selection` 对象还是 `Formula` 数组？
-    *   **核心逻辑**:
-        *   依赖图构建 (DAG)。
-        *   ID 唯一性校验。
-        *   基于 `isImplicit` 元数据的 Desmos Name 冲突解决策略。
-        *   将 `Formula` 引用转换为 Desmos Name 字符串。
-    *   **输出格式**: 最终 Desmos State JSON 的详细结构。
+本步骤已独立为新的任务计划 [251231-compile](./251231-compile.md)，请参考该文档进行后续开发。
