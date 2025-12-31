@@ -1,0 +1,55 @@
+Destra {
+  // Top-level entry
+  Exp
+    = AddExp
+
+  // Arithmetic Operations (Precedence: ^ > * / > + -)
+  
+  AddExp
+    = AddExp "+" MulExp  -- add
+    | AddExp "-" MulExp  -- sub
+    | MulExp
+
+  MulExp
+    = MulExp "*" ExpExp  -- mul
+    | MulExp "/" ExpExp  -- div
+    | ExpExp
+
+  ExpExp
+    = PriExp "^" ExpExp  -- power
+    | PriExp
+
+  // Primary Expressions
+  PriExp
+    = "(" Exp ")"  -- paren
+    | CallExp
+    | RangeExp       // Check Range before List because both start with '['
+    | ListExp
+    | identifier
+    | number
+    | stringLiteral
+
+  // Function Call: f(x, y)
+  CallExp
+    = identifier "(" ListOf<Exp, ","> ")"
+
+  // List: [1, 2, 3]
+  ListExp
+    = "[" ListOf<Exp, ","> "]"
+
+  // Range: [1...10]
+  RangeExp
+    = "[" Exp "..." Exp "]"
+
+  // Primitives
+  identifier
+    = letter (letter | digit | "_")*
+
+  number
+    = digit+ ("." digit+)?
+
+  stringLiteral
+    = "'" (~"'" any)* "'"
+    
+  // Whitespace handling (Ohm handles 'space' implicitly in most rules unless overridden)
+}

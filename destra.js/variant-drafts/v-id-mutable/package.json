@@ -19,5 +19,8 @@
     "magic-regexp": "^0.10.0",
     "tsx": "^4.7.0",
     "vitest": "^4.0.1"
+  },
+  "dependencies": {
+    "chevrotain": "^11.0.3"
   }
 }

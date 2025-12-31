@@ -1,0 +1,19 @@
+{
+  "name": "parser-2-parsimmon",
+  "version": "1.0.0",
+  "description": "Destra DSL parser prototype using Parsimmon",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "npx tsx index.ts"
+  },
+  "dependencies": {
+    "parsimmon": "^1.18.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "@types/parsimmon": "^1.10.6"
+  }
+}
+
