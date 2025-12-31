@@ -9,9 +9,7 @@ import { Formula, Expression, VarExpl } from "./base";
 import { getState } from "../state";
 import { Label } from "./label";
 
-// ============================================================================
-// 1. 枚举定义 (Desmos Styles)
-// ============================================================================
+// --- 1. 枚举定义 (Desmos Styles) ---
 
 export enum LineStyle {
     SOLID = "SOLID",
@@ -57,9 +55,7 @@ export enum LabelOrientation {
     AUTO_RIGHT = "auto_right",
 }
 
-// ============================================================================
-// 2. 类型定义 (Destra Style Schema)
-// ============================================================================
+// --- 2. 类型定义 (Destra Style Schema) ---
 
 // 数值型的、可嵌入公式的样式值类型
 export type NumericStyleValue = number | string | Expression | VarExpl;
@@ -261,9 +257,7 @@ const styleSchema = {
 
 export type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
 
-// ============================================================================
-// 3. Editor 类型定义 (Explicit Interfaces)
-// ============================================================================
+// --- 3. Editor 类型定义 (Explicit Interfaces) ---
 
 /**
  * Editor 基础接口
@@ -424,9 +418,7 @@ export interface RootStyleEditor extends EditorBase<DestraStyle> {
     set v(v: DeepPartial<{ min: NumericStyleValue; max: NumericStyleValue }> | undefined);
 }
 
-// ============================================================================
-// 4. Factory
-// ============================================================================
+// --- 4. Factory ---
 
 // 辅助：判断值是否为复杂对象（需要 Merge）
 // 如果是 Formula 或 Label，则不进行合并，像原始值一样持有其引用
@@ -662,9 +654,7 @@ const createEditorNode = <T>(
     return editor;
 };
 
-// ============================================================================
-// 5. 内部存储与状态扩展
-// ============================================================================
+// --- 5. 内部存储扩展 ---
 
 declare module "../state" {
     interface StyleState {
@@ -672,9 +662,7 @@ declare module "../state" {
     }
 }
 
-// ============================================================================
-// 6. 声明合并与原型注入
-// ============================================================================
+// --- 6. 声明合并与原型注入 ---
 
 declare module "./base" {
     interface Formula {
@@ -727,6 +715,7 @@ declare module "./base" {
 }
 
 type MakeSetterName<K extends string> = `set${Capitalize<K>}`;
+// 检查是否满足：styleKeys 中的每个 key 都有对应的 setter 方法
 type CheckFormulaStyle = Expect<Assignable<Formula,
     & { [K in typeof styleKeys[number]]: (config: any) => Formula }
     & { [K in MakeSetterName<typeof styleKeys[number]>]: (config: any) => Formula }

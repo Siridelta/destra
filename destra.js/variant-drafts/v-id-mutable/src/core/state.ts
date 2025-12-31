@@ -10,6 +10,7 @@
  */
 
 import { Formula } from "./formula/base";
+import { Label } from "./formula/label";
 
 /**
  * Formula 对象的内部状态接口。
@@ -46,7 +47,21 @@ export interface FormulaState {
  * 使用 WeakMap 确保状态对象的生命周期与 Formula 对象绑定，
  * 当 Formula 对象被垃圾回收时，其关联的状态也会自动释放。
  */
-const states = new WeakMap<Formula, FormulaState>();
+const formulaStates = new WeakMap<Formula, FormulaState>();
+
+/**
+ * Label 状态
+ */
+export interface LabelCompileState {
+    compiled?: string;
+}
+export interface LabelState {
+    compile?: LabelCompileState;
+}
+const labelStates = new WeakMap<Label, LabelState>();
+
+
+// --- getState functions ---
 
 /**
  * 获取 Formula 对象的关联状态。
@@ -56,12 +71,57 @@ const states = new WeakMap<Formula, FormulaState>();
  * @param formula - 目标 Formula 对象
  * @returns 关联的 FormulaState 对象
  */
-export const getState = (formula: Formula): FormulaState => {
-    let state = states.get(formula);
-    if (!state) {
-        state = {};
-        states.set(formula, state);
+const getFormulaState = (formula: Formula): FormulaState => {
+    let maybeState = formulaStates.get(formula);
+    if (!maybeState) {
+        maybeState = {};
+        formulaStates.set(formula, maybeState);
     }
-    return state;
+    return maybeState;
 };
 
+/**
+ * 获取 Label 对象的关联状态。
+ * 
+ * 如果状态对象不存在，会自动初始化一个新的空对象。
+ * 
+ * @param label - 目标 Label 对象
+ * @returns 关联的 LabelState 对象
+ */
+const getLabelState = (label: Label): LabelState => {
+    let maybeState = labelStates.get(label);
+    if (!maybeState) {
+        maybeState = {};
+        labelStates.set(label, maybeState);
+    }
+    return maybeState;
+};
+
+/**
+ * 获取 Formula 对象的关联状态。
+ * 
+ * 如果状态对象不存在，会自动初始化一个新的空对象。
+ * 
+ * @param formula - 目标 Formula 对象
+ * @returns 关联的 FormulaState 对象
+ */
+function getState(formula: Formula): FormulaState;
+/**
+ * 获取 Label 对象的关联状态。
+ * 
+ * 如果状态对象不存在，会自动初始化一个新的空对象。
+ * 
+ * @param label - 目标 Label 对象
+ * @returns 关联的 LabelState 对象
+ */
+function getState(label: Label): LabelState;
+function getState(obj: Formula | Label): FormulaState | LabelState {
+    if (obj instanceof Formula) {
+        return getFormulaState(obj);
+    }
+    if (obj instanceof Label) {
+        return getLabelState(obj);
+    }
+    throw new Error('Invalid object type');
+}
+export { getState };
