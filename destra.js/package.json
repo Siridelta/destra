@@ -9,6 +9,6 @@
     "dev": "echo \"TODO: orchestrate workspace dev servers\""
   },
   "devDependencies": {
-    "vitest": "^4.0.1"
+    "vitest": "^4.0.16"
   }
 }
