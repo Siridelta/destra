@@ -30,29 +30,25 @@
 **目标**: 实现 `Lexer`, `Parser` 和 `Visitor`，支持文档 [Desmos 语法 & Expr DSL 语法参考] 中的所有核心语法。
 
 ### Step 2.1: Lexer 实现
-- [ ] 在 `expr-dsl-new/parse-ast/lexer.ts` 中定义 Tokens。
-    - 实现 `Placeholder` token (`§_PH_\d+_§`) 用于插值。
-    - 实现所有关键字、运算符、括号等 Token。
-    - 注意 Token 定义顺序 (Keywords > Identifiers)。
+- [ ] 在 `expr-dsl-new/parse-ast/lexer.ts` 中定义 Tokens。（待补充）
 
 ### Step 2.2: Parser (CST) 实现
-- [ ] 在 `expr-dsl-new/parse-ast/parser.ts` 中实现 `DestraParser` 类。
-    - 实现分层优先级规则 (Context > Additive > Multiplicative ...)。
-    - 实现 `Formula` 顶层规则 (Definition | Regression | Equation | Expression)。
-    - 实现 Context Statements (`For`, `With`, `Sum`, `Prod`, `Int`, `Diff`)。
-    - 实现 List, Range, Piecewise 等结构。
+- [ ] 在 `expr-dsl-new/parse-ast/parser.ts` 中实现 `DestraParser` 类。（待补充）
 
-### Step 2.3: Visitor (AST Construction) 实现
-- [ ] 在 `expr-dsl-new/parse-ast/visitor.ts` 中实现 CST 到 AST 的转换逻辑。
-    - 处理插值还原：根据 `Placeholder` 的索引从 `values` 数组中获取对象。
-    - 处理 `dx` 在积分中的位置归一化。
+### Step 2.3: Visitor (AST Construction) 实现（待补充）
 
 ### Step 2.4: 类型分析与后处理
 - [ ] 在 `expr-dsl-new/analyzeType.ts` 中重写 `analyzeType` (或重命名为 `analyzeFormula`)。
     - 调用 Parser -> CST -> Visitor -> AST。
     - **FormulaType 推断**: 根据 AST 根节点类型判断 (Def, Reg, Eq, Expr)。
-    - **隐式显式方程识别**: 若为 Expr 类型且仅依赖 x (2D)，标记为需要补全 `y=`。
+    - **显式方程识别**: 若为 Expr 类型且仅依赖 x (2D)，或仅依赖 x, y (3D)，则标记为显式方程。
     - **Regression 参数提取**: 遍历 AST 提取未知标识符作为回归参数。
+
+最终需要保证几个功能被补齐：
+
+- 无等号显式方程的识别
+- 回归的参数提取与新变量的生成
+- prod 和 微分算子 两个新的上下文类语句
 
 ## Phase 3: 集成与替换
 
