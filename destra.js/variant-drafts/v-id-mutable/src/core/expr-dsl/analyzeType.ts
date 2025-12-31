@@ -10,7 +10,7 @@
 import { createRegExp, exactly, anyOf, maybe, whitespace } from "magic-regexp";
 import { type TemplatePayload, FormulaType } from "../formula/base";
 import { specialSymbolsMap } from "./syntax/specialSymbols";
-import { firstIdSegmentPattern, idPattern, idSegmentPattern, inExpressionCharRangePattern, lineStart, paramNamePattern } from "./syntax/commonRegExpPatterns";
+import { ctxVarNamePattern, firstIdSegmentPattern, idPattern, idSegmentPattern, inExpressionCharRangePattern, lineStart, paramNamePattern } from "./syntax/commonRegExpPatterns";
 import { buildInspectableSource, extractParameters, iterativeCheckBrackets } from "./utils";
 
 // ============================================================================
@@ -127,6 +127,20 @@ const variableDefinitionPattern = exactly(
     inExpressionCharRangePattern,
 );
 
+// 省略括号的单变量 for/with 表达式：匹配 "表达式 for/with 变量 = 表达式" 形式。
+// 为了支持这种写法，在检测到唯一的顶级（不在任何括号层级内）等号时，
+// 将首先尝试解析为这种 for/with 表达式。
+// 截取该等号前面的内容，识别 for/with 关键字、推导变量 2 个元素。
+// 如果解析成功，将会覆盖方程的解析结果。
+const singleVariableForWithExpressionLHSPattern = exactly(
+    lineStart,
+    inExpressionCharRangePattern,
+    anyOf("for", "with"),
+    whitespace.times.any(),
+    ctxVarNamePattern.groupedAs("variableName"),
+    whitespace.times.any(),
+);
+
 // 显式方程：匹配 "id / x / y / z / r / rho = ..." 形式
 // 除合法 id（而且最终组合时这个 id 不能有定义）外，x, y, z, r, rho 这几个保留变量也可以作为左值。
 // 使用 expr 创建时，按显式方程的语法检查。
@@ -166,6 +180,7 @@ const idRegex = createRegExp(idPattern);
 const arrowFunctionHeadRegex = createRegExp(arrowFunctionHeadPattern);
 const namedFunctionDefinitionRegex = createRegExp(namedFunctionDefinitionPattern);
 const variableDefinitionRegex = createRegExp(variableDefinitionPattern);
+const singleVariableForWithExpressionLHSRegex = createRegExp(singleVariableForWithExpressionLHSPattern);
 const explicitEquationRegex = createRegExp(explicitEquationPattern);
 const regressionRegex = createRegExp(regressionPattern);
 const equationOperatorsRegex = createRegExp(equationOperatorPattern, ['g']);
@@ -276,6 +291,14 @@ function analyzeType(
         throw new TypeError("括号层级外有多于一个等号或不等号。");
     }
     if (validOps.size === 1) {
+        // 首先排除掉 for/with 表达式的情况
+        const lhsSource = source.substring(0, validOps.keys().next().value!);
+        const forWithExpression = lhsSource.match(singleVariableForWithExpressionLHSRegex);
+        if (forWithExpression) {
+            return {type: FormulaType.Expression};
+        }
+
+        // 最后确实应该视为方程
         if (factoryType === "expl") {
             throw new TypeError("不能用 `expl` 创建隐式方程。");
         }
