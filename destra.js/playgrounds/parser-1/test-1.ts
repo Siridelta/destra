@@ -1,8 +1,6 @@
 import { lexer } from "./lexer";
-import { parser, DestraParser } from "./parser";
-import { DestraVisitor } from "./visitor";
-
-const visitor = new DestraVisitor();
+import { parser } from "./parser";
+import { visitor } from "./visitor";
 
 function parse(input: string) {
     console.log(`\n--- Parsing: "${input}" ---`);

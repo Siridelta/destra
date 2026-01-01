@@ -106,8 +106,8 @@ Expl.prototype.id = function(value, isImplicit = false) {
 };
 
 Expl.prototype.idPrepend = function(segment) {
-    const currentId = this.idMeta.value ?? "";
-    this.idMeta.value = `${segment}.${currentId}`;
+        const currentId = this.idMeta.value ?? "";
+        this.idMeta.value = `${segment}.${currentId}`;
     return this;
 };
 ```

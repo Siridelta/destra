@@ -3,10 +3,9 @@
  */
 
 import { oneOrMore, wordChar, anyOf, letter, exactly, wordBoundary, maybe, whitespace, digit } from "magic-regexp";
-import { reservedWords1, reservedWords2, reservedWords3, reservedWords4, reservedWords5, reservedWordsReservedVars, suffixReservedWords } from "./reservedWords";
+import { builtInFuncs1, builtInFuncs2, builtInFuncs3, builtInFuncs4, builtInFuncs5, builtInConsts, reservedVars } from "./reservedWords";
 
 export const idSegmentPattern = oneOrMore(wordChar);
-export const firstIdSegmentPattern = anyOf(letter, "_").and(wordChar.times.any());
 export const lineStart = exactly("").at.lineStart();
 export const lineEnd = exactly("").at.lineEnd();
 
@@ -14,70 +13,45 @@ export const lineEnd = exactly("").at.lineEnd();
 // 规则：一个或多个 id 段，用点号 "." 连接。整体不能等于任何 reservedWords；第一个 id 段不能以数字开头；当 id 段数量大于 1 时，最后一个 id 段不能为 suffixReservedWords 中的任何一个。
 // 例如： a, a_b, a.b, a.b.c
 export const idPattern = exactly(
-    wordBoundary
-        .notAfter(".")
-        .notBefore(
-            anyOf(
-                anyOf(...reservedWordsReservedVars),
-                anyOf(...reservedWords1),
-                anyOf(...reservedWords2),
-                anyOf(...reservedWords3),
-                anyOf(...reservedWords4),
-                anyOf(...reservedWords5),
-            ),
-            wordBoundary.notBefore(".")
-        ),
-    firstIdSegmentPattern,
+    lineStart,
+    idSegmentPattern,
     maybe(
-        exactly(".")
-            .and(idSegmentPattern).times.any(),
-        exactly(".")
-            .notBefore(
-                anyOf(...suffixReservedWords),
-                wordBoundary.or(lineEnd)
-            )
-            .and(idSegmentPattern),
+        exactly(
+            ".", 
+            idSegmentPattern,
+        ).times.any()
     ),
-    wordBoundary.notBefore(".")
+    lineEnd,
 );
 
-// 大致界定 Expr DSL 中纯表达式 (expression) 内容的字符范围
-export const expressionCharRange = [
-    // wordChar, whitespace,
-    "+", "-", "*", "/", "^", "%", "!",
-    "(", ")", "[", "]", "{", "}",
-    ".", ",", ":",
-    "=", "<", ">",
-] as const;
-export const inExpressionCharRangePattern =
+// DSL 内部变量名 - 排除列表
+export const internalVarNameExcludePattern = exactly(
     anyOf(
-        wordChar, whitespace,
-        exactly("${", digit.times.any(), "}"),
-        ...expressionCharRange,
-    ).times.any();
-
-export const paramNamePattern = exactly(
-    wordBoundary
-        .notAfter(".")
-        .notBefore(
-            anyOf(
-                anyOf(...reservedWords1),
-                anyOf(...reservedWords2),
-                anyOf(...reservedWords3),
-                anyOf(...reservedWords4),
-                anyOf(...reservedWords5),
-            ),
-            wordBoundary.notBefore(".")
-        ),
-    firstIdSegmentPattern,
-    wordBoundary.notBefore(".")
+        anyOf(...reservedVars),
+        anyOf(...builtInConsts),
+        anyOf(...builtInFuncs1),
+        anyOf(...builtInFuncs2),
+        anyOf(...builtInFuncs3),
+        anyOf(...builtInFuncs4),
+        anyOf(...builtInFuncs5),
+    ),
 );
 
-// ctxVar 名称——不用考虑与保留字冲突
-// （只要是使用 CtxExp 工厂创建的。这时只可能通过插值代入方式使用该变量，而不是在 DSL 内容中直接引用符号。
-// 如果是后者就需要考虑保留字冲突了。）
-export const ctxVarNamePattern = exactly(
-    wordBoundary.notAfter("."),
-    firstIdSegmentPattern,
-    wordBoundary.notBefore(".")
+// ctx 变量名 - 排除列表
+// 与 DSL 内部变量相比，可以覆盖保留变量
+export const ctxVarNameExcludePattern = exactly(
+    anyOf(
+        anyOf(...builtInConsts),
+        anyOf(...builtInFuncs1),
+        anyOf(...builtInFuncs2),
+        anyOf(...builtInFuncs3),
+        anyOf(...builtInFuncs4),
+        anyOf(...builtInFuncs5),
+    ),
+);
+
+// 关键字
+export const identifierPattern = exactly(
+    anyOf(letter, "_"),
+    wordChar.times.any(),
 );

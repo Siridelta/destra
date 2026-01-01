@@ -160,3 +160,4 @@ export class DestraVisitor extends BaseVisitor {
     }
 }
 
+export const visitor = new DestraVisitor();
