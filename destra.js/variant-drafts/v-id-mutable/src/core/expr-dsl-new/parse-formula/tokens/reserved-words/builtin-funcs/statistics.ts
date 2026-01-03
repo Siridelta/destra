@@ -1,6 +1,6 @@
 import { createToken } from "chevrotain";
 import { createRegExp } from "magic-regexp";
-import { BuiltinFunc, SupportExtensionFunc } from "./index";
+import { BuiltinFunc, SupportExtensionFunc } from "./categories";
 
 // Aggregation
 export const TotalFunc = createToken({ name: "totalFunc", pattern: createRegExp("total"), categories: [BuiltinFunc, SupportExtensionFunc] });

@@ -1,6 +1,6 @@
 import { createToken } from "chevrotain";
 import { createRegExp } from "magic-regexp";
-import { BuiltinFunc, SupportExtensionFunc } from "./index";
+import { BuiltinFunc, SupportExtensionFunc } from "./categories";
 
 // Random
 export const RandomFunc = createToken({ name: "randomFunc", pattern: createRegExp("random"), categories: [BuiltinFunc, SupportExtensionFunc] });

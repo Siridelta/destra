@@ -1,6 +1,6 @@
 import { createToken } from "chevrotain";
 import { createRegExp } from "magic-regexp";
-import { BuiltinFunc, SupportExtensionFunc } from "./index";
+import { BuiltinFunc, SupportExtensionFunc } from "./categories";
 
 export const DistanceFunc = createToken({ name: "distanceFunc", pattern: createRegExp("distance"), categories: [BuiltinFunc] });
 export const MidpointFunc = createToken({ name: "midpointFunc", pattern: createRegExp("midpoint"), categories: [BuiltinFunc] });

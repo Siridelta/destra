@@ -1,15 +1,21 @@
-import { CstParser } from "chevrotain";
-import { tokensList } from "../lexer";
+import { MyCstParserBase } from "./myCstParserBase";
+import { tokensList } from "../lexing/lexer";
 import { Action, ArrowFunc, Colon, Comma, Equal, Greater, GreaterEqual, Less, LessEqual, Tilde } from "../tokens/op-and-puncs";
 import { InKeyword } from "../tokens/keywords";
 import { initAddSubRules } from "./addsub-rules";
+import { initMultDivRules } from "./multdiv-rules";
+import { initAtomicRules } from "./atomic-rules";
+import { initPiecewiseRules } from "./piecewise-rules";
 
-export class FormulaParser extends CstParser {
+export class FormulaParser extends MyCstParserBase {
+
     constructor() {
         super(tokensList);
 
         initAddSubRules.call(this);
-        
+        initMultDivRules.call(this);
+        initAtomicRules.call(this);
+        initPiecewiseRules.call(this);
 
         this.performSelfAnalysis();
     }
@@ -43,7 +49,7 @@ export class FormulaParser extends CstParser {
     });
 
     public topLevel = this.RULE("topLevel", () => {
-        this.SUBRULE(this.actionCommaLevel);
+        this.SUBRULE(this.actionBatchLevel);
         this.OPTION(() => {
             this.OR([
                 { ALT: () => this.CONSUME(Equal) },
@@ -54,11 +60,11 @@ export class FormulaParser extends CstParser {
                 { ALT: () => this.CONSUME(Tilde) },
                 { ALT: () => this.CONSUME(ArrowFunc) },
             ]);
-            this.SUBRULE2(this.actionCommaLevel);
+            this.SUBRULE2(this.actionBatchLevel);
         });
     });
 
-    public actionCommaLevel = this.RULE("actionCommaLevel", () => {
+    public actionBatchLevel = this.RULE("actionBatchLevel", () => {
         this.AT_LEAST_ONE_SEP({
             SEP: Comma, 
             DEF: () => this.SUBRULE(this.actionLevel),
@@ -74,3 +80,5 @@ export class FormulaParser extends CstParser {
     });
 
 }
+
+export const formulaParser = new FormulaParser();

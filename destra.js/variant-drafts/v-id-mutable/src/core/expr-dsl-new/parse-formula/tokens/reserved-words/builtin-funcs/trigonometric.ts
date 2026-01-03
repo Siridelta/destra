@@ -1,6 +1,6 @@
 import { createToken } from "chevrotain";
 import { createRegExp, anyOf } from "magic-regexp";
-import { BuiltinFunc, SupportOmittedCallFunc } from "./index";
+import { BuiltinFunc, SupportOmittedCallFunc } from "./categories";
 
 // --- Trigonometric Functions ---
 

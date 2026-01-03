@@ -1,6 +1,6 @@
 import { createToken } from "chevrotain";
 import { createRegExp } from "magic-regexp";
-import { BuiltinFunc, SupportExtensionFunc } from "./index";
+import { BuiltinFunc, SupportExtensionFunc } from "./categories";
 
 export const SignFunc = createToken({ name: "signFunc", pattern: createRegExp("sign"), categories: [BuiltinFunc] });
 export const RoundFunc = createToken({ name: "roundFunc", pattern: createRegExp("round"), categories: [BuiltinFunc] });

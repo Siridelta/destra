@@ -1,6 +1,6 @@
 import { createToken } from "chevrotain";
 import { createRegExp } from "magic-regexp";
-import { BuiltinFunc, SupportOmittedCallFunc } from "./index";
+import { BuiltinFunc, SupportOmittedCallFunc } from "./categories";
 
 
 export const AbsFunc = createToken({

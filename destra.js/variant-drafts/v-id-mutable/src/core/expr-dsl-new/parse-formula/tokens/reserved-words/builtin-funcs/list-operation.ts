@@ -1,6 +1,6 @@
 import { createToken } from "chevrotain";
 import { createRegExp } from "magic-regexp";
-import { BuiltinFunc, SupportExtensionFunc } from "./index";
+import { BuiltinFunc, SupportExtensionFunc } from "./categories";
 
 export const JoinFunc = createToken({ name: "joinFunc", pattern: createRegExp("join"), categories: [BuiltinFunc, SupportExtensionFunc] });
 export const SortFunc = createToken({ name: "sortFunc", pattern: createRegExp("sort"), categories: [BuiltinFunc, SupportExtensionFunc] });

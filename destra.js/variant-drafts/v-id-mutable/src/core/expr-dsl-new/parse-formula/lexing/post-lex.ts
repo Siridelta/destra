@@ -1,5 +1,5 @@
 import { createToken, TokenType } from "chevrotain";
-import { NumberLiteral } from "./tokens/others";
+import { NumberLiteral } from "../tokens/others";
 
 export const implicitMultiplyToken = createToken({
     name: "ImplicitMultiply",

@@ -1,4 +1,4 @@
-import { createToken, Lexer } from "chevrotain";
+import { builtinFuncCategories } from "./categories";
 
 import { basicBuiltinFuncs } from "./basic";
 import { trigonometricBuiltinFuncs } from "./trigonometric";
@@ -10,25 +10,10 @@ import { statisticsBuiltinFuncs } from "./statistics";
 import { randomAndDistBuiltinFuncs } from "./random-and-dist";
 import { miscBuiltinFuncs } from "./misc";
 
-// --- Built-in Function Categories ---
+// --- Tokens List Segment For Parser ---
 
-export const BuiltinFunc = createToken({
-    name: "builtinFunc",
-    pattern: Lexer.NA
-});
-
-export const SupportOmittedCallFunc = createToken({
-    name: "supportOmittedCallFunc",
-    pattern: Lexer.NA
-});
-
-export const SupportExtensionFunc = createToken({
-    name: "supportExtensionFunc",
-    pattern: Lexer.NA
-});
-
-// token list
 export const builtinFuncs = [
+    
     ...basicBuiltinFuncs,
     ...trigonometricBuiltinFuncs,
     ...numberTheoryBuiltinFuncs,
@@ -38,7 +23,6 @@ export const builtinFuncs = [
     ...statisticsBuiltinFuncs,
     ...randomAndDistBuiltinFuncs,
     ...miscBuiltinFuncs,
-    SupportOmittedCallFunc,
-    SupportExtensionFunc,
-    BuiltinFunc,
+
+    ...builtinFuncCategories,
 ];
