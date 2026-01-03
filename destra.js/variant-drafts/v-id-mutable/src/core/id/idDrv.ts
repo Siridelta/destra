@@ -23,7 +23,7 @@ export type DrvFuncsType = {
 }
 
 export const drvFuncs = {
-    'idPrepend': (idData: IdData, drvData: DrvDataTypes['idPrepend']['data']) => {
+    'prefix': (idData: IdData, drvData: DrvDataTypes['prefix']['data']) => {
         const idSegmentRegex = createRegExp(idSegmentPattern);
         const [segment] = drvData;
 
