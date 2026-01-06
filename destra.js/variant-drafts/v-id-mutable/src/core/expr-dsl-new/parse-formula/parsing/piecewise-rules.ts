@@ -3,11 +3,9 @@ import { FormulaParser } from "./parser";
 
 declare module './parser' {
     export interface FormulaParser {
-        piecewise_start: any;
-        piecewise_start2: any;
-        piecewise_fromComp: any;
-        piecewise_fromColon: any;
-        piecewise_fromComma: any;
+        piecewise_content: any;
+        piecewise_branch: any;
+        piecewise_compLevel: any;
         piecewise_actionLevel: any;
         piecewise_addSubLevel: any;
         piecewise_contextLevel: any;
@@ -16,49 +14,26 @@ declare module './parser' {
 
 export function initPiecewiseRules(this: FormulaParser) {
 
-    // use a transition graph to handle ',' , ':' , and comparison operator in a same level.
-    // because of the following rules: 
-    // - all branches except the last must have conditions. When omit condition, omit colon ':'.
-    // - all branches can omit return values. When omit return value, omit colon ':'. You cannot omit return value and condition at the same time.
-    // - you can have no branches, then you should omit comma ','.
+    this.piecewise_content = this.RULE("piecewise_content", () => {
+        this.MANY_SEP({
+            SEP: Comma,
+            DEF: () => this.SUBRULE(this.piecewise_branch),
+        });
+    });
 
-    this.piecewise_start = this.RULE("piecewise_start", () => {
+    this.piecewise_branch = this.RULE("piecewise_branch", () => {
+        this.SUBRULE(this.piecewise_compLevel);
         this.OPTION(() => {
-            this.SUBRULE(this.piecewise_start2);
+            this.CONSUME(Colon);
+            this.SUBRULE(this.piecewise_actionLevel);
         });
     });
 
-    this.piecewise_start2 = this.RULE("piecewise_start2", () => {
-        this.SUBRULE(this.piecewise_actionLevel);
-        this.OPTION2(() => {
-            this.SUBRULE(this.piecewise_fromComp);
+    this.piecewise_compLevel = this.RULE("piecewise_compLevel", () => {
+        this.AT_LEAST_ONE_SEP({
+            SEP: ComparisonOperator,
+            DEF: () => this.SUBRULE(this.piecewise_actionLevel),
         });
-    });
-
-
-    this.piecewise_fromComp = this.RULE("piecewise_fromComp", () => {
-        this.CONSUME(ComparisonOperator);
-        this.SUBRULE(this.piecewise_actionLevel);
-        this.OPTION(() => {
-            this.OR([
-                { ALT: () => this.SUBRULE(this.piecewise_fromComp) },
-                { ALT: () => this.SUBRULE(this.piecewise_fromColon) },
-                { ALT: () => this.SUBRULE(this.piecewise_fromComma) },
-            ]);
-        });
-    });
-
-    this.piecewise_fromColon = this.RULE("piecewise_fromColon", () => {
-        this.CONSUME(Colon);
-        this.SUBRULE(this.piecewise_actionLevel);
-        this.OPTION(() => {
-            this.SUBRULE(this.piecewise_fromComma);
-        });
-    });
-
-    this.piecewise_fromComma = this.RULE("piecewise_fromComma", () => {
-        this.CONSUME(Comma);
-        this.SUBRULE(this.piecewise_start2);
     });
 
     this.piecewise_actionLevel = this.RULE("piecewise_actionLevel", () => {
@@ -82,7 +57,7 @@ export function initPiecewiseRules(this: FormulaParser) {
 
     this.piecewise_contextLevel = this.RULE("piecewise_contextLevel", () => {
         this.OR([
-            { ALT: () => this.SUBRULE(this.context1) },
+            { ALT: () => this.SUBRULE(this.context_type1) },
             // this is where piecewise context gets special. it forbids for and with statements.
             { ALT: () => this.SUBRULE(this.multDivLevel) },
         ]);

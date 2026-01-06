@@ -69,11 +69,16 @@ export const Placeholder = createToken({
 });
 
 
-// --- InternalVariable ---
+// --- Custom Identifier ---
 
-// Let Variable be the last token, so to exclude reserved words,
+// Let it be the last token in the token list to exclude reserved words,
 // and directly use identifierPattern.
-export const Variable = createToken({
-    name: "Variable",
+
+// Includes 2 cases:
+// - DSL internal variable (most cases)
+// - the desired ID in one of the function definition syntaxes: 
+//   - expl`myFunc(x) = x^2` --> 'myFunc' is used to specify the resulting FuncExpl's ID.
+export const CustomIdentifier = createToken({
+    name: "CustomIdentifier",
     pattern: createRegExp(identifierPattern),
 });

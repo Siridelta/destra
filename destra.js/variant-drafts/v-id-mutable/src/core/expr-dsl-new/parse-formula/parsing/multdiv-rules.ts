@@ -1,5 +1,5 @@
 import { RootofKeyword } from "../tokens/keywords";
-import { Bang, BracketClose, BracketOpen, Comma, ComparisonOperator, Divide, Dot, Minus, Multiply, Plus, Power } from "../tokens/op-and-puncs";
+import { Bang, BracketClose, BracketOpen, Comma, ComparisonOperator1, ComparisonOperator2, Divide, Dot, Minus, Multiply, Plus, Power, RangeDots } from "../tokens/op-and-puncs";
 import { SupportExtensionFunc, SupportOmittedCallFunc } from "../tokens/reserved-words/builtin-funcs/categories";
 import { Attribute } from "../tokens/reserved-words/reservedVars";
 import { FormulaParser } from "./parser";
@@ -13,7 +13,7 @@ declare module './parser' {
         powerLevel: any;
         postfixLevel: any;
         fromPostfix: any;
-        bang: any;
+        factorial: any;
         fromDot: any;
         fromIndexer: any;
     }
@@ -22,13 +22,13 @@ declare module './parser' {
 export function initMultDivRules(this: FormulaParser) {
 
     this.multDivLevel = this.RULE("multDivLevel", () => {
-        this.SUBRULE(this.omittedCallLevel);
+        this.SUBRULE(this.omittedCallLevel, { LABEL: "lhs" });
         this.OPTION(() => {
             this.OR([
                 { ALT: () => this.CONSUME(Multiply) },
                 { ALT: () => this.CONSUME(Divide) },
             ]);
-            this.SUBRULE(this.multDivLevel);
+            this.SUBRULE2(this.multDivLevel, { LABEL: "rhs" });
         });
     });
 
@@ -78,13 +78,13 @@ export function initMultDivRules(this: FormulaParser) {
 
     this.fromPostfix = this.RULE("fromPostfix", () => {
         this.OR([
-            { ALT: () => this.SUBRULE(this.bang) },
+            { ALT: () => this.SUBRULE(this.factorial) },
             { ALT: () => this.SUBRULE(this.fromDot) },
             { ALT: () => this.SUBRULE(this.fromIndexer) },
         ]);
     });
 
-    this.bang = this.RULE("bang", () => {
+    this.factorial = this.RULE("factorial", () => {
         this.CONSUME(Bang);
         this.OPTION(() => {
             this.SUBRULE(this.fromPostfix);
@@ -123,21 +123,61 @@ export function initMultDivRules(this: FormulaParser) {
     // then could we divert into different branches.
     this.fromIndexer = this.RULE("fromIndexer", () => {
         this.CONSUME(BracketOpen);
-        this.SUBRULE(this.addSubLevel);
+        this.SUBRULE(this.addSubLevel, { LABEL: "firstFactor" });
         this.OPTION(() => {
             this.OR([
+                // L[L1 > L2 < L3 < L4]
                 {
                     ALT: () => {
-                        this.CONSUME(ComparisonOperator);
-                        this.SUBRULE2(this.addSubLevel);
+                        this.CONSUME(ComparisonOperator1, { LABEL: "compOp" });
+                        this.AT_LEAST_ONE_SEP({
+                            SEP: ComparisonOperator1,
+                            DEF: () => this.SUBRULE2(this.addSubLevel, { LABEL: "compOperand" }),
+                        })
+                    }
+                },
+                // L[L1 = L2 == L3 == L4]
+                {
+                    ALT: () => {
+                        this.CONSUME(ComparisonOperator2, { LABEL: "compOp" });
+                        this.AT_LEAST_ONE_SEP({
+                            SEP: ComparisonOperator2,
+                            DEF: () => this.SUBRULE2(this.addSubLevel, { LABEL: "compOperand" }),
+                        })
                     }
                 },
                 {
                     ALT: () => {
+                        // start with '1...3' or '1...'
+                        this.OPTION2(() => {
+                            this.CONSUME(RangeDots, { LABEL: "item" });
+                            this.OPTION3(() => {
+                                this.SUBRULE3(this.addSubLevel, { LABEL: "item" });
+                            });
+                        });
                         this.CONSUME(Comma);
                         this.AT_LEAST_ONE_SEP({
                             SEP: Comma,
-                            DEF: () => this.SUBRULE3(this.addSubLevel),
+                            DEF: () => {
+                                this.OR([
+                                    // ', ... ,'
+                                    { ALT: () => this.CONSUME(RangeDots, { LABEL: "item" }) },
+                                    // ', 1,'
+                                    // ', 1...,'
+                                    // ', 1...3,'
+                                    {
+                                        ALT: () => {
+                                            this.SUBRULE3(this.addSubLevel, { LABEL: "item" });
+                                            this.OPTION4(() => {
+                                                this.CONSUME(RangeDots, { LABEL: "item" });
+                                                this.OPTION5(() => {
+                                                    this.SUBRULE4(this.addSubLevel, { LABEL: "item" });
+                                                });
+                                            });
+                                        }
+                                    },
+                                ]);
+                            }
                         });
                     }
                 },

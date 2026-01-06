@@ -1,5 +1,5 @@
 import { createToken } from "chevrotain";
-import { createRegExp, exactly } from "magic-regexp";
+import { createRegExp, exactly, whitespace } from "magic-regexp";
 import { ctxVarNameExcludePattern, identifierPattern, internalVarNameExcludePattern } from "../../syntax/commonRegExpPatterns";
 
 // --- Keywords ---
@@ -29,9 +29,11 @@ export const IntKeyword = createToken({
     pattern: createRegExp("int"),
 });
 
+// "in" may override builtin funcs like "inversecdf"
+// so require whitespace after it
 export const InKeyword = createToken({
     name: "inKeyword",
-    pattern: createRegExp("in"),
+    pattern: createRegExp("in", whitespace.times.atLeast(1)),
 });
 
 export const DiffKeyword = createToken({

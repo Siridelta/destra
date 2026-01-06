@@ -37,8 +37,10 @@ export const ArcsechFunc = createToken({ name: "arcsechFunc", pattern: createReg
 export const ArccschFunc = createToken({ name: "arccschFunc", pattern: createRegExp(anyOf("arccsch", "acsch")), categories: [BuiltinFunc, SupportOmittedCallFunc] });
 
 export const trigonometricBuiltinFuncs = [
+    // "sinh" first
+    SinhFunc, CoshFunc, TanhFunc, CothFunc, SechFunc, CschFunc,
+    ArcsinhFunc, ArccoshFunc, ArctanhFunc, ArccothFunc, ArcsechFunc, ArccschFunc,
+    // "sin" second
     SinFunc, CosFunc, TanFunc, CotFunc, SecFunc, CscFunc,
     ArcsinFunc, ArccosFunc, ArctanFunc, ArccotFunc, ArcsecFunc, ArccscFunc,
-    SinhFunc, CoshFunc, TanhFunc, CothFunc, SechFunc, CschFunc,
-    ArcsinhFunc, ArccoshFunc, ArctanhFunc, ArccothFunc, ArcsechFunc, ArccschFunc
 ];

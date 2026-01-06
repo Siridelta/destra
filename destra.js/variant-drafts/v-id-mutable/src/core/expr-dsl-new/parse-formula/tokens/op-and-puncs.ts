@@ -5,8 +5,23 @@ import { createRegExp } from "magic-regexp";
 
 //     --- categories ---
 
-export const ComparisonOperator = createToken({
-    name: "ComparisonOperator",
+// in indexer or piecewises
+// For ineqs, same category is chainable
+export const ComparisonOperator1 = createToken({
+    name: "ComparisonOperator1",
+    pattern: Lexer.NA,
+});
+// For eqs, same category is chainable
+export const ComparisonOperator2 = createToken({
+    name: "ComparisonOperator2",
+    pattern: Lexer.NA,
+});
+
+// for top levels; 
+// only ineqs ('=' process individually)
+// same category is chainable
+export const TopLevelComparisonOperator = createToken({
+    name: "TopLevelComparisonOperator",
     pattern: Lexer.NA,
 });
 
@@ -22,19 +37,19 @@ export const RangeDots = createToken({
 export const GreaterEqual = createToken({
     name: ">=",
     pattern: createRegExp(">="),
-    categories: [ComparisonOperator],
+    categories: [ComparisonOperator1, TopLevelComparisonOperator],
 });
 
 export const LessEqual = createToken({
     name: "<=",
     pattern: createRegExp("<="),
-    categories: [ComparisonOperator],
+    categories: [ComparisonOperator1, TopLevelComparisonOperator],
 });
 
 export const Equal2 = createToken({
     name: "==",
     pattern: createRegExp("=="),
-    categories: [ComparisonOperator],
+    categories: [ComparisonOperator2],
 });
 
 export const Action = createToken({
@@ -72,19 +87,19 @@ export const Dot = createToken({
 export const Greater = createToken({
     name: ">",
     pattern: createRegExp(">"),
-    categories: [ComparisonOperator],
+    categories: [ComparisonOperator1, TopLevelComparisonOperator],
 });
 
 export const Less = createToken({
     name: "<",
     pattern: createRegExp("<"),
-    categories: [ComparisonOperator],
+    categories: [ComparisonOperator1, TopLevelComparisonOperator],
 });
 
 export const Equal = createToken({
     name: "=",
     pattern: createRegExp("="),
-    categories: [ComparisonOperator],
+    categories: [ComparisonOperator2],
 });
 
 export const Tilde = createToken({

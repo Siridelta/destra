@@ -1,0 +1,286 @@
+import { FormulaVisitor } from "./base-visitor";
+
+
+declare module './base-visitor' {
+    interface FormulaVisitor {
+        addSubLevel(ctx: any): any;
+        contextLevel(ctx: any): any;
+        context_type1(ctx: any): any;
+        context_type2_level(ctx: any): any;
+        sum(ctx: any): any;
+        prod(ctx: any): any;
+        int(ctx: any): any;
+        diff(ctx: any): any;
+        fromForKeyword(ctx: any): any;
+        fromWithKeyword(ctx: any): any;
+        ctxVariable(ctx: any): any;
+    }
+}
+
+export type AdditionASTNode = {
+    type: "addition",
+    left: any,
+    right: any,
+}
+export type SubtractionASTNode = {
+    type: "subtraction",
+    left: any,
+    right: any,
+}
+
+export type CtxVarReferenceDefASTNode = {
+    type: "ctxVarDef",
+    name: string,
+    subtype: 'reference',
+    reference: any,
+}
+export type CtxVarRangeDefASTNode = {
+    type: "ctxVarDef",
+    name: string,
+    subtype: 'range',
+    lower: any,
+    upper: any,
+}
+export type CtxVarNullDefASTNode = {
+    type: "ctxVarDef",
+    name: string,
+    subtype: 'null',
+}
+export type CtxVarDefASTNode = 
+    | CtxVarReferenceDefASTNode
+    | CtxVarRangeDefASTNode
+    | CtxVarNullDefASTNode;
+
+export type SumClauseASTNode = {
+    type: "sumClause",
+    ctxVarDef: CtxVarRangeDefASTNode,
+    content: any,
+}
+export type ProdClauseASTNode = {
+    type: "prodClause",
+    ctxVarDef: CtxVarRangeDefASTNode,
+    content: any,
+}
+export type IntClauseASTNode = {
+    type: "intClause",
+    ctxVarDef: CtxVarRangeDefASTNode,
+    content: any,
+}
+export type DiffClauseASTNode = {
+    type: "diffClause",
+    ctxVarDef: CtxVarNullDefASTNode,
+    content: any,
+}
+export type ForClauseASTNode = {
+    type: "forClause",
+    ctxVarDefs: CtxVarDefASTNode[],
+    content: any,
+}
+export type WithClauseASTNode = {
+    type: "withClause",
+    ctxVarDefs: CtxVarDefASTNode[],
+    content: any,
+}
+
+// Needed transform to left-associative AST tree
+FormulaVisitor.prototype.addSubLevel = function (ctx: any): any {
+    const [lhs] = this.visit(ctx.lhs);
+    const operator = ctx.operator?.[0]?.image || null;
+    const [rhs] = ctx.rhs ? this.visit(ctx.rhs) : [null];
+    if (operator && rhs 
+        && (rhs.type === 'addition' || rhs.type === 'subtraction')) {
+        // deep seek rhs's left-most child
+        let currentNode = rhs;
+        while (
+            currentNode.left.type === 'addition' 
+            || currentNode.left.type === 'subtraction'
+        ) {
+            currentNode = currentNode.left;
+        }
+        currentNode.left = {
+            type: operator === '+' ? 'addition' : 'subtraction',
+            left: lhs,
+            right: currentNode.left,
+        }
+        return rhs;
+    }
+    if (operator && rhs) {
+        return {
+            type: operator === '+' ? 'addition' : 'subtraction',
+            left: lhs,
+            right: rhs,
+        }
+    }
+    return lhs;
+}
+
+FormulaVisitor.prototype.contextLevel = function (ctx: any): any {
+    const [type1] = this.visit(ctx.context_type1);
+    const [type2] = this.visit(ctx.context_type2_level);
+    if (type1) {
+        return type1;
+    }
+    if (type2) {
+        return type2;
+    }
+    throw new Error("Internal error: contextLevel should not be empty.");
+}
+
+FormulaVisitor.prototype.context_type1 = function (ctx: any): any {
+    const [sum] = this.visit(ctx.sum);
+    const [prod] = this.visit(ctx.prod);
+    const [int] = this.visit(ctx.int);
+    const [diff] = this.visit(ctx.diff);
+    if (sum) {
+        return sum;
+    }
+    if (prod) {
+        return prod;
+    }
+    if (int) {
+        return int;
+    }
+    if (diff) {
+        return diff;
+    }
+    throw new Error("Internal error: context_type1 should not be empty.");
+}
+
+FormulaVisitor.prototype.sum = function (ctx: any): SumClauseASTNode {
+    const [ctxVarName] = this.visit(ctx.ctxVar);
+    const [lower] = this.visit(ctx.lower);
+    const [upper] = this.visit(ctx.upper);
+    const [content] = this.visit(ctx.content);
+    return {
+        type: "sumClause",
+        ctxVarDef: {
+            type: "ctxVarDef",
+            name: ctxVarName,
+            subtype: 'range',
+            lower: lower,
+            upper: upper,
+        },
+        content: content,
+    }
+}
+
+FormulaVisitor.prototype.prod = function (ctx: any): ProdClauseASTNode {
+    const [ctxVarName] = this.visit(ctx.ctxVar);
+    const [lower] = this.visit(ctx.lower);
+    const [upper] = this.visit(ctx.upper);
+    const [content] = this.visit(ctx.content);
+    return {
+        type: "prodClause",
+        ctxVarDef: {
+            type: "ctxVarDef",
+            name: ctxVarName,
+            subtype: 'range',
+            lower: lower,
+            upper: upper,
+        },
+        content: content,
+    }
+}
+
+FormulaVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
+    const [ctxVarName] = this.visit(ctx.ctxVar);
+    const [lower] = this.visit(ctx.lower);
+    const [upper] = this.visit(ctx.upper);
+    const [content] = this.visit(ctx.content);
+    return {
+        type: "intClause",
+        ctxVarDef: {
+            type: "ctxVarDef",
+            name: ctxVarName,
+            subtype: 'range',
+            lower: lower,
+            upper: upper,
+        },
+        content: content,
+    }
+}
+
+FormulaVisitor.prototype.diff = function (ctx: any): DiffClauseASTNode {
+    const [ctxVarName] = this.visit(ctx.ctxVar);
+    const [content] = this.visit(ctx.content);
+    return {
+        type: "diffClause",
+        ctxVarDef: {
+            type: "ctxVarDef",
+            name: ctxVarName,
+            subtype: 'null',
+        },
+        content: content,
+    }
+}
+
+function findDuplicateVarNames(names: string[]): string[] {
+    const uniqueNames = new Set<string>();
+    const duplicateNames = new Set<string>();
+    for (const name of names) {
+        if (!uniqueNames.has(name)) {
+            uniqueNames.add(name);
+        } else {
+            duplicateNames.add(name);
+        }
+    }
+    return Array.from(duplicateNames);
+}
+
+FormulaVisitor.prototype.context_type2_level = function (ctx: any): any {
+    const [content] = this.visit(ctx.content);
+    const [forCtxVarDefs] = this.visit(ctx.fromForKeyword) as CtxVarReferenceDefASTNode[][];
+    const [withCtxVarDefs] = this.visit(ctx.fromWithKeyword) as CtxVarReferenceDefASTNode[][];
+    if (forCtxVarDefs) {
+        const duplicateNames = findDuplicateVarNames(forCtxVarDefs.map(d => d.name));
+        if (duplicateNames.length > 0) {
+            throw new Error(
+                `Found duplicate definitions in 'for' clause: ${duplicateNames.join(', ')}. `
+                + `In a 'for' clause, each context variable should be defined only once.`
+            );
+        }
+        return {
+            type: "forClause",
+            ctxVarDefs: forCtxVarDefs,
+            content: content,
+        }
+    }
+    if (withCtxVarDefs) {
+        const duplicateNames = findDuplicateVarNames(withCtxVarDefs.map(d => d.name));
+        if (duplicateNames.length > 0) {
+            throw new Error(
+                `Found duplicate definitions in 'with' clause: ${duplicateNames.join(', ')}. `
+                + `In a 'with' clause, each context variable should be defined only once.`
+            );
+        }
+        return {
+            type: "withClause",
+            ctxVarDefs: withCtxVarDefs,
+            content: content,
+        }
+    }
+    return content;
+}
+
+FormulaVisitor.prototype.fromForKeyword = function (ctx: any): CtxVarReferenceDefASTNode[] {
+    const ctxVarNames = this.visit(ctx.ctxVar);
+    const contents = this.visit(ctx.content);
+    if (ctxVarNames.length !== contents.length) {
+        throw new Error("Internal error: fromForKeyword should have the same number of ctxVarNames and contents.");
+    }
+    const ctxVarDefs: CtxVarReferenceDefASTNode[] = [];
+    for (let i = 0; i < ctxVarNames.length; i++) {
+        ctxVarDefs.push({
+            type: "ctxVarDef",
+            name: ctxVarNames[i],
+            subtype: 'reference',
+            reference: contents[i],
+        });
+    }
+    return ctxVarDefs;
+}
+
+FormulaVisitor.prototype.ctxVariable = function (ctx: any): string {
+    const [ctxVarName] = this.visit(ctx.ctxVarName);
+    return ctxVarName.image;
+}

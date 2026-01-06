@@ -1,5 +1,5 @@
-import { BraceClose, BraceOpen, BracketClose, BracketOpen, Comma, ParenthesisClose, ParenthesisOpen } from "../tokens/op-and-puncs";
-import { NumberLiteral, Placeholder, Variable } from "../tokens/others";
+import { BraceClose, BraceOpen, BracketClose, BracketOpen, Comma, ParenthesisClose, ParenthesisOpen, RangeDots } from "../tokens/op-and-puncs";
+import { NumberLiteral, Placeholder, CustomIdentifier } from "../tokens/others";
 import { BuiltinFunc } from "../tokens/reserved-words/builtin-funcs/categories";
 import { Constant } from "../tokens/reserved-words/constants";
 import { ReservedVar } from "../tokens/reserved-words/reservedVars";
@@ -10,12 +10,10 @@ declare module './parser' {
         atomicExp: any;
         builtinFuncCall: any;
         argsList: any;
-        fromPlaceholder: any;
+        varOrCall: any;
         parenExp: any;
         listExp: any;
         piecewiseExp: any;
-        numberLiteral: any;
-        identifier: any;
     }
 }
 
@@ -26,9 +24,9 @@ export function initAtomicRules(this: FormulaParser) {
             { ALT: () => this.SUBRULE(this.parenExp) },
             { ALT: () => this.SUBRULE(this.listExp) },
             { ALT: () => this.SUBRULE(this.piecewiseExp) },
-            { ALT: () => this.SUBRULE(this.numberLiteral) },
-            { ALT: () => this.SUBRULE(this.fromPlaceholder) },
-            { ALT: () => this.SUBRULE(this.identifier) },
+            { ALT: () => this.CONSUME(NumberLiteral) },
+            { ALT: () => this.SUBRULE(this.varOrCall) },
+            { ALT: () => this.CONSUME(Constant) },
         ]);
     });
 
@@ -51,20 +49,43 @@ export function initAtomicRules(this: FormulaParser) {
         this.CONSUME(ParenthesisClose);
     });
 
-    // A substitutable can start 2 types of syntax: 
-    // - as a referred var 
-    // - or as a referred func, being called, so must be followed by its arglist
-    //
-    // js form: `${myVar}` or `${myFunc}(1,1)`
-    // parser source form: "${3}" or "${3}(1,1)" (myVar/myFunc is the 4th item in deps)
-    // 
-    // LL(k) parser requires us to merge the 2 syntaxes into one general rule,
-    // so this needs to be further classified in semantics stage
-    this.fromPlaceholder = this.RULE("fromPlaceholder", () => {
-        this.CONSUME(Placeholder);
-        this.OPTION(() => {
-            this.SUBRULE(this.argsList);
-        });
+    /*
+    
+    A substitution / custom identifier can start 2 types of syntax: 
+      - as a referred var 
+      - or as a referred func, being called, so must be followed by its arglist
+    
+    For substitution:
+      - js form: `${myVar}` or `${myFunc}(1,1)`
+      - parser source form: "${3}" or "${3}(1,1)" (myVar/myFunc is the 4th item in deps)
+     
+    For custom identifier:
+      - js form: `myVar` or `myFunc(1,1) = ...`
+      - parser source form: `myVar` or `myFunc(1,1) = ...`
+      
+      - note that in common cases it is not possible to have a custom identifier as a function call,
+        the only case is when starting a function definition:
+        `f(x) = x^2`, 'f' is to specify the resulting FuncExpl's ID.
+
+        so generally this rule is used in both cases, and the arglist is optional.
+        semantic checks are required to ensure the correct usage.
+    
+    */
+    this.varOrCall = this.RULE("varOrCall", () => {
+        this.OR([
+            {
+                ALT: () => {
+                    this.OR2([
+                        { ALT: () => this.CONSUME(Placeholder) },
+                        { ALT: () => this.CONSUME(CustomIdentifier) },
+                    ]);
+                    this.OPTION(() => {
+                        this.SUBRULE(this.argsList);
+                    });
+                }
+            },
+            { ALT: () => this.CONSUME(ReservedVar) },
+        ]);
     });
 
 
@@ -81,31 +102,23 @@ export function initAtomicRules(this: FormulaParser) {
         this.CONSUME(BracketOpen);
         this.MANY_SEP({
             SEP: Comma,
-            DEF: () => this.SUBRULE(this.addSubLevel),
+            DEF: () => {
+                this.SUBRULE(this.addSubLevel, { LABEL: "item" });
+                this.OPTION(() => {
+                    this.CONSUME(RangeDots, { LABEL: "item" });
+                    this.OPTION2(() => {
+                        this.SUBRULE2(this.addSubLevel, { LABEL: "item" });
+                    });
+                });
+            },
         });
         this.CONSUME(BracketClose);
     });
 
     this.piecewiseExp = this.RULE("piecewiseExp", () => {
         this.CONSUME(BraceOpen);
-        this.SUBRULE(this.piecewise_start);
+        this.SUBRULE(this.piecewise_content);
         this.CONSUME(BraceClose);
-    });
-
-
-
-    // --- Number & Identifier forms ---
-
-    this.numberLiteral = this.RULE("numberLiteral", () => {
-        this.CONSUME(NumberLiteral);
-    });
-
-    this.identifier = this.RULE("identifier", () => {
-        this.OR([
-            { ALT: () => this.CONSUME(Constant) },
-            { ALT: () => this.CONSUME(ReservedVar) },
-            { ALT: () => this.CONSUME(Variable) },
-        ]);
     });
 
 }

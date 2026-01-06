@@ -29,7 +29,7 @@ export const QuartileFunc = createToken({ name: "quartileFunc", pattern: createR
 
 export const statisticsBuiltinFuncs = [
     TotalFunc, MeanFunc, MedianFunc, MinFunc, MaxFunc, CountFunc,
-    StdevFunc, StdevpFunc, VarFunc, VarpFunc, MadFunc,
-    CovFunc, CovpFunc, CorrFunc, SpearmanFunc,
+    StdevpFunc, StdevFunc, VarpFunc, VarFunc, MadFunc,
+    CovpFunc, CovFunc, CorrFunc, SpearmanFunc,
     QuantileFunc, QuartileFunc
 ];

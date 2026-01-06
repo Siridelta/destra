@@ -1,35 +1,5 @@
-import { formulaParser } from "../parsing/parser";
+import { FormulaVisitor } from "./base-visitor";
 
-export const BaseFormulaVisitor = formulaParser.getBaseCstVisitorConstructor();
-
-export class FormulaVisitor extends BaseFormulaVisitor {
-
-    constructor() {
-        super();
-        this.validateVisitor();
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}
+import './top-level';
 
 export const formulaVisitor = new FormulaVisitor();

@@ -74,6 +74,8 @@ export const PhiVar = createToken({
 });
 
 export const reservedVars = [
-    XVar, YVar, ZVar, TVar, UVar, VVar, RVar, ThetaVar, RhoVar, PhiVar,
+    // 'r' after 'rho'
+    // 't' after 'theta'
+    XVar, YVar, ZVar, UVar, VVar, ThetaVar, RhoVar, PhiVar, RVar, TVar, 
     ReservedVar,
 ];
