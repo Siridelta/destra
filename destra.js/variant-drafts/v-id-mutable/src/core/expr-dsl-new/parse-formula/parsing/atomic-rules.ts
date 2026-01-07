@@ -28,9 +28,6 @@ export function initAtomicRules(this: FormulaParser) {
             { ALT: () => this.CONSUME(NumberLiteral) },
             { ALT: () => this.SUBRULE(this.varOrCall, { LABEL: "case" }) },
             { ALT: () => this.CONSUME(Constant) },
-            { ALT: () => this.CONSUME(Placeholder) },
-            { ALT: () => this.CONSUME(ReservedVar) },
-            { ALT: () => this.CONSUME(CustomIdentifier) },
         ]);
     });
 

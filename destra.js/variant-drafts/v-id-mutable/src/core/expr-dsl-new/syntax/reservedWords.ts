@@ -3,7 +3,7 @@
 // 保留字(常量、保留变量、内置函数)；
 // 要求：在 wordChar 范围内
 export const reservedVars = [
-    "x", "y", "z", "t", "r", "theta", "phi", "rho",
+    "x", "y", "z", "t", "u", "v", "r", "theta", "phi", "rho",
 ] as const;
 export const builtInConsts = [
     // 常量
@@ -14,7 +14,7 @@ export const builtInConsts = [
 
 export const builtInFuncs1 = [
     // 内置函数
-    "root", "abs", "sqrt", "cbrt", "exp", "log", "ln", 
+    "root", "abs", "sqrt", "cbrt", "exp", "log", "ln",
 ] as const;
 export const builtInFuncs2 = [
     "sin", "cos", "tan", "cot", "sec", "csc",
@@ -23,7 +23,7 @@ export const builtInFuncs2 = [
     "asin2", "acos2", "atan2", "acot2", "asec2", "acsc2",
 ] as const;
 export const builtInFuncs3 = [
-    "sinh", "cosh", "tanh", "coth", "sech", "csch", 
+    "sinh", "cosh", "tanh", "coth", "sech", "csch",
     "sinh2", "cosh2", "tanh2", "coth2", "sech2", "csch2",
     "asinh", "acosh", "atanh", "acoth", "asech", "acsch",
     "asinh2", "acosh2", "atanh2", "acoth2", "asech2", "acsch2",

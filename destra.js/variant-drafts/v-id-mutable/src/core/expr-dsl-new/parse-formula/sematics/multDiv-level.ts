@@ -1,6 +1,4 @@
 import { FormulaVisitor } from "./base-visitor";
-import { ComparisonASTNode } from "./helpers";
-import { SupportOmittedCallFunc } from "../tokens/reserved-words/builtin-funcs/categories";
 import { BuiltinFuncASTNode } from "./terminals";
 import { MaybeOCallFuncIRNode } from "./atomic-exps";
 

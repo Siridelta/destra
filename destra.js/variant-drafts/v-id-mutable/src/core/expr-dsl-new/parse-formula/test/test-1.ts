@@ -1,5 +1,6 @@
 import { lexer } from "../lexing/lexer";
 import { formulaParser } from "../parsing/parser";
+import { formulaVisitor } from "../sematics/visitor";
 
 
 function parseCST(input: string) {
@@ -17,5 +18,13 @@ function parseCST(input: string) {
     return cst;
 }
 
-const cst1 = parseCST("(1, [1...10][5...][[1...10] > e]).x!");
+function parseAST(input: string) {
+    const cst = parseCST(input);
+    if (!cst) return;
+    const ast = formulaVisitor.visit(cst);
+    return ast;
+}
+
+const ast1 = parseAST("(1, [1...10][5...][[1...10] > e]).x!");
+console.log('AST:', ast1);
 console.log('end');

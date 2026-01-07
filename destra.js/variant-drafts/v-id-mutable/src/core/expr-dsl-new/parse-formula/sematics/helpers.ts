@@ -1,3 +1,5 @@
+import { DiffClauseASTNode, ForClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode, WithClauseASTNode } from "./addSub-level"
+import { FunctionDefinitionASTNode } from "./top-level";
 
 export enum ComparisonOperator {
     Greater = ">",
@@ -18,5 +20,81 @@ export type PointCoordsIRNode = {
     coords: any[],
 }
 
-// merge expr, '...', expr to RangeASTNode
-// export function sanitizeBracketContentItems(items: any[]): any[] {
+export type CtxClauseASTNode =
+    | ForClauseASTNode
+    | WithClauseASTNode
+    | SumClauseASTNode
+    | ProdClauseASTNode
+    | IntClauseASTNode
+    | DiffClauseASTNode
+    | FunctionDefinitionASTNode;
+
+// func definition top node is also included
+export function isCtxClause(node: any): node is
+    | ForClauseASTNode
+    | WithClauseASTNode
+    | SumClauseASTNode
+    | ProdClauseASTNode
+    | IntClauseASTNode
+    | DiffClauseASTNode
+    | FunctionDefinitionASTNode {
+    return (
+        node.type === "forClause"
+        || node.type === "withClause"
+        || node.type === "sumClause"
+        || node.type === "prodClause"
+        || node.type === "intClause"
+        || node.type === "diffClause"
+        || node.type === "functionDefinition"
+    );
+}
+
+// func definition top node is also included
+export function getCtxNodeCtxVars(ctxNode: CtxClauseASTNode) {
+    const ctxVars: string[] = [];
+    if (
+        ctxNode?.type === 'forClause'
+        || ctxNode?.type === 'withClause'
+    ) {
+        ctxVars.push(...ctxNode.ctxVarDefs.map(d => d.name));
+    }
+    if (
+        ctxNode?.type === 'sumClause'
+        || ctxNode?.type === 'prodClause'
+        || ctxNode?.type === 'intClause'
+        || ctxNode?.type === 'diffClause'
+    ) {
+        ctxVars.push(ctxNode.ctxVarDef.name);
+    }
+    if (ctxNode?.type === 'functionDefinition') {
+        ctxVars.push(...ctxNode.params.map(p => p.name));
+    }
+    return ctxVars;
+}
+
+function _scanUdRsVarRefs(node: any) {
+    const udVarRefs: Set<string> = new Set();
+    const rsVarRefs: Set<string> = new Set();
+    if (node?.type === 'undefinedVar') {
+        udVarRefs.add(node.name);
+    }
+    if (node?.type === 'reservedVar') {
+        rsVarRefs.add(node.name);
+    }
+    for (const [k, v] of Object.entries(node)) {
+        if (typeof v === 'object' && v !== null) {
+            const { udVarRefs: udVarRefs2, rsVarRefs: rsVarRefs2 } = _scanUdRsVarRefs(v);
+            udVarRefs.union(udVarRefs2);
+            rsVarRefs.union(rsVarRefs2);
+        }
+    }
+    return { udVarRefs, rsVarRefs };
+}
+
+export function scanUdRsVarRefs(node: any) {
+    const { udVarRefs, rsVarRefs } = _scanUdRsVarRefs(node);
+    return {
+        udVarRefs: Array.from(udVarRefs),
+        rsVarRefs: Array.from(rsVarRefs)
+    };
+}

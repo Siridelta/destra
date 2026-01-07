@@ -1,4 +1,8 @@
-import { FormulaVisitor, scanUdRsVarRefs } from "./base-visitor";
+import { FormulaVisitor } from "./base-visitor";
+import { getCtxNodeCtxVars, isCtxClause, scanUdRsVarRefs } from "./helpers";
+import { reservedVars } from "../../syntax/reservedWords";
+import { maybeFuncDefIRNode } from "./atomic-exps";
+import { CtxVarNullDefASTNode } from "./addSub-level";
 
 
 declare module './base-visitor' {
@@ -31,7 +35,7 @@ export type OmittedExplicitEquationASTNode = {
 export type FunctionDefinitionASTNode = {
     type: "functionDefinition",
     name: string | null,
-    params: string[],
+    params: CtxVarNullDefASTNode[],
     content: any,
 }
 export type ImplicitEquationASTNode = {
@@ -60,15 +64,91 @@ export type TopLevelASTNode =
     | RegressionASTNode
     | ExpressionASTNode;
 
+// traverse and resolve all varIRs in the AST to udVar, rsVar or ctxVar
+// side-effectively modify the AST
+// also supports checking a top-level function definition AST node
+function resolveVarIRs(ast: any) {
+    const ctxNodeStack: any[] = [];
+    const traverse = (node: any) => {
+        const _isCtxClause = isCtxClause(node);
+        if (_isCtxClause) {
+            ctxNodeStack.push(node);
+        }
+        if (node.type === "varIR") {
+            let isCtxVar = false;
+            for (let i = ctxNodeStack.length - 1; i >= 0; i--) {
+                const ctxVarNames = getCtxNodeCtxVars(ctxNodeStack[i]);
+                if (ctxVarNames.includes(node.name)) {
+                    isCtxVar = true;
+                    break;
+                }
+            }
+            if (isCtxVar) {
+                node.type = "contextVar";
+            } else if (reservedVars.includes(node.name)) {
+                node.type = "reservedVar";
+            } else {
+                node.type = "undefinedVar";
+            }
+        }
+        for (const [k, v] of Object.entries(node)) {
+            if (typeof v === 'object' && v !== null) {
+                traverse(v);
+            }
+        }
+        if (_isCtxClause) {
+            ctxNodeStack.pop();
+        }
+    }
+    traverse(ast);
+}
+
+const isMaybeFuncDefIR = (node: any): node is maybeFuncDefIRNode => node?.type === "maybeFuncDefIR";
+function resolveMaybeFuncDefIR(node: maybeFuncDefIRNode, content: any): FunctionDefinitionASTNode {
+    const params = node.params;
+    // Check params are all varIRs
+    for (const param of params) {
+        if (param.type !== "varIR") {
+            throw new Error(
+                `Invalid syntax in function definition: Expected an parameter name, got [${param.type}].`
+            );
+        }
+    }
+    return {
+        type: "functionDefinition",
+        name: node.func.name,
+        params: params.map(p => ({
+            type: "ctxVarDef",
+            name: p.name,
+            subtype: 'null',
+        })),
+        content,
+    }
+}
+
 FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
-    const [lhs, rhs, ...remains] = this.visit(ctx.actionBatchLevel);
+    let [lhs, rhs, ...remains] = this.visit(ctx.actionBatchLevel);
     const equalOp = ctx['=']?.[0];
     const tildeOp = ctx['~']?.[0];
     const arrowOp = ctx['=>']?.[0];
     const inequalityOps = ctx.TopLevelComparisonOperator;
+    let funcDefAST = null;
+
+    // Check and resolve maybeFuncDefIR
+    if (isMaybeFuncDefIR(lhs)) {
+        funcDefAST = resolveMaybeFuncDefIR(lhs, rhs);
+    }
+
+    // Resolve varIRs
+    if (funcDefAST) {
+        resolveVarIRs(funcDefAST);
+    } else {
+        resolveVarIRs(lhs);
+        resolveVarIRs(rhs);
+    }
 
     // '=', 'myVar = ...'
-    if (equalOp && lhs.type === "udVarRef") {
+    if (equalOp && lhs.type === "undefinedVar") {
         // test 'myVar = ...'
         // for explicit equation / variable definition
         const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
@@ -127,7 +207,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     }
 
     // '=', 'rsVar = ...'
-    if (equalOp && lhs.type === "rsVarRef") {
+    if (equalOp && lhs.type === "reservedVar") {
         const lhsRsVar = lhs.name;
         const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
         let isExplicitEquation = false;
@@ -214,32 +294,22 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     }
 
     // '=', 'f(x) = ...'
-    if (equalOp && lhs.type === "functionDefinitionHead") {
-        const functionName = lhs.name;
-        const functionParams = lhs.params;
-        const { udVarRefs, rsVarRefs: _rsVarRefs } = scanUdRsVarRefs(rhs);
-
-        // params override rsVarRefs
-        const rsVarRefs = Array.from(new Set(_rsVarRefs).difference(new Set(functionParams)));
+    if (equalOp && funcDefAST) {
+        const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
 
         if (udVarRefs.length > 0) {
             throw new Error(
                 `Detected undefined variables: ${udVarRefs.map(v => `'${v}'`).join(", ")}.`
-                + `Function definition (name='${functionName}', params='${functionParams.join(", ")}') should not depend on undefined variables.`
+                + `Function definition (name='${funcDefAST.name}', params='${funcDefAST.params.join(", ")}') should not depend on undefined variables.`
             );
         }
         if (rsVarRefs.length > 0) {
             throw new Error(
                 `Detected reserved variables: ${rsVarRefs.map(v => `'${v}'`).join(", ")}.`
-                + `Function definition (name='${functionName}', params='${functionParams.join(", ")}') should not depend on reserved variables.`
+                + `Function definition (name='${funcDefAST.name}', params='${funcDefAST.params.join(", ")}') should not depend on reserved variables.`
             );
         }
-        return {
-            type: "functionDefinition",
-            name: functionName,
-            params: functionParams,
-            content: rhs,
-        }
+        return funcDefAST;
     }
 
     // '=>', '(x) => ...'
@@ -247,8 +317,8 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
         && lhs.type === "parenthesizedExpr"
         && lhs.content.type === "parenthesisCommaSeries"
         && lhs.content.items.every((item: any) =>
-            item.type === "udVarRef"
-            || item.type === "rsVarRef"
+            item.type === "undefinedVar"
+            || item.type === "reservedVar"
         )
     ) {
         const params = lhs.content.items.map((item: any) => item.name);
@@ -279,7 +349,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     if (equalOp || inequalityOps.length > 0) {
         const operands = [lhs, rhs, ...remains];
         const ops = (equalOp ? [equalOp] : inequalityOps).map((op: any) => op.image) as string[];
- 
+
         const { udVarRefsSet, rsVarRefsSet } = operands.reduce(
             (acc: { udVarRefsSet: Set<string>, rsVarRefsSet: Set<string> }, operand: any) => {
                 const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(operand);
@@ -323,7 +393,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
                 ops,
             }
         }
-            
+
         return {
             type: "implicitEquation",
             operands,

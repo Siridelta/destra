@@ -54,7 +54,8 @@ FormulaVisitor.prototype.piecewise_content = function (ctx: any) {
 
     // Piecewise special check: Check the usage of for and with clauses.
     // unless in the lase branch (conditional branch or default branch),
-    // you cannot use for/with clauses with multiple context variables;
+    // you cannot use for/with clauses with multiple context variables 
+    // (unless using parentheses to enclose them, then it is resolved as a ParenExp wrapping it);
     // Or it will introduce comma ('(a, b) for a = [1...10], b = [1...10]'), 
     // and conflict with its meaning of seperating branches in piecewise expression.
     // desmos will report an error in this case.

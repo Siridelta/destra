@@ -38,7 +38,7 @@ export type MaybeOCallFuncIRNode = {
 export type maybeFuncDefIRNode = {
     type: "maybeFuncDefIR",
     func: VarIRNode,
-    args: any[],
+    params: any[],
 }
 
 export type ParenExpASTNode = {
@@ -68,15 +68,6 @@ FormulaVisitor.prototype.atomicExp = function (ctx: any) {
     }
     if (ctx.Constant) {
         return this.toConstantAST(ctx.Constant[0].image);
-    }
-    if (ctx.Placeholder) {
-        return this.toSubstitutionAST(ctx.Placeholder[0].image);
-    }
-    if (ctx.CustomIdentifier) {
-        return this.toVarIR(ctx.CustomIdentifier[0].image);
-    }
-    if (ctx.ReservedVar) {
-        return this.toVarIR(ctx.ReservedVar[0].image);
     }
     if (ctx.case) {
         return this.visit(ctx.case);
@@ -142,10 +133,11 @@ FormulaVisitor.prototype.varOrCall = function (ctx: any) {
     }
     if (customVar) {
         if (args) {
+            // function definition side is 'params'; call side is 'args'
             return {
                 type: "maybeFuncDefIR",
                 func: this.toVarIR(customVar.image),
-                args: args,
+                params: args,
             }
         } else {
             return this.toVarIR(customVar.image);
