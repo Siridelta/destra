@@ -1,6 +1,5 @@
-import { CstNode } from "chevrotain";
 import { formulaParser } from "../parsing/parser";
-import { ExpressionASTNode, TopLevelASTNode } from "./top-level";
+import { TopLevelASTNode } from "./top-level";
 
 export const BaseFormulaVisitor = formulaParser.getBaseCstVisitorConstructor();
 
@@ -24,8 +23,15 @@ export class FormulaVisitor extends BaseFormulaVisitor {
         this.validateVisitor();
     }
 
+    batchVisit(ctx: any[]): any[] {
+        if (!Array.isArray(ctx)) {
+            throw new Error("Internal error: batchVisit should be called with an array.");
+        }
+        return ctx.map((c: any) => this.visit(c));
+    }
+
     formula(ctx: any) {
-        const [{ content, slider }] = this.visit(ctx.inLevel);
+        const { content, slider } = this.visit(ctx.inLevel);
         return {
             type: "formula",
             content,
@@ -34,8 +40,8 @@ export class FormulaVisitor extends BaseFormulaVisitor {
     }
 
     inLevel(ctx: any) {
-        const [topLevel] = this.visit(ctx.topLevel);
-        const [slider] = ctx.slider ? this.visit(ctx.slider) : [null];
+        const topLevel = this.visit(ctx.topLevel);
+        const slider = ctx.slider ? this.visit(ctx.slider) : null;
         return {
             content: topLevel,
             slider,
@@ -43,9 +49,9 @@ export class FormulaVisitor extends BaseFormulaVisitor {
     }
 
     sliderDef(ctx: any) {
-        const [from] = ctx.from ? this.visit(ctx.from) : [null];
-        const [to] = ctx.to ? this.visit(ctx.to) : [null];
-        const [step] = ctx.step ? this.visit(ctx.step) : [null];
+        const from = ctx.from ? this.visit(ctx.from) : null;
+        const to = ctx.to ? this.visit(ctx.to) : null;
+        const step = ctx.step ? this.visit(ctx.step) : null;
         return {
             type: "sliderConfig",
             from,

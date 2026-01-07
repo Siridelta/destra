@@ -55,9 +55,9 @@ export type PowerASTNode = {
 FormulaVisitor.prototype.multDivLevel = function (ctx: any) {
     // Transform to left-associative AST tree
 
-    const [lhs] = this.visit(ctx.lhs);
+    const lhs = this.visit(ctx.lhs);
     const operator = ctx.operator?.[0]?.image || null;
-    const [rhs] = ctx.rhs ? this.visit(ctx.rhs) : [null];
+    const rhs = ctx.rhs ? this.visit(ctx.rhs) : null;
 
     if (operator && rhs
         && (rhs.type === 'multiplication' || rhs.type === 'division')) {
@@ -87,25 +87,27 @@ FormulaVisitor.prototype.multDivLevel = function (ctx: any) {
     return lhs;
 }
 
-// Ensure OCallIR is not wrapped in anything else
+// Ensure there is no OCallIR wrapped in anything else
 function traverseCheckOCallIR(node: any, isTop: boolean = true): boolean {
     if (node?.type === 'maybeOCallFuncIR' && !isTop) {
         return false;
     }
-    for (const [key, value] of Object.entries(node)) {
-        if (value && !traverseCheckOCallIR(value, false)) {
-            const oCallIR = value as MaybeOCallFuncIRNode;
-            throw new Error(
-                `Unexpected operation on Function Identifier (Supports Omitted Call Syntax) '${oCallIR.func.name}'. `
-                + `Context: ${JSON.stringify({ ...node, [key]: `[Function Identifier '${oCallIR.func.name}']` })}`
-            );
+    if (Object.getPrototypeOf(node) !== String.prototype) {
+        for (const [key, value] of Object.entries(node)) {
+            if (value && !traverseCheckOCallIR(value, false)) {
+                const oCallIR = value as MaybeOCallFuncIRNode;
+                throw new Error(
+                    `Unexpected operation on Function Identifier (Supports Omitted Call Syntax) '${oCallIR.func.name}'. `
+                    + `Context: ${JSON.stringify({ ...node, [key]: `[Function Identifier '${oCallIR.func.name}']` })}`
+                );
+            }
         }
     }
     return true;
 }
 
 FormulaVisitor.prototype.iMultAndOCallLevel = function (ctx: any) {
-    const nodes = this.visit(ctx.prefixLevel);
+    const nodes = this.batchVisit(ctx.prefixLevel);
 
     // in imult-like chain, nodes may contains:
     // - prefixLevel exprs
@@ -190,7 +192,7 @@ FormulaVisitor.prototype.iMultAndOCallLevel = function (ctx: any) {
 
 FormulaVisitor.prototype.prefixLevel = function (ctx: any) {
     const operator = ctx.operator?.[0]?.image ?? null;
-    const [content] = this.visit(ctx.rootofLevel);
+    const content = this.visit(ctx.rootofLevel);
 
     if (operator) {
         return {
@@ -203,8 +205,8 @@ FormulaVisitor.prototype.prefixLevel = function (ctx: any) {
 
 FormulaVisitor.prototype.rootofLevel = function (ctx: any) {
     // right-associative, no need for transform
-    const [lhs] = this.visit(ctx.powerLevel);
-    const [rhs] = ctx.rootofLevel ? this.visit(ctx.rootofLevel) : [null];
+    const lhs = this.visit(ctx.powerLevel);
+    const rhs = ctx.rootofLevel ? this.visit(ctx.rootofLevel) : null;
 
     if (rhs) {
         return {
@@ -218,8 +220,8 @@ FormulaVisitor.prototype.rootofLevel = function (ctx: any) {
 
 FormulaVisitor.prototype.powerLevel = function (ctx: any) {
     // right-associative, no need for transform
-    const [lhs] = this.visit(ctx.postfixLevel);
-    const [rhs] = ctx.powerLevel ? this.visit(ctx.powerLevel) : [null];
+    const lhs = this.visit(ctx.postfixLevel);
+    const rhs = ctx.powerLevel ? this.visit(ctx.powerLevel) : null;
 
     if (rhs) {
         return {

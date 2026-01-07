@@ -28,7 +28,7 @@ interface VisitorActionBatchLevelParams {
 }
 
 FormulaVisitor.prototype.actionBatchLevel = function (ctx: any, params?: VisitorActionBatchLevelParams): any {
-    const actionLevels = this.visit(ctx.actionLevel);
+    const actionLevels = this.batchVisit(ctx.actionLevel);
     const inParen = params?.inParen ?? false;
 
     if (actionLevels.length === 0) {
@@ -66,8 +66,8 @@ FormulaVisitor.prototype.actionBatchLevel = function (ctx: any, params?: Visitor
 }
 
 FormulaVisitor.prototype.actionLevel = function (ctx: any): any {
-    const [target] = this.visit(ctx.target);
-    const [value] = ctx.value ? this.visit(ctx.value) : [null];
+    const target = this.visit(ctx.target);
+    const value = ctx.value ? this.visit(ctx.value) : null;
 
     if (!value) {
         return target;

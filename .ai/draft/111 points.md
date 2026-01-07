@@ -16,3 +16,9 @@ calculator type restrictions
 cross
 
 level downwards restrictions
+
+
+
+
+
+report magic regexp bug in visitor numberliteral resolution

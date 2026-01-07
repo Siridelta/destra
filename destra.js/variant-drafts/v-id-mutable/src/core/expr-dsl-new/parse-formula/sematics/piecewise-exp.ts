@@ -32,7 +32,7 @@ FormulaVisitor.prototype.piecewiseExp = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.piecewise_content = function (ctx: any) {
-    const branches = this.visit(ctx.piecewise_branch);
+    const branches = this.batchVisit(ctx.piecewise_branch);
     let defaultValue: any | null = null;
 
     // scan for the last term being possible default,
@@ -88,8 +88,8 @@ FormulaVisitor.prototype.piecewise_content = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.piecewise_branch = function (ctx: any) {
-    const [condition] = ctx.piecewise_compLevel ? this.visit(ctx.piecewise_compLevel) : [null];
-    const [value] = ctx.piecewise_actionLevel ? this.visit(ctx.piecewise_actionLevel) : [null];
+    const condition = ctx.piecewise_compLevel ? this.visit(ctx.piecewise_compLevel) : null;
+    const value = ctx.piecewise_actionLevel ? this.visit(ctx.piecewise_actionLevel) : null;
     return {
         type: "piecewiseBranch",
         condition,
@@ -98,7 +98,7 @@ FormulaVisitor.prototype.piecewise_branch = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.piecewise_compLevel = function (ctx: any) {
-    const operands = this.visit(ctx.piecewise_actionLevel);
+    const operands = this.batchVisit(ctx.piecewise_actionLevel);
     const ops1 = ctx.ComparisonOperator1 as IToken[] ?? null;
     const ops2 = ctx.ComparisonOperator2 as IToken[] ?? null;
 
@@ -119,7 +119,7 @@ FormulaVisitor.prototype.piecewise_compLevel = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.piecewise_actionLevel = function (ctx: any) {
-    const items = this.visit(ctx.addSubLevel);
+    const items = this.batchVisit(ctx.addSubLevel);
     if (items.length < 1 || items.length > 2) {
         throw new Error("Internal error: items not found in piecewise_actionLevel.");
     }

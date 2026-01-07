@@ -1,8 +1,9 @@
 import { FormulaVisitor } from "./base-visitor";
-import { getCtxNodeCtxVars, isCtxClause, scanUdRsVarRefs } from "./helpers";
+import { getCtxNodeCtxVars, isCtxClause, isPointExp, isVarIR, scanUdRsVarRefs } from "./helpers";
 import { reservedVars } from "../../syntax/reservedWords";
 import { maybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
+import { traverse } from "./helpers";
 
 
 declare module './base-visitor' {
@@ -69,12 +70,13 @@ export type TopLevelASTNode =
 // also supports checking a top-level function definition AST node
 function resolveVarIRs(ast: any) {
     const ctxNodeStack: any[] = [];
-    const traverse = (node: any) => {
+    const enter = (node: any) => {
         const _isCtxClause = isCtxClause(node);
         if (_isCtxClause) {
             ctxNodeStack.push(node);
         }
-        if (node.type === "varIR") {
+        let newType = null;
+        if (isVarIR(node)) {
             let isCtxVar = false;
             for (let i = ctxNodeStack.length - 1; i >= 0; i--) {
                 const ctxVarNames = getCtxNodeCtxVars(ctxNodeStack[i]);
@@ -84,31 +86,34 @@ function resolveVarIRs(ast: any) {
                 }
             }
             if (isCtxVar) {
-                node.type = "contextVar";
-            } else if (reservedVars.includes(node.name)) {
-                node.type = "reservedVar";
+                newType = "contextVar";
+            } else if (reservedVars.includes(node.name as any)) {
+                newType = "reservedVar";
             } else {
-                node.type = "undefinedVar";
+                newType = "undefinedVar";
             }
         }
-        for (const [k, v] of Object.entries(node)) {
-            if (typeof v === 'object' && v !== null) {
-                traverse(v);
-            }
+        if (newType) {
+            node.type = newType;
         }
-        if (_isCtxClause) {
+    }
+    const exit = (node: any) => {
+        if (
+            ctxNodeStack.length > 0 
+            && ctxNodeStack[ctxNodeStack.length - 1] === node
+        ) {
             ctxNodeStack.pop();
         }
     }
-    traverse(ast);
+    traverse(ast, { enter, exit });
 }
 
 const isMaybeFuncDefIR = (node: any): node is maybeFuncDefIRNode => node?.type === "maybeFuncDefIR";
-function resolveMaybeFuncDefIR(node: maybeFuncDefIRNode, content: any): FunctionDefinitionASTNode {
-    const params = node.params;
+function resolveNamedFuncDef(IRNode: maybeFuncDefIRNode, content: any): FunctionDefinitionASTNode {
+    const params = IRNode.params;
     // Check params are all varIRs
     for (const param of params) {
-        if (param.type !== "varIR") {
+        if (!isVarIR(param)) {
             throw new Error(
                 `Invalid syntax in function definition: Expected an parameter name, got [${param.type}].`
             );
@@ -116,7 +121,7 @@ function resolveMaybeFuncDefIR(node: maybeFuncDefIRNode, content: any): Function
     }
     return {
         type: "functionDefinition",
-        name: node.func.name,
+        name: IRNode.func.name,
         params: params.map(p => ({
             type: "ctxVarDef",
             name: p.name,
@@ -125,18 +130,60 @@ function resolveMaybeFuncDefIR(node: maybeFuncDefIRNode, content: any): Function
         content,
     }
 }
+function resolveAnonymousFuncDef(lhs: any, rhs: any): FunctionDefinitionASTNode {
+    if (!isPointExp(lhs)) {
+        throw new Error(
+            `Invalid syntax: Anonymous function definition must start with an parameter list. `
+            + `Got [${lhs.type}].`
+        );
+    }
+    const params = lhs.coords;
+    // Check params are all varIRs
+    for (const param of params) {
+        if (!isVarIR(param)) {
+            throw new Error(
+                `Invalid syntax in anonymous function definition: Expected an parameter name, got [${param.type}].`
+            );
+        }
+    }
+    return {
+        type: "functionDefinition",
+        name: null,
+        params: params.map(p => ({
+            type: "ctxVarDef",
+            name: p.name,
+            subtype: 'null',
+        })),
+        content: rhs,
+    }
+}
+
+// If there is any pointCoordsIR node in the AST, this means there is invalid syntax of commas
+function checkNoPointCoordsIR(ast: any) {
+    const enter = (node: any) => {
+        if (node.type === "pointCoordsIR") {
+            throw new Error(
+                `Invalid syntax: Unrecognized comma syntax with ${node.coords.map((c: any) => `[${c.type}]`).join(", ")}.`
+            );
+        }
+    }
+    traverse(ast, { enter });
+}
 
 FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
-    let [lhs, rhs, ...remains] = this.visit(ctx.actionBatchLevel);
+    let [lhs, rhs, ...remains] = this.batchVisit(ctx.actionBatchLevel);
     const equalOp = ctx['=']?.[0];
     const tildeOp = ctx['~']?.[0];
     const arrowOp = ctx['=>']?.[0];
     const inequalityOps = ctx.TopLevelComparisonOperator;
-    let funcDefAST = null;
+    let funcDefAST: FunctionDefinitionASTNode | null = null;
 
-    // Check and resolve maybeFuncDefIR
+    // Check and resolve maybeFuncDefIR / anonymous func def
     if (isMaybeFuncDefIR(lhs)) {
-        funcDefAST = resolveMaybeFuncDefIR(lhs, rhs);
+        funcDefAST = resolveNamedFuncDef(lhs, rhs);
+    }
+    if (arrowOp) {
+        funcDefAST = resolveAnonymousFuncDef(lhs, rhs);
     }
 
     // Resolve varIRs
@@ -147,6 +194,14 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
         resolveVarIRs(rhs);
     }
 
+    // Check no pointCoordsIR
+    if (funcDefAST) {
+        checkNoPointCoordsIR(funcDefAST);
+    } else {
+        checkNoPointCoordsIR(lhs);
+        checkNoPointCoordsIR(rhs);
+    }
+
     // '=', 'myVar = ...'
     if (equalOp && lhs.type === "undefinedVar") {
         // test 'myVar = ...'
@@ -155,7 +210,6 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
 
         const isParametric1D = rsVarRefs.every(v => ['t'].includes(v));
         const isParametric2D = rsVarRefs.every(v => ['u', 'v'].includes(v));
-        const nonParametricRsVars = rsVarRefs.filter(v => !['t', 'u', 'v'].includes(v));
 
         if (udVarRefs.length > 1) {
             throw new Error(
@@ -294,6 +348,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     }
 
     // '=', 'f(x) = ...'
+    // '=>', '(x) => ...'
     if (equalOp && funcDefAST) {
         const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
 
@@ -310,39 +365,6 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
             );
         }
         return funcDefAST;
-    }
-
-    // '=>', '(x) => ...'
-    if (arrowOp
-        && lhs.type === "parenthesizedExpr"
-        && lhs.content.type === "parenthesisCommaSeries"
-        && lhs.content.items.every((item: any) =>
-            item.type === "undefinedVar"
-            || item.type === "reservedVar"
-        )
-    ) {
-        const params = lhs.content.items.map((item: any) => item.name);
-        const { udVarRefs: _udVarRefs, rsVarRefs: _rsVarRefs } = scanUdRsVarRefs(rhs);
-        const udVarRefs = Array.from(new Set(_udVarRefs).difference(new Set(params)));
-        const rsVarRefs = Array.from(new Set(_rsVarRefs).difference(new Set(params)));
-        if (udVarRefs.length > 0) {
-            throw new Error(
-                `Detected undefined variables: ${udVarRefs.map(v => `'${v}'`).join(", ")}.`
-                + `Function definition (arrow syntax, params='${params.join(", ")}') should not depend on undefined variables.`
-            );
-        }
-        if (rsVarRefs.length > 0) {
-            throw new Error(
-                `Detected reserved variables: ${rsVarRefs.map(v => `'${v}'`).join(", ")}.`
-                + `Function definition (arrow syntax, params='${params.join(", ")}') should not depend on reserved variables.`
-            );
-        }
-        return {
-            type: "functionDefinition",
-            name: null,
-            params,
-            content: rhs,
-        }
     }
 
     // '=', '<', '>', '>=', '<=', implicit equation / inequality

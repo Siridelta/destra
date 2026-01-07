@@ -77,7 +77,7 @@ FormulaVisitor.prototype.atomicExp = function (ctx: any) {
 
 FormulaVisitor.prototype.builtinFuncCall = function (ctx: any) {
     const funcToken = this.visit(ctx.BuiltinFunc) as IToken;
-    const [args] = ctx.argsList ? this.visit(ctx.argsList) : [null];
+    const args = ctx.argsList ? this.visit(ctx.argsList) : null;
     
     if (args === null) {
         // consider an omitted call function IR node, 
@@ -112,10 +112,10 @@ FormulaVisitor.prototype.argsList = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.varOrCall = function (ctx: any) {
-    const [placeholder] = ctx.Placeholder ? this.visit(ctx.Placeholder) : [null];
-    const [customVar] = ctx.CustomIdentifier ? this.visit(ctx.CustomIdentifier) : [null];
-    const [reservedVar] = ctx.ReservedVar ? this.visit(ctx.ReservedVar) : [null];
-    const [args] = ctx.argsList ? this.visit(ctx.argsList) : [null];
+    const placeholder = ctx.Placeholder ? this.visit(ctx.Placeholder) : null;
+    const customVar = ctx.CustomIdentifier ? this.visit(ctx.CustomIdentifier) : null;
+    const reservedVar = ctx.ReservedVar ? this.visit(ctx.ReservedVar) : null;
+    const args = ctx.argsList ? this.visit(ctx.argsList) : null;
 
     if (reservedVar) {
         return this.toVarIR(reservedVar.image);
@@ -146,7 +146,7 @@ FormulaVisitor.prototype.varOrCall = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.parenExp = function (ctx: any) {
-    const [content] = this.visit(ctx.actionBatchLevel);
+    const content = this.visit(ctx.actionBatchLevel);
 
     // point coords IR node -> PointExp
     if (content.type === 'pointCoords') {
@@ -177,7 +177,7 @@ FormulaVisitor.prototype.toListRangeASTNode = function (items: any[]): ListRange
 }
 
 FormulaVisitor.prototype.listExp = function (ctx: any) {
-    const [items] = this.visit(ctx.listItem);
+    const items = this.batchVisit(ctx.listItem);
     let hasRange = false;
 
     // scan and merge comma seperated expr-rangedots-expr patterns
@@ -214,7 +214,7 @@ FormulaVisitor.prototype.listExp = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.listItem = function (ctx: any) {
-    const terms = this.visit(ctx.term);
+    const terms = this.batchVisit(ctx.term);
     if (terms.length === 0) {
         throw new Error(`Internal error: Invalid item syntax for listItem: unexpected term count ${terms.length}`);
     }

@@ -107,8 +107,8 @@ function addToPostfixAST(obj: any, postfixAST: any): boolean {
 
 FormulaVisitor.prototype.postfixLevel = function (ctx: any) {
 
-    const [operand] = this.visit(ctx.atomicExp);
-    const [postfixAST] = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : [null];
+    const operand = this.visit(ctx.atomicExp);
+    const postfixAST = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : null;
 
     if (postfixAST) {
         if (addToPostfixAST(operand, postfixAST)) {
@@ -138,7 +138,7 @@ FormulaVisitor.prototype.factorial = function (ctx: any) {
     }
 
     // follow-up postfix syntaxes, add to postfixAST
-    const [postfixAST] = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : [null];
+    const postfixAST = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : null;
     if (!postfixAST) {
         return factorialAST;
     } // else postfixAST exists
@@ -151,7 +151,7 @@ FormulaVisitor.prototype.factorial = function (ctx: any) {
 FormulaVisitor.prototype.fromDot = function (ctx: any) {
     const attr = ctx.attr?.[0]?.image ?? null;
     const extFunc = ctx.extFunc?.[0]?.image ?? null;
-    const [argsList] = ctx.argsList ? this.visit(ctx.argsList) : [null];
+    const argsList = ctx.argsList ? this.visit(ctx.argsList) : null;
 
     const dotAST =
         attr ?
@@ -181,7 +181,7 @@ FormulaVisitor.prototype.fromDot = function (ctx: any) {
     }
 
     // follow-up postfix syntaxes, add to postfixAST
-    const postfixAST = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : [null];
+    const postfixAST = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : null;
     if (!postfixAST) {
         return dotAST;
     } // else postfixAST exists
@@ -206,13 +206,13 @@ FormulaVisitor.prototype.toListSliceRangeASTNode = function (items: any[]): List
 }
 
 FormulaVisitor.prototype.fromIndexer = function (ctx: any) {
-    const [firstFactor] = this.visit(ctx.firstFactor);
-    const compOp1s = ctx.ComparisonOperator1 ? this.visit(ctx.ComparisonOperator1) : [];
-    const compOp2s = ctx.ComparisonOperator2 ? this.visit(ctx.ComparisonOperator2) : [];
-    const _compOperands = ctx.compOperand ? this.visit(ctx.compOperand) : [];
+    const firstFactor = this.visit(ctx.firstFactor);
+    const compOp1s = ctx.ComparisonOperator1 ? this.batchVisit(ctx.ComparisonOperator1) : [];
+    const compOp2s = ctx.ComparisonOperator2 ? this.batchVisit(ctx.ComparisonOperator2) : [];
+    const _compOperands = ctx.compOperand ? this.batchVisit(ctx.compOperand) : [];
     const compOperands = [firstFactor, ..._compOperands];
-    const firstItemRest = ctx.firstItemRest ? this.visit(ctx.firstItemRest) : [];
-    const restItems = ctx.indexerRestItem ? this.visit(ctx.indexerRestItem) : [];
+    const firstItemRest = ctx.firstItemRest ? this.batchVisit(ctx.firstItemRest) : [];
+    const restItems = ctx.indexerRestItem ? this.batchVisit(ctx.indexerRestItem) : [];
     const items = [...restItems];
 
     const indexerAST = (() => {
@@ -283,7 +283,7 @@ FormulaVisitor.prototype.fromIndexer = function (ctx: any) {
         }
     })();
 
-    const fromPostfixAST = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : [null];
+    const fromPostfixAST = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : null;
     if (!fromPostfixAST) {
         return indexerAST;
     } // else fromPostfixAST exists
@@ -294,7 +294,7 @@ FormulaVisitor.prototype.fromIndexer = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.indexerRestItem = function (ctx: any) {
-    const items = ctx.item ? this.visit(ctx.item) : [];
+    const items = ctx.item ? this.batchVisit(ctx.item) : [];
     if (items.length === 0 || items.length > 3) {
         throw Error(`Internal Error: Invalid item syntax for indexerRestItem: unexpected token count ${items.length}`);
     }

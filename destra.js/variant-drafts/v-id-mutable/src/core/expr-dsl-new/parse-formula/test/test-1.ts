@@ -25,6 +25,8 @@ function parseAST(input: string) {
     return ast;
 }
 
+
+
 const ast1 = parseAST("(1, [1...10][5...][[1...10] > e]).x!");
 console.log('AST:', ast1);
 console.log('end');

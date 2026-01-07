@@ -1,5 +1,24 @@
 import { DiffClauseASTNode, ForClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode, WithClauseASTNode } from "./addSub-level"
+import { PointExpASTNode } from "./atomic-exps";
+import { VarIRNode } from "./terminals";
 import { FunctionDefinitionASTNode } from "./top-level";
+
+export function traverse(
+    ast: any,
+    { enter = () => { }, exit = () => { } }:
+        { enter?: (ast: any) => any, exit?: (ast: any) => any }
+) {
+    enter(ast);
+    if (Object.getPrototypeOf(ast) !== String.prototype) {
+        for (const [k, v] of Object.entries(ast)) {
+            if (typeof v === 'object' && v !== null) {
+                traverse(v, { enter, exit });
+            }
+        }
+    }
+    exit(ast);
+    return ast;
+}
 
 export enum ComparisonOperator {
     Greater = ">",
@@ -97,4 +116,12 @@ export function scanUdRsVarRefs(node: any) {
         udVarRefs: Array.from(udVarRefs),
         rsVarRefs: Array.from(rsVarRefs)
     };
+}
+
+export function isPointExp(node: any): node is PointExpASTNode {
+    return node?.type === "pointExp";
+}
+
+export function isVarIR(node: any): node is VarIRNode {
+    return node?.type === "varIR";
 }

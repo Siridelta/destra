@@ -73,21 +73,23 @@ export const numberRegex = createRegExp(
             digit.times.atLeast(1).groupedAs("integer"),
             maybe(
                 ".",
-                digit.times.any().groupedAs("decimal"),
+                digit.times.any().groupedAs("decimal1"),
             ),
         ),
         // 无整数部分，必带小数部分，.456, .4567, ...
         exactly(
             ".",
-            digit.times.atLeast(1).groupedAs("decimal"),
+            digit.times.atLeast(1).groupedAs("decimal2"),
         ),
     ),
     // 可选科学计数法后续部分
-    maybe(
+    // magic-regexp bug: you must wrap an anyOf 
+    // or the 'maybe' question mark suffix would only add to the last term (exponent integer)
+    maybe(anyOf(
         anyOf("e", "E"),
         maybe(anyOf("-", "+").groupedAs("exponentSign")),
         digit.times.atLeast(1).groupedAs("exponentInteger"),
-    ),
+    )),
 )
 
 FormulaVisitor.prototype.toNumberAST = function (image: string): NumberASTNode {
@@ -95,7 +97,8 @@ FormulaVisitor.prototype.toNumberAST = function (image: string): NumberASTNode {
     if (!match) {
         throw new Error(`Internal error: Reveiced invalid number literal: ${image}`);
     }
-    const { sign, integer, decimal, exponentSign, exponentInteger } = match.groups!;
+    const { sign, integer, decimal1, decimal2, exponentSign, exponentInteger } = match.groups!;
+    const decimal = decimal1 || decimal2;
 
     return {
         type: "number",
