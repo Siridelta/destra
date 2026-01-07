@@ -2,14 +2,14 @@ import { createToken, Lexer } from "chevrotain";
 import { createRegExp } from "magic-regexp";
 
 export const ReservedVar = createToken({
-    name: "reservedVar",
+    name: "ReservedVar",
     pattern: Lexer.NA
 });
 
 // 为什么 Attribute 要全划到这里.....
 // attribute 目前只包含 x, y, z 三个，全和这里的重合了。
 export const Attribute = createToken({
-    name: "attribute",
+    name: "Attribute",
     pattern: Lexer.NA
 });
 

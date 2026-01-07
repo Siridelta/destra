@@ -2,7 +2,7 @@ import { createToken, Lexer } from "chevrotain";
 import { anyOf, createRegExp } from "magic-regexp";
 
 export const Constant = createToken({
-    name: "constant",
+    name: "Constant",
     pattern: Lexer.NA
 });
 

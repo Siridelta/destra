@@ -161,7 +161,7 @@ function resolveAnonymousFuncDef(lhs: any, rhs: any): FunctionDefinitionASTNode 
 // If there is any pointCoordsIR node in the AST, this means there is invalid syntax of commas
 function checkNoPointCoordsIR(ast: any) {
     const enter = (node: any) => {
-        if (node.type === "pointCoordsIR") {
+        if (node?.type === "pointCoordsIR") {
             throw new Error(
                 `Invalid syntax: Unrecognized comma syntax with ${node.coords.map((c: any) => `[${c.type}]`).join(", ")}.`
             );
@@ -208,8 +208,8 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
         // for explicit equation / variable definition
         const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
 
-        const isParametric1D = rsVarRefs.every(v => ['t'].includes(v));
-        const isParametric2D = rsVarRefs.every(v => ['u', 'v'].includes(v));
+        const isParametric1D = rsVarRefs.length > 0 && rsVarRefs.every(v => ['t'].includes(v));
+        const isParametric2D = rsVarRefs.length > 0 && rsVarRefs.every(v => ['u', 'v'].includes(v));
 
         if (udVarRefs.length > 1) {
             throw new Error(
@@ -368,7 +368,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     }
 
     // '=', '<', '>', '>=', '<=', implicit equation / inequality
-    if (equalOp || inequalityOps.length > 0) {
+    if (equalOp || inequalityOps) {
         const operands = [lhs, rhs, ...remains];
         const ops = (equalOp ? [equalOp] : inequalityOps).map((op: any) => op.image) as string[];
 
@@ -451,8 +451,8 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
         );
     }
 
-    const isParametric1D = rsVarRefs.every(v => ['t'].includes(v));
-    const isParametric2D = rsVarRefs.every(v => ['u', 'v'].includes(v));
+    const isParametric1D = rsVarRefs.length > 0 && rsVarRefs.every(v => ['t'].includes(v));
+    const isParametric2D = rsVarRefs.length > 0 && rsVarRefs.every(v => ['u', 'v'].includes(v));
     if (rsVarRefs.length > 0) {
         if (rsVarRefs.length === 1 && ['x', 'y', 'z'].includes(rsVarRefs[0])) {
             return {

@@ -34,17 +34,31 @@ export class FormulaParser extends MyCstParserBase {
 
     public sliderDef = this.RULE("sliderDef", () => {
         this.OPTION(() => {
-            this.SUBRULE(this.addSubLevel, { LABEL: "from" });
+            this.SUBRULE(this.addSubLevel, { LABEL: "term" });
         });
-        this.CONSUME(Colon);
+        this.CONSUME(Colon, { LABEL: "term" });
         this.OPTION2(() => {
-            this.OPTION3(() => {
-                this.SUBRULE2(this.addSubLevel, { LABEL: "step" });
-            });
-            this.CONSUME2(Colon);
-        });
-        this.OPTION4(() => {
-            this.SUBRULE3(this.addSubLevel, { LABEL: "to" });
+            this.OR([
+                {
+                    ALT: () => {
+                        this.SUBRULE2(this.addSubLevel, { LABEL: "term" });
+                        this.OPTION3(() => {
+                            this.CONSUME2(Colon, { LABEL: "term" });
+                            this.OPTION4(() => {
+                                this.SUBRULE3(this.addSubLevel, { LABEL: "term" });
+                            });
+                        });
+                    }
+                },
+                {
+                    ALT: () => {
+                        this.CONSUME3(Colon, { LABEL: "term" });
+                        this.OPTION5(() => {
+                            this.SUBRULE4(this.addSubLevel, { LABEL: "term" });
+                        });
+                    }
+                },
+            ]);
         });
     });
 

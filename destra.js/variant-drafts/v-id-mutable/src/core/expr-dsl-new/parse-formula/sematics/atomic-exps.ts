@@ -3,6 +3,7 @@ import { FormulaVisitor } from "./base-visitor";
 import { BuiltinFuncASTNode, SubstitutionASTNode, VarIRNode } from "./terminals";
 import { SupportOmittedCallFunc } from "../tokens/reserved-words/builtin-funcs/categories";
 import { RangeDots } from "../tokens/op-and-puncs";
+import { ActionBatchASTNode, PointCoordsIRNode } from "./actionBatch-level";
 
 
 declare module './base-visitor' {
@@ -72,11 +73,11 @@ FormulaVisitor.prototype.atomicExp = function (ctx: any) {
     if (ctx.case) {
         return this.visit(ctx.case);
     }
-    throw new Error(`Internal error: Unexpected token ${ctx.text} in atomicExp`);
+    throw new Error(`Internal error: Unexpected token ${JSON.stringify(ctx)} in atomicExp`);
 }
 
 FormulaVisitor.prototype.builtinFuncCall = function (ctx: any) {
-    const funcToken = this.visit(ctx.BuiltinFunc) as IToken;
+    const funcToken = ctx.BuiltinFunc[0] as IToken;
     const args = ctx.argsList ? this.visit(ctx.argsList) : null;
     
     if (args === null) {
@@ -146,10 +147,10 @@ FormulaVisitor.prototype.varOrCall = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.parenExp = function (ctx: any) {
-    const content = this.visit(ctx.actionBatchLevel);
+    const content = this.visit(ctx.actionBatchLevel) as PointCoordsIRNode | ActionBatchASTNode;
 
     // point coords IR node -> PointExp
-    if (content.type === 'pointCoords') {
+    if (content.type === 'pointCoordsIR') {
         return {
             type: "pointExp",
             coords: content.coords,

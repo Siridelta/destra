@@ -3,17 +3,17 @@ import { createToken, Lexer } from "chevrotain";
 // --- Built-in Function Categories ---
 
 export const BuiltinFunc = createToken({
-    name: "builtinFunc",
+    name: "BuiltinFunc",
     pattern: Lexer.NA
 });
 
 export const SupportOmittedCallFunc = createToken({
-    name: "supportOmittedCallFunc",
+    name: "SupportOmittedCallFunc",
     pattern: Lexer.NA
 });
 
 export const SupportExtensionFunc = createToken({
-    name: "supportExtensionFunc",
+    name: "SupportExtensionFunc",
     pattern: Lexer.NA
 });
 

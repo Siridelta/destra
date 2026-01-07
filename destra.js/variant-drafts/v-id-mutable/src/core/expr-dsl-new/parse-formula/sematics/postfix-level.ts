@@ -23,7 +23,7 @@ export type FactorialASTNode = {
 }
 export type AttrAccessASTNode = {
     type: "attrAccess",
-    obj: any,
+    operand: any,
     attr: any,
 }
 export type ExtensionFuncCallASTNode = {
@@ -66,11 +66,11 @@ function addToPostfixAST(obj: any, postfixAST: any): boolean {
                 return addToPostfixAST(obj, postfixAST.operand);
             }
         case 'attrAccess':
-            if (postfixAST.obj === null) {
-                postfixAST.obj = obj;
+            if (postfixAST.operand === null) {
+                postfixAST.operand = obj;
                 return true;
             } else {
-                return addToPostfixAST(obj, postfixAST.obj);
+                return addToPostfixAST(obj, postfixAST.operand);
             }
         case 'extensionFuncCall':
             if (postfixAST.receiver === null) {
@@ -133,7 +133,7 @@ FormulaVisitor.prototype.factorial = function (ctx: any) {
     }
 
     // no follow-up postfix syntaxes, return directly
-    if (!ctx.fromPostfix[0]) {
+    if (!ctx.fromPostfix) {
         return factorialAST;
     }
 
@@ -157,7 +157,7 @@ FormulaVisitor.prototype.fromDot = function (ctx: any) {
         attr ?
             {
                 type: "attrAccess",
-                obj: null,    // vacancy
+                operand: null,    // vacancy
                 attr: attr,
             } :
             extFunc ?
@@ -228,7 +228,7 @@ FormulaVisitor.prototype.fromIndexer = function (ctx: any) {
                 filter: {
                     type: "comparison",
                     operands: compOperands,
-                    operators: compOps,
+                    operators: compOps.map(op => op.image),
                 },
             }
         }

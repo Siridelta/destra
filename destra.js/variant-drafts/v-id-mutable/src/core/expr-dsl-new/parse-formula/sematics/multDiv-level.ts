@@ -125,7 +125,7 @@ FormulaVisitor.prototype.iMultAndOCallLevel = function (ctx: any) {
     // transforms:
     // - builtin, support omitted call function token + anything allowed -> OmittedCall
 
-    traverseCheckOCallIR(nodes);
+    nodes.forEach(node => traverseCheckOCallIR(node));
 
     const iMultItems: any[] = [];
     for (let i = 0; i < nodes.length; i++) {
@@ -136,8 +136,8 @@ FormulaVisitor.prototype.iMultAndOCallLevel = function (ctx: any) {
         }
         const nextNode = nodes[i + 1];
 
-        if (node.type === 'builtinFunc') {
-            const builtinFunc = node as BuiltinFuncASTNode;
+        if (node.type === 'maybeOCallFuncIR') {
+            const builtinFunc = node.func;
 
             if (!(
                 nextNode.type === 'constant'
@@ -221,7 +221,7 @@ FormulaVisitor.prototype.rootofLevel = function (ctx: any) {
 FormulaVisitor.prototype.powerLevel = function (ctx: any) {
     // right-associative, no need for transform
     const lhs = this.visit(ctx.postfixLevel);
-    const rhs = ctx.powerLevel ? this.visit(ctx.powerLevel) : null;
+    const [rhs] = ctx.powerLevel ? this.visit(ctx.powerLevel) : [null];
 
     if (rhs) {
         return {

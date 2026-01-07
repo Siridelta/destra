@@ -27,6 +27,14 @@ function parseAST(input: string) {
 
 
 
-const ast1 = parseAST("(1, [1...10][5...][[1...10] > e]).x!");
+const ast1 = parseAST(`
+    (
+       1, 
+       [1...10][5...][[1...10] > e]
+    ).x!
+    in
+        ln 30
+        : random([1...10])
+`);
 console.log('AST:', ast1);
 console.log('end');
