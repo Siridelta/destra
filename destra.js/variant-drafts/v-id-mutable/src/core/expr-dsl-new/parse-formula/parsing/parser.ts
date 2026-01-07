@@ -54,7 +54,7 @@ export class FormulaParser extends MyCstParserBase {
             this.OR([
                 {
                     ALT: () => {
-                        this.OR([
+                        this.OR2([
                             { ALT: () => this.CONSUME(Tilde) },
                             { ALT: () => this.CONSUME(ArrowFunc) },
                             { ALT: () => this.CONSUME(Equal) },
@@ -67,7 +67,7 @@ export class FormulaParser extends MyCstParserBase {
                         this.CONSUME(TopLevelComparisonOperator);
                         this.AT_LEAST_ONE_SEP({
                             SEP: TopLevelComparisonOperator,
-                            DEF: () => this.SUBRULE(this.actionBatchLevel),
+                            DEF: () => this.SUBRULE3(this.actionBatchLevel),
                         });
                     }
                 },

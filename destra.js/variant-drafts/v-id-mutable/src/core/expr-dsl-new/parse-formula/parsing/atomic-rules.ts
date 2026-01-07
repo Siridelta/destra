@@ -13,6 +13,7 @@ declare module './parser' {
         varOrCall: any;
         parenExp: any;
         listExp: any;
+        listItem: any;
         piecewiseExp: any;
     }
 }
@@ -20,13 +21,16 @@ declare module './parser' {
 export function initAtomicRules(this: FormulaParser) {
     this.atomicExp = this.RULE("atomicExp", () => {
         this.OR([
-            { ALT: () => this.SUBRULE(this.builtinFuncCall) },
-            { ALT: () => this.SUBRULE(this.parenExp) },
-            { ALT: () => this.SUBRULE(this.listExp) },
-            { ALT: () => this.SUBRULE(this.piecewiseExp) },
+            { ALT: () => this.SUBRULE(this.builtinFuncCall, { LABEL: "case" }) },
+            { ALT: () => this.SUBRULE(this.parenExp, { LABEL: "case" }) },
+            { ALT: () => this.SUBRULE(this.listExp, { LABEL: "case" }) },
+            { ALT: () => this.SUBRULE(this.piecewiseExp, { LABEL: "case" }) },
             { ALT: () => this.CONSUME(NumberLiteral) },
-            { ALT: () => this.SUBRULE(this.varOrCall) },
+            { ALT: () => this.SUBRULE(this.varOrCall, { LABEL: "case" }) },
             { ALT: () => this.CONSUME(Constant) },
+            { ALT: () => this.CONSUME(Placeholder) },
+            { ALT: () => this.CONSUME(ReservedVar) },
+            { ALT: () => this.CONSUME(CustomIdentifier) },
         ]);
     });
 
@@ -34,9 +38,12 @@ export function initAtomicRules(this: FormulaParser) {
     //  
     // only builtinFunc and substituted FuncExpl (placeholder) can be called.
 
+    // allow optional arglist to process omitted call in IMultAndOCall level
     this.builtinFuncCall = this.RULE("builtinFuncCall", () => {
         this.CONSUME(BuiltinFunc);
-        this.SUBRULE(this.argsList);
+        this.OPTION(() => {
+            this.SUBRULE(this.argsList);
+        });
     });
 
     // the argList rule is also used in other places like postfixLevel
@@ -44,7 +51,7 @@ export function initAtomicRules(this: FormulaParser) {
         this.CONSUME(ParenthesisOpen);
         this.MANY_SEP({
             SEP: Comma,
-            DEF: () => this.SUBRULE(this.addSubLevel),
+            DEF: () => this.SUBRULE(this.addSubLevel, { LABEL: "arg" }),
         });
         this.CONSUME(ParenthesisClose);
     });
@@ -102,17 +109,17 @@ export function initAtomicRules(this: FormulaParser) {
         this.CONSUME(BracketOpen);
         this.MANY_SEP({
             SEP: Comma,
-            DEF: () => {
-                this.SUBRULE(this.addSubLevel, { LABEL: "item" });
-                this.OPTION(() => {
-                    this.CONSUME(RangeDots, { LABEL: "item" });
-                    this.OPTION2(() => {
-                        this.SUBRULE2(this.addSubLevel, { LABEL: "item" });
-                    });
-                });
-            },
+            DEF: () => this.SUBRULE(this.listItem),
         });
         this.CONSUME(BracketClose);
+    });
+
+    this.listItem = this.RULE("listItem", () => {
+        this.SUBRULE(this.addSubLevel, { LABEL: "term" });
+        this.OPTION(() => {
+            this.CONSUME(RangeDots, { LABEL: "term" });
+            this.SUBRULE2(this.addSubLevel, { LABEL: "term" });
+        });
     });
 
     this.piecewiseExp = this.RULE("piecewiseExp", () => {

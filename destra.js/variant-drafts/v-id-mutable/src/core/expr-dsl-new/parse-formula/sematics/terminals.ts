@@ -3,12 +3,14 @@ import { FormulaVisitor } from "./base-visitor";
 
 declare module './base-visitor' {
     interface FormulaVisitor {
-        toNumberAST(ctx: any): any;
-        toSubstitutionAST(ctx: any): any;
-        // ...
-        // ...
-        toBuiltinFuncAST(ctx: any): any;
-        // ...
+        toNumberAST(image: string): NumberASTNode;
+        toSubstitutionAST(image: string): SubstitutionASTNode;
+        toConstantAST(image: string): ConstantASTNode;
+        toBuiltinFuncAST(image: string): BuiltinFuncASTNode;
+        toReservedVarAST(image: string): ReservedVarASTNode;
+        toContextVarAST(image: string): ContextVarASTNode;
+        toUndefinedVarAST(image: string): UndefinedVarASTNode;
+        toVarIR(image: string): VarIRNode;
     }
 }
 
@@ -32,6 +34,32 @@ export type SubstitutionASTNode = {
 
 export type BuiltinFuncASTNode = {
     type: "builtinFunc",
+    name: string,
+}
+
+export type ConstantASTNode = {
+    type: "constant",
+    value: string,
+}
+
+export type ReservedVarASTNode = {
+    type: "reservedVar",
+    name: string,
+}
+
+export type ContextVarASTNode = {
+    type: "contextVar",
+    name: string,
+}
+
+export type UndefinedVarASTNode = {
+    type: "undefinedVar",
+    name: string,
+}
+
+// IR for not sure if it is reserved var or ctx var overriding reserved name
+export type VarIRNode = {
+    type: "varIR",
     name: string,
 }
 
@@ -83,6 +111,20 @@ FormulaVisitor.prototype.toNumberAST = function (image: string): NumberASTNode {
     }
 }
 
+FormulaVisitor.prototype.toBuiltinFuncAST = function (image: string): BuiltinFuncASTNode {
+    return {
+        type: "builtinFunc",
+        name: image,
+    }
+}
+
+FormulaVisitor.prototype.toConstantAST = function (image: string): ConstantASTNode {
+    return {
+        type: "constant",
+        value: image,
+    }
+}
+
 export const substitutionRegex = createRegExp(
     "$",
     digit.times.atLeast(1).groupedAs("index"),
@@ -100,9 +142,30 @@ FormulaVisitor.prototype.toSubstitutionAST = function (image: string): Substitut
     }
 }
 
-FormulaVisitor.prototype.toBuiltinFuncAST = function (image: string): BuiltinFuncASTNode {
+FormulaVisitor.prototype.toReservedVarAST = function (image: string): ReservedVarASTNode {
     return {
-        type: "builtinFunc",
+        type: "reservedVar",
+        name: image,
+    }
+}
+
+FormulaVisitor.prototype.toContextVarAST = function (image: string): ContextVarASTNode {
+    return {
+        type: "contextVar",
+        name: image,
+    }
+}
+
+FormulaVisitor.prototype.toUndefinedVarAST = function (image: string): UndefinedVarASTNode {
+    return {
+        type: "undefinedVar",
+        name: image,
+    }
+}
+
+FormulaVisitor.prototype.toVarIR = function (image: string): VarIRNode {
+    return {
+        type: "varIR",
         name: image,
     }
 }

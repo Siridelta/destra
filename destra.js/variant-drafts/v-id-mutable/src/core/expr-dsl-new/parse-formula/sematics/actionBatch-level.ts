@@ -17,12 +17,39 @@ export type ActionASTNode = {
     target: any, // TODO: placeholder (substitution) AST Node
     value: any,
 }
+export type PointCoordsIRNode = {
+    type: "pointCoordsIR",
+    coords: any[],
+}
 
-FormulaVisitor.prototype.actionBatchLevel = function (ctx: any): any {
-    const actionLevels = this.visit(ctx.actionBatchLevel);
+interface VisitorActionBatchLevelParams {
+    inParen: boolean;    // in parentheses. in this case we tolerate non-actually-action AST, 
+                         // cuz in this case it stands for literal syntax for creating point: (myX, myY, myZ)
+}
+
+FormulaVisitor.prototype.actionBatchLevel = function (ctx: any, params?: VisitorActionBatchLevelParams): any {
+    const actionLevels = this.visit(ctx.actionLevel);
+    const inParen = params?.inParen ?? false;
+
+    if (actionLevels.length === 0) {
+        throw new Error('Internal error: actionBatchLevel should not be empty.');
+    }
     if (actionLevels.length === 1) {
         return actionLevels[0];
     }
+
+    // There's 2 cases: Point literal or action batch. This is the predicate of it:
+    const isActionBatch = inParen && actionLevels[0].type === "action";
+
+    if (!isActionBatch) {
+        // tolerate policy
+        return {
+            type: "pointCoordsIR",
+            coords: actionLevels
+        }
+    }
+
+    // strictly check each Action item
     for (let i = 0; i < actionLevels.length; i++) {
         const actionLevel = actionLevels[i];
         if (actionLevel.type !== "action") {

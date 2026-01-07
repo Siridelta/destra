@@ -19,6 +19,11 @@ export const SingleLineComment = createToken({
 
 // --- Number Literal ---
 
+// 需要注意与 Rangedots 的冲突
+// 1...3 应该解析成 1, ..., 3, 不能让 NumberLiteral 解析掉第一个点（'1.'，一种带小数点、省略小数部分的情形）
+// 所以：
+// 整数后面跟的小数点，不能再跟2个点号（否则会干扰 RangeDots 的解析）；
+// 除非这2个点号后面还有1个点（如1....3）。这时可以安全并且应当把第一个点作为小数点解析掉。
 export const NumberLiteral = createToken({
     name: "NumberLiteral",
     pattern: createRegExp(
@@ -36,9 +41,19 @@ export const NumberLiteral = createToken({
                     ),
                 ),
                 maybe(
-                    ".",
-                    digit.times.any(),
-                ),
+                    anyOf(
+                        // 只有小数点，需要做后续点号的检测
+                        exactly(".")
+                            .notBefore(
+                                exactly("..").notBefore("."),
+                            ),
+                        // 小数点后面有数字，正常解析
+                        exactly(
+                            ".",
+                            digit.times.atLeast(1),
+                        ),
+                    )
+                )
             ),
             // 无整数部分，必带小数部分，.456, .4567, ...
             exactly(

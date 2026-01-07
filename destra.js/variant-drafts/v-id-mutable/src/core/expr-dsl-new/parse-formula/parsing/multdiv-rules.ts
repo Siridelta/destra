@@ -7,7 +7,7 @@ import { FormulaParser } from "./parser";
 declare module './parser' {
     export interface FormulaParser {
         multDivLevel: any;
-        omittedCallLevel: any;
+        iMultAndOCallLevel: any;
         prefixLevel: any;
         rootofLevel: any;
         powerLevel: any;
@@ -16,13 +16,14 @@ declare module './parser' {
         factorial: any;
         fromDot: any;
         fromIndexer: any;
+        indexerRestItem: any;
     }
 }
 
 export function initMultDivRules(this: FormulaParser) {
 
     this.multDivLevel = this.RULE("multDivLevel", () => {
-        this.SUBRULE(this.omittedCallLevel, { LABEL: "lhs" });
+        this.SUBRULE(this.iMultAndOCallLevel, { LABEL: "lhs" });
         this.OPTION(() => {
             this.OR([
                 { ALT: () => this.CONSUME(Multiply) },
@@ -32,18 +33,17 @@ export function initMultDivRules(this: FormulaParser) {
         });
     });
 
-    this.omittedCallLevel = this.RULE("omittedCallLevel", () => {
-        this.OPTION(() => {
-            this.CONSUME(SupportOmittedCallFunc);
-        });
-        this.SUBRULE(this.prefixLevel);
+    this.iMultAndOCallLevel = this.RULE("iMultAndOCallLevel", () => {
+        this.AT_LEAST_ONE({
+            DEF: () => this.SUBRULE(this.prefixLevel),
+        })
     });
 
     this.prefixLevel = this.RULE("prefixLevel", () => {
         this.OPTION(() => {
             this.OR([
-                { ALT: () => this.CONSUME(Minus) },
-                { ALT: () => this.CONSUME(Plus) },
+                { ALT: () => this.CONSUME(Minus, { LABEL: "operator" }) },
+                { ALT: () => this.CONSUME(Plus, { LABEL: "operator" }) },
             ]);
         });
         this.SUBRULE(this.rootofLevel);
@@ -61,7 +61,7 @@ export function initMultDivRules(this: FormulaParser) {
         this.SUBRULE(this.postfixLevel);
         this.OPTION(() => {
             this.CONSUME(Power);
-            this.SUBRULE2(this.postfixLevel);
+            this.SUBRULE2(this.powerLevel);
         });
     });
 
@@ -78,9 +78,9 @@ export function initMultDivRules(this: FormulaParser) {
 
     this.fromPostfix = this.RULE("fromPostfix", () => {
         this.OR([
-            { ALT: () => this.SUBRULE(this.factorial) },
-            { ALT: () => this.SUBRULE(this.fromDot) },
-            { ALT: () => this.SUBRULE(this.fromIndexer) },
+            { ALT: () => this.SUBRULE(this.factorial, { LABEL: "case" }) },
+            { ALT: () => this.SUBRULE(this.fromDot, { LABEL: "case" }) },
+            { ALT: () => this.SUBRULE(this.fromIndexer, { LABEL: "case" }) },
         ]);
     });
 
@@ -95,11 +95,11 @@ export function initMultDivRules(this: FormulaParser) {
         this.CONSUME(Dot);
         this.OR([
             // L.x, L.y, L.z
-            { ALT: () => this.CONSUME(Attribute) },
+            { ALT: () => this.CONSUME(Attribute, { LABEL: "attr" }) },
             // L.extFunc(x)
             {
                 ALT: () => {
-                    this.CONSUME(SupportExtensionFunc);
+                    this.CONSUME(SupportExtensionFunc, { LABEL: "extFunc" });
                     this.OPTION2(() => {
                         this.SUBRULE(this.argsList);
                     });
@@ -129,7 +129,7 @@ export function initMultDivRules(this: FormulaParser) {
                 // L[L1 > L2 < L3 < L4]
                 {
                     ALT: () => {
-                        this.CONSUME(ComparisonOperator1, { LABEL: "compOp" });
+                        this.CONSUME(ComparisonOperator1);
                         this.AT_LEAST_ONE_SEP({
                             SEP: ComparisonOperator1,
                             DEF: () => this.SUBRULE2(this.addSubLevel, { LABEL: "compOperand" }),
@@ -139,10 +139,10 @@ export function initMultDivRules(this: FormulaParser) {
                 // L[L1 = L2 == L3 == L4]
                 {
                     ALT: () => {
-                        this.CONSUME(ComparisonOperator2, { LABEL: "compOp" });
-                        this.AT_LEAST_ONE_SEP({
+                        this.CONSUME(ComparisonOperator2);
+                        this.AT_LEAST_ONE_SEP2({
                             SEP: ComparisonOperator2,
-                            DEF: () => this.SUBRULE2(this.addSubLevel, { LABEL: "compOperand" }),
+                            DEF: () => this.SUBRULE3(this.addSubLevel, { LABEL: "compOperand" }),
                         })
                     }
                 },
@@ -150,43 +150,47 @@ export function initMultDivRules(this: FormulaParser) {
                     ALT: () => {
                         // start with '1...3' or '1...'
                         this.OPTION2(() => {
-                            this.CONSUME(RangeDots, { LABEL: "item" });
+                            this.CONSUME(RangeDots, { LABEL: "firstItemRest" });
                             this.OPTION3(() => {
-                                this.SUBRULE3(this.addSubLevel, { LABEL: "item" });
+                                this.SUBRULE4(this.addSubLevel, { LABEL: "firstItemRest" });
                             });
                         });
-                        this.CONSUME(Comma);
-                        this.AT_LEAST_ONE_SEP({
-                            SEP: Comma,
-                            DEF: () => {
-                                this.OR([
-                                    // ', ... ,'
-                                    { ALT: () => this.CONSUME(RangeDots, { LABEL: "item" }) },
-                                    // ', 1,'
-                                    // ', 1...,'
-                                    // ', 1...3,'
-                                    {
-                                        ALT: () => {
-                                            this.SUBRULE3(this.addSubLevel, { LABEL: "item" });
-                                            this.OPTION4(() => {
-                                                this.CONSUME(RangeDots, { LABEL: "item" });
-                                                this.OPTION5(() => {
-                                                    this.SUBRULE4(this.addSubLevel, { LABEL: "item" });
-                                                });
-                                            });
-                                        }
-                                    },
-                                ]);
-                            }
+                        this.OPTION4(() => {
+                            this.CONSUME(Comma);
+                            this.AT_LEAST_ONE_SEP3({
+                                SEP: Comma,
+                                DEF: () => this.SUBRULE(this.indexerRestItem),
+                            });
                         });
                     }
                 },
             ]);
         });
         this.CONSUME(BracketClose);
-        this.OPTION2(() => {
+        this.OPTION5(() => {
             this.SUBRULE(this.fromPostfix);
         });
+    });
+
+    this.indexerRestItem = this.RULE("indexerRestItem", () => {
+        this.OR2([
+            // ', ... ,'
+            { ALT: () => this.CONSUME2(RangeDots, { LABEL: "item" }) },
+            // ', 1,'
+            // ', 1...,'
+            // ', 1...3,'
+            {
+                ALT: () => {
+                    this.SUBRULE5(this.addSubLevel, { LABEL: "item" });
+                    this.OPTION5(() => {
+                        this.CONSUME3(RangeDots, { LABEL: "item" });
+                        this.OPTION6(() => {
+                            this.SUBRULE6(this.addSubLevel, { LABEL: "item" });
+                        });
+                    });
+                }
+            },
+        ]);
     });
 
 

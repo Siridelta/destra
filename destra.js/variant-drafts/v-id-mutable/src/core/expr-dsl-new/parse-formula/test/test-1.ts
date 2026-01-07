@@ -17,4 +17,5 @@ function parseCST(input: string) {
     return cst;
 }
 
-parseCST("f(x) = x^2");
+const cst1 = parseCST("(1, [1...10][5...][[1...10] > e]).x!");
+console.log('end');
