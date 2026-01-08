@@ -5,7 +5,7 @@
  * 这些是构建整个表达式系统的基础。
  */
 
-import { CtxFactoryHeadASTNode } from "../expr-dsl-new/parse-ast/sematics/ctx-header";
+import { CtxFactoryHeadASTNode } from "../expr-dsl-new/parse-ast/sematics/visitor-parts/ctx-header";
 import { type FormulaTypeInfo } from "../expr-dsl/analyzeType";
 import { getState } from "../state";
 

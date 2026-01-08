@@ -1,7 +1,7 @@
 import { anyOf, exactly, createRegExp, digit, maybe } from "magic-regexp";
-import { FormulaVisitor } from "./base-visitor";
+import { FormulaVisitor } from "../base-visitor";
 
-declare module './base-visitor' {
+declare module '../base-visitor' {
     interface FormulaVisitor {
         toNumberAST(image: string): NumberASTNode;
         toSubstitutionAST(image: string): SubstitutionASTNode;

@@ -1,12 +1,12 @@
 import { IToken } from "chevrotain";
-import { FormulaVisitor } from "./base-visitor";
+import { FormulaVisitor } from "../base-visitor";
 import { BuiltinFuncASTNode, SubstitutionASTNode, VarIRNode } from "./terminals";
-import { SupportOmittedCallFunc } from "../tokens/reserved-words/builtin-funcs/categories";
-import { RangeDots } from "../tokens/op-and-puncs";
+import { SupportOmittedCallFunc } from "../../tokens/reserved-words/builtin-funcs/categories";
+import { RangeDots } from "../../tokens/op-and-puncs";
 import { ActionBatchASTNode, PointCoordsIRNode } from "./actionBatch-level";
 
 
-declare module './base-visitor' {
+declare module '../base-visitor' {
     interface FormulaVisitor {
         atomicExp(ctx: any): any;
         builtinFuncCall(ctx: any): any;

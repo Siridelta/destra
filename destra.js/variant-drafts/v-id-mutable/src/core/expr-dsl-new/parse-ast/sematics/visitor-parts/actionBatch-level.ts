@@ -1,7 +1,7 @@
-import { FormulaVisitor } from "./base-visitor";
+import { FormulaVisitor } from "../base-visitor";
 
 
-declare module './base-visitor' {
+declare module '../base-visitor' {
     interface FormulaVisitor {
         actionBatchLevel(ctx: any): any;
         actionLevel(ctx: any): any;

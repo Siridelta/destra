@@ -1,10 +1,9 @@
-import { FormulaVisitor } from "./base-visitor";
-import { ComparisonASTNode } from "./helpers";
-import { SupportOmittedCallFunc } from "../tokens/reserved-words/builtin-funcs/categories";
-import { RangeDots } from "../tokens/op-and-puncs";
+import { FormulaVisitor } from "../base-visitor";
+import { ComparisonASTNode } from "../helpers";
+import { RangeDots } from "../../tokens/op-and-puncs";
 
 
-declare module './base-visitor' {
+declare module '../base-visitor' {
     interface FormulaVisitor {
         postfixLevel(ctx: any): any;
         fromPostfix(ctx: any): any;

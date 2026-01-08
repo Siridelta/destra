@@ -1,10 +1,10 @@
 import { CtxVar, Formula, Substitutable } from "../../../formula/base";
 import { getState } from "../../../state";
-import { DiffClauseASTNode, ForClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode, WithClauseASTNode } from "./addSub-level"
-import { PointExpASTNode } from "./atomic-exps";
+import { DiffClauseASTNode, ForClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode, WithClauseASTNode } from "./visitor-parts/addSub-level"
+import { PointExpASTNode } from "./visitor-parts/atomic-exps";
 import { FormulaVisitor } from "./base-visitor";
-import { SubstitutionASTNode, VarIRNode } from "./terminals";
-import { FunctionDefinitionASTNode } from "./top-level";
+import { SubstitutionASTNode, VarIRNode } from "./visitor-parts/terminals";
+import { FunctionDefinitionASTNode } from "./visitor-parts/top-level";
 
 export function traverse(
     ast: any,

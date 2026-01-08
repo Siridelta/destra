@@ -1,12 +1,8 @@
-import { FormulaVisitor } from "./base-visitor";
-import { getCtxNodeCtxVars, isCtxClause, isPointExp, isVarIR, scanUdRsVarRefs } from "./helpers";
-import { reservedVars } from "../../syntax-reference/reservedWords";
-import { maybeFuncDefIRNode } from "./atomic-exps";
-import { traverse } from "./helpers";
+import { FormulaVisitor } from "../base-visitor";
 import { TopLevelASTNode } from "./top-level";
 
 
-declare module './base-visitor' {
+declare module '../base-visitor' {
     interface FormulaVisitor {
         formula(ctx: any): any;
         inLevel(ctx: any): any;

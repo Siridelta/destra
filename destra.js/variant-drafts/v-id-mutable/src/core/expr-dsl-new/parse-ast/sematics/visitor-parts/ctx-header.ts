@@ -1,7 +1,7 @@
-import { FormulaVisitor } from "./base-visitor";
+import { FormulaVisitor } from "../base-visitor";
 import { CtxVarExprDefASTNode, CtxVarRangeDefASTNode, CtxVarNullDefASTNode } from "./addSub-level";
 
-declare module './base-visitor' {
+declare module '../base-visitor' {
     interface FormulaVisitor {
         ctxFactoryExprDefHead(ctx: any): CtxFactoryExprDefHeadASTNode;
         ctxFactoryRangeDefHead(ctx: any): CtxFactoryRangeDefHeadASTNode;

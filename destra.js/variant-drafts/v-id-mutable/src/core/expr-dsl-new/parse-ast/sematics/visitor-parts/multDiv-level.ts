@@ -1,9 +1,9 @@
-import { FormulaVisitor } from "./base-visitor";
+import { FormulaVisitor } from "../base-visitor";
 import { BuiltinFuncASTNode } from "./terminals";
 import { MaybeOCallFuncIRNode } from "./atomic-exps";
 
 
-declare module './base-visitor' {
+declare module '../base-visitor' {
     interface FormulaVisitor {
         multDivLevel(ctx: any): any;
         iMultAndOCallLevel(ctx: any): any;

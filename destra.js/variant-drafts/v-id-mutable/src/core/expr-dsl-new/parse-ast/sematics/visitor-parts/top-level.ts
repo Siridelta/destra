@@ -1,12 +1,12 @@
-import { FormulaVisitor } from "./base-visitor";
-import { getCtxNodeCtxVars, isCtxClause, isPointExp, isVarIR, scanUdRsVarRefs } from "./helpers";
-import { reservedVars } from "../../syntax-reference/reservedWords";
+import { FormulaVisitor } from "../base-visitor";
+import { getCtxNodeCtxVars, isCtxClause, isPointExp, isVarIR, scanUdRsVarRefs } from "../helpers";
+import { reservedVars } from "../../../syntax-reference/reservedWords";
 import { maybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
-import { traverse } from "./helpers";
+import { traverse } from "../helpers";
 
 
-declare module './base-visitor' {
+declare module '../base-visitor' {
     interface FormulaVisitor {
         topLevel(ctx: any): any;
     }
@@ -459,7 +459,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
                 type: "explicitEquation",
                 isOmitted: true,
                 lhs: null,
-                rhs,
+                rhs: lhs,
                 op: null,
             }
         }

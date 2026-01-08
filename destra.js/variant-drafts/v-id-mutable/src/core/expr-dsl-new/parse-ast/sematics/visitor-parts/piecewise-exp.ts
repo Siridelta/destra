@@ -1,9 +1,9 @@
 import { IToken } from "chevrotain";
-import { FormulaVisitor } from "./base-visitor";
-import { ComparisonASTNode } from "./helpers";
+import { FormulaVisitor } from "../base-visitor";
+import { ComparisonASTNode } from "../helpers";
 
 
-declare module './base-visitor' {
+declare module '../base-visitor' {
     interface FormulaVisitor {
         piecewiseExp(ctx: any): any;
         piecewise_content(ctx: any): any;
