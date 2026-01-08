@@ -1,5 +1,5 @@
 import { BraceClose, BraceOpen, BracketClose, BracketOpen, Comma, ParenthesisClose, ParenthesisOpen, RangeDots } from "../tokens/op-and-puncs";
-import { NumberLiteral, Placeholder, CustomIdentifier } from "../tokens/others";
+import { NumberLiteral, Placeholder, CustomIdentifier, ColorHexLiteral } from "../tokens/others";
 import { BuiltinFunc } from "../tokens/reserved-words/builtin-funcs/categories";
 import { Constant } from "../tokens/reserved-words/constants";
 import { ReservedVar } from "../tokens/reserved-words/reservedVars";
@@ -26,6 +26,7 @@ export function initAtomicRules(this: FormulaParser) {
             { ALT: () => this.SUBRULE(this.listExp, { LABEL: "case" }) },
             { ALT: () => this.SUBRULE(this.piecewiseExp, { LABEL: "case" }) },
             { ALT: () => this.CONSUME(NumberLiteral) },
+            { ALT: () => this.CONSUME(ColorHexLiteral) },
             { ALT: () => this.SUBRULE(this.varOrCall, { LABEL: "case" }) },
             { ALT: () => this.CONSUME(Constant) },
         ]);

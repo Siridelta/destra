@@ -9,6 +9,7 @@ import { listOperationBuiltinFuncs } from "./list-operation";
 import { statisticsBuiltinFuncs } from "./statistics";
 import { randomAndDistBuiltinFuncs } from "./random-and-dist";
 import { miscBuiltinFuncs } from "./misc";
+import { colorsBuiltinFuncs } from "./colors";
 
 // --- Tokens List Segment For Parser ---
 
@@ -20,6 +21,7 @@ export const builtinFuncs = [
     ...complexNumbersBuiltinFuncs,
     ...geometryBuiltinFuncs,
     ...listOperationBuiltinFuncs,
+    ...colorsBuiltinFuncs,
     ...statisticsBuiltinFuncs,
     ...randomAndDistBuiltinFuncs,
     ...miscBuiltinFuncs,

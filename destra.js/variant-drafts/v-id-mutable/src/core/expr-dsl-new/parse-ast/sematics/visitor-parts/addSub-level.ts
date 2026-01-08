@@ -1,4 +1,7 @@
+import { createRegExp, exactly } from "magic-regexp";
+import { ctxVarNameExcludePattern, identifierPattern } from "../../../syntax-reference/commonRegExpPatterns";
 import { FormulaVisitor } from "../base-visitor";
+import { flattenMultLevel, isMultDivType, unflattenMultLevel } from "./multDiv-level";
 
 
 declare module '../base-visitor' {
@@ -46,7 +49,7 @@ export type CtxVarNullDefASTNode = {
     name: string,
     subtype: 'null',
 }
-export type CtxVarDefASTNode = 
+export type CtxVarDefASTNode =
     | CtxVarExprDefASTNode
     | CtxVarRangeDefASTNode
     | CtxVarNullDefASTNode;
@@ -87,12 +90,12 @@ FormulaVisitor.prototype.addSubLevel = function (ctx: any): any {
     const lhs = this.visit(ctx.lhs);
     const operator = ctx.operator?.[0]?.image || null;
     const rhs = ctx.rhs ? this.visit(ctx.rhs) : null;
-    if (operator && rhs 
+    if (operator && rhs
         && (rhs.type === 'addition' || rhs.type === 'subtraction')) {
         // deep seek rhs's left-most child
         let currentNode = rhs;
         while (
-            currentNode.left.type === 'addition' 
+            currentNode.left.type === 'addition'
             || currentNode.left.type === 'subtraction'
         ) {
             currentNode = currentNode.left;
@@ -182,22 +185,81 @@ FormulaVisitor.prototype.prod = function (ctx: any): ProdClauseASTNode {
     }
 }
 
+// We need to find 'dx' in the content
+const dxPattern = createRegExp(
+    exactly("d")
+        .notBefore(ctxVarNameExcludePattern),
+    identifierPattern.groupedAs("name"),
+)
 FormulaVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
-    const ctxVarName = this.visit(ctx.ctxVar);
     const lower = this.visit(ctx.lower);
     const upper = this.visit(ctx.upper);
     const content = this.visit(ctx.content);
-    return {
-        type: "intClause",
-        ctxVarDef: {
-            type: "ctxVarDef",
-            name: ctxVarName,
-            subtype: 'range',
-            lower: lower,
-            upper: upper,
-        },
-        content: content,
+
+    const matchMaybeDx = (node: any): null | string => {
+        if (node?.type !== 'varIR') {
+            return null;
+        }
+        const match = node.name.match(dxPattern);
+        if (match) {
+            return match.groups?.name;
+        }
+        return null;
     }
+
+    const flattened = flattenMultLevel(content);
+    let ctxVarName = null;
+
+    const mkResult = (ctxVarName: string, content: any) => {
+        return {
+            type: "intClause" as const,
+            ctxVarDef: {
+                type: "ctxVarDef" as const,
+                name: ctxVarName,
+                subtype: 'range' as const,
+                lower: lower,
+                upper: upper,
+            },
+            content: content,
+        }
+    }
+
+    // only one node ?! good
+    if (flattened.ops.length === 0) {
+        ctxVarName = matchMaybeDx(flattened.nodes[0]);
+        if (!ctxVarName) {
+            throw new Error(
+                `Failed to find 'dx'-like syntax in integral clause.`
+            );
+        }
+        return mkResult(ctxVarName, null);
+    }
+
+    // Seek leftmost in mult/div chain - imult chain
+    if (flattened.ops[0] === 'iMult') {
+        ctxVarName = matchMaybeDx(flattened.nodes[0]);
+    }
+    // shift left
+    if (ctxVarName) {
+        flattened.nodes.shift();
+        flattened.ops.shift();
+        return mkResult(ctxVarName, unflattenMultLevel(flattened));
+    }
+
+
+    // Seek rightmost in mult/div chain - imult chain
+    if (flattened.ops[flattened.ops.length - 1] === 'iMult') {
+        ctxVarName = matchMaybeDx(flattened.nodes[flattened.nodes.length - 1]);
+    }
+    if (ctxVarName) {
+        flattened.nodes.pop();
+        flattened.ops.pop();
+        return mkResult(ctxVarName, unflattenMultLevel(flattened));
+    }
+
+    throw new Error(
+        `Failed to find 'dx'-like syntax in integral clause.`
+    );
 }
 
 FormulaVisitor.prototype.diff = function (ctx: any): DiffClauseASTNode {
@@ -265,7 +327,7 @@ FormulaVisitor.prototype.context_type2_level = function (ctx: any): any {
 FormulaVisitor.prototype.fromForKeyword = function (ctx: any): CtxVarExprDefASTNode[] {
     const ctxVarNames = this.batchVisit(ctx.ctxVar);
     const contents = this.batchVisit(ctx.content);
-    
+
     if (ctxVarNames.length !== contents.length) {
         throw new Error("Internal error: fromForKeyword should have the same number of ctxVarNames and contents.");
     }
@@ -301,6 +363,6 @@ FormulaVisitor.prototype.fromWithKeyword = function (ctx: any): CtxVarExprDefAST
 }
 
 FormulaVisitor.prototype.ctxVarInDef = function (ctx: any): string {
-    const ctxVarName = this.visit(ctx.ctxVarName);
+    const ctxVarName = ctx.ctxVarName[0];
     return ctxVarName.image;
 }

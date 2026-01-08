@@ -1,4 +1,4 @@
-import { DiffKeyword, ForKeyword, Int_dVarKeyword, IntKeyword, ProdKeyword, SumKeyword, WithKeyword } from "../tokens/keywords";
+import { DiffKeyword, ForKeyword, IntKeyword, ProdKeyword, SumKeyword, WithKeyword } from "../tokens/keywords";
 import { Comma, Equal, Minus, ParenthesisClose, ParenthesisOpen, Plus } from "../tokens/op-and-puncs";
 import { CustomIdentifier } from "../tokens/others";
 import { ReservedVar } from "../tokens/reserved-words/reservedVars";
@@ -84,22 +84,7 @@ export function initAddSubRules(this: FormulaParser) {
         this.CONSUME(Comma);
         this.SUBRULE2(this.addSubLevel, { LABEL: "upper" });
         this.CONSUME(ParenthesisClose);
-        this.OR([
-            {
-                ALT: () => {
-                    this.CONSUME(Int_dVarKeyword);
-                    this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
-                    this.SUBRULE(this.multDivLevel, { LABEL: "content" });
-                }
-            },
-            {
-                ALT: () => {
-                    this.SUBRULE2(this.multDivLevel, { LABEL: "content" });
-                    this.CONSUME2(Int_dVarKeyword);
-                    this.SUBRULE2(this.ctxVarInDef, { LABEL: "ctxVar" });
-                }
-            },
-        ]);
+        this.SUBRULE(this.multDivLevel, { LABEL: "content" });
     });
 
     // d/dVar expr

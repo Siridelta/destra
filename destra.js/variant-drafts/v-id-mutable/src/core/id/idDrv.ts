@@ -1,7 +1,7 @@
 import { IdMutable } from "./idMutable";
 import { IdData } from "../formula/id";
 import { createRegExp } from "magic-regexp";
-import { idSegmentPattern } from "../expr-dsl/syntax/commonRegExpPatterns";
+import { idSegmentPattern } from "../expr-dsl-new/syntax-reference/commonRegExpPatterns";
 
 /**
  * 自定义 ID 修改量类型（id => newId 函数）

@@ -4,6 +4,7 @@ import { FormulaVisitor } from "../base-visitor";
 declare module '../base-visitor' {
     interface FormulaVisitor {
         toNumberAST(image: string): NumberASTNode;
+        toColorHexLiteralAST(image: string): ColorHexLiteralASTNode;
         toSubstitutionAST(image: string): SubstitutionASTNode;
         toConstantAST(image: string): ConstantASTNode;
         toBuiltinFuncAST(image: string): BuiltinFuncASTNode;
@@ -25,6 +26,11 @@ export type NumberASTNode = {
         sign?: '+' | '-',
         integer: string,
     },
+}
+
+export type ColorHexLiteralASTNode = {
+    type: "colorHexLiteral",
+    value: string,
 }
 
 export type SubstitutionASTNode = {
@@ -122,6 +128,19 @@ FormulaVisitor.prototype.toConstantAST = function (image: string): ConstantASTNo
     return {
         type: "constant",
         value: image,
+    }
+}
+
+export const colorHexLiteralRegex = /#(?<hex>([0-9A-F]{6}|[0-9a-f]{6}))/
+FormulaVisitor.prototype.toColorHexLiteralAST = function (image: string): ColorHexLiteralASTNode {
+    const match = image.match(colorHexLiteralRegex);
+    if (!match) {
+        throw new Error(`Internal error: Reveiced invalid color hex literal: ${image}`);
+    }
+    const { hex } = match.groups!;
+    return {
+        type: "colorHexLiteral",
+        value: hex,
     }
 }
 

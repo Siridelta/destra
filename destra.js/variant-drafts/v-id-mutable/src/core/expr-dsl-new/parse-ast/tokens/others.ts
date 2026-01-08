@@ -72,6 +72,11 @@ export const NumberLiteral = createToken({
     ),
 });
 
+// --- Color Hex Literal ---
+export const ColorHexLiteral = createToken({
+    name: "ColorHexLiteral",
+    pattern: /#([0-9A-F]{6}|[0-9a-f]{6})/,
+});
 
 
 // --- Placeholder ---

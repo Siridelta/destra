@@ -9,7 +9,7 @@
  */
 
 import { anyOf, createRegExp, digit, exactly, letter, maybe, oneOrMore } from "magic-regexp";
-import { specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/syntax/specialSymbols";
+import { specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl-new/syntax-reference/specialSymbols";
 import { CtxVar, Expl } from "./base";
 import { getState } from "../state";
 

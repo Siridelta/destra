@@ -51,14 +51,14 @@ export type PowerASTNode = {
     exponent: any,
 }
 
-const isMultDivType = (type: string) => 
-    type === 'multiplication' 
-    || type === 'division' 
+export const isMultDivType = (type: string) =>
+    type === 'multiplication'
+    || type === 'division'
     || type === 'cross';
-const multDivOpToType = (op: string) => 
-    op === '*' ? 'multiplication' : 
-    op === '/' ? 'division' : 
-    op === 'cross' ? 'cross' : null;
+export const multDivOpToType = (op: string) =>
+    op === '*' ? 'multiplication' :
+        op === '/' ? 'division' :
+            op === 'cross' ? 'cross' : null;
 FormulaVisitor.prototype.multDivLevel = function (ctx: any) {
     // Transform to left-associative AST tree
 
@@ -194,6 +194,92 @@ FormulaVisitor.prototype.iMultAndOCallLevel = function (ctx: any) {
     }
 }
 
+export interface FlattenedMultLevel {
+    nodes: any[];
+    ops: ('*' | '/' | 'cross' | 'iMult')[];
+}
+export const flattenMultLevel = (ast: any): any => {
+    const nodes: FlattenedMultLevel['nodes'] = [];
+    const ops: FlattenedMultLevel['ops'] = [];
+
+    const visitMultDivLevel = (node: any) => {
+        if (isMultDivType(node.type)) {
+            visitMultDivLevel(node.left);
+            ops.push(node.operator);
+            visitMultDivLevel(node.right);
+        } else if (node.type === 'implicitMult') {
+            visitImplicitMult(node);
+        } else {
+            nodes.push(node);
+        }
+    }
+    const visitImplicitMult = (node: any) => {
+        for (let i = 0; i < node.operands.length; i++) {
+            const operand = node.operands[i];
+            nodes.push(operand);
+            if (i < node.operands.length - 1) {
+                ops.push('iMult');
+            }
+        }
+    }
+    visitMultDivLevel(ast);
+    return {
+        nodes,
+        ops,
+    }
+}
+export const unflattenMultLevel = (flattened: FlattenedMultLevel): any => {
+    const nodes = flattened.nodes;
+    const ops = flattened.ops;
+    let ast: any = nodes[0];
+    for (let i = 0; i < ops.length; i++) {
+        const nextNode = nodes[i + 1];
+        const op = ops[i];
+        if (isMultDivType(ast.type)) {
+            if (op === 'iMult') {
+                if (ast.right.type === 'implicitMult') {
+                    ast.right.operands.push(nextNode);
+                } else {
+                    ast.right = {
+                        type: 'implicitMult',
+                        operands: [ast.right, nextNode],
+                    }
+                }
+            } else {
+                ast = {
+                    type: multDivOpToType(op),
+                    left: ast,
+                    right: nextNode,
+                }
+            }
+        } else if (ast.type === 'implicitMult') {
+            if (op === 'iMult') {
+                ast.operands.push(nextNode);
+            } else {
+                ast = {
+                    type: multDivOpToType(op),
+                    left: ast,
+                    right: nextNode,
+                }
+            }
+        } else {
+            if (op === 'iMult') {
+                ast = {
+                    type: 'implicitMult',
+                    operands: [ast],
+                }
+            } else {
+                ast = {
+                    type: multDivOpToType(op),
+                    left: ast,
+                    right: nextNode,
+                }
+            }
+        }
+    }
+    return ast;
+}
+
 FormulaVisitor.prototype.prefixLevel = function (ctx: any) {
     const operator = ctx.operator?.[0]?.image ?? null;
     const content = this.visit(ctx.rootofLevel);
@@ -225,7 +311,7 @@ FormulaVisitor.prototype.rootofLevel = function (ctx: any) {
 FormulaVisitor.prototype.powerLevel = function (ctx: any) {
     // right-associative, no need for transform
     const lhs = this.visit(ctx.postfixLevel);
-    const [rhs] = ctx.powerLevel ? this.visit(ctx.powerLevel) : [null];
+    const rhs = ctx.powerLevel ? this.visit(ctx.powerLevel) : null;
 
     if (rhs) {
         return {

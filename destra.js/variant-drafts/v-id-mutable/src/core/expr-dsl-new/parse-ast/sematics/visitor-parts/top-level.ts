@@ -1,5 +1,5 @@
 import { FormulaVisitor } from "../base-visitor";
-import { getCtxNodeCtxVars, isCtxClause, isTupleExp, isVarIR, scanUdRsVarRefs } from "../helpers";
+import { getCtxNodeCtxVars, isCtxClause, isParenExp, isTupleExp, isVarIR, scanUdRsVarRefs } from "../helpers";
 import { reservedVars } from "../../../syntax-reference/reservedWords";
 import { MaybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
@@ -131,13 +131,13 @@ function resolveNamedFuncDef(IRNode: MaybeFuncDefIRNode, content: any): Function
     }
 }
 function resolveAnonymousFuncDef(lhs: any, rhs: any): FunctionDefinitionASTNode {
-    if (!isTupleExp(lhs)) {
+    if (!isTupleExp(lhs) && !isParenExp(lhs)) {
         throw new Error(
             `Invalid syntax: Anonymous function definition must start with an parameter list. `
             + `Got [${lhs.type}].`
         );
     }
-    const params = lhs.items;
+    const params = isTupleExp(lhs) ? lhs.items : [lhs.content];
     // Check params are all varIRs
     for (const param of params) {
         if (!isVarIR(param)) {
@@ -329,7 +329,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
 
     // '=', 'f(x) = ...'
     // '=>', '(x) => ...'
-    if (equalOp && funcDefAST) {
+    if (funcDefAST) {
         const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
 
         if (udVarRefs.length > 0) {

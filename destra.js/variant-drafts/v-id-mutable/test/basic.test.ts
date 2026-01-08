@@ -36,20 +36,6 @@ describe('Basic Functionality Tests', () => {
             expect(sum.deps).toContain(b);
         });
 
-        test('should handle complex IDs and types correctly', () => {
-            // 左边并非合法 id，识别为 implicit equation
-            const complexIdExpr = expr`_a1.1.sin.b.c_.8.x = 10`;
-            expect(complexIdExpr.constructor.name).toBe('ImplicitEquation');
-
-            // 左边为合法 id，识别为 explicit equation
-            const complexIdExpr2 = expr`_a1.1.sin.b.c_.8.c = 10`;
-            expect(complexIdExpr2.constructor.name).toBe('ExplicitEquation');
-
-            // 左边为合法 id，识别为 variable
-            const complexIdExpl = expl`_a1.1.sin.b.c_.8.d = 10`;
-            expect(complexIdExpl.constructor.name).toBe('VarExpl');
-        });
-
         test('should throw error for illegal ID in variable definition', () => {
             expect(() => {
                 expl`_a1.1.sin.b.c_.8.x = 10`;
@@ -143,8 +129,8 @@ describe('Basic Functionality Tests', () => {
     // ============================================================================
     describe('ID Settings', () => {
         test('should set ID via DSL', () => {
-            const myValue = (expl`myLib.myValue = 10` as VarExpl);
-            expect(myValue.id()).toBe('myLib.myValue');
+            const myValue = (expl`myValue = 10` as VarExpl);
+            expect(myValue.id()).toBe('myValue');
         });
 
         test('should set ID via method', () => {

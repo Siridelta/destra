@@ -24,13 +24,14 @@ import {
     type CtxExp,
     isCtxExp,
 } from "./formula/base";
-import { getState } from "./state";
+import { getState as _getState } from "./state";
 import { FormulaASTNode } from "./expr-dsl-new/parse-ast/sematics/visitor-parts/formula";
 import { parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula } from "./expr-dsl-new/parse-ast";
-import { analyzeTypeAndCheck } from "./expr-dsl-new/analyzeType";
+import { analyzeTypeAndCheck } from "./expr-dsl-new/analyzeFormulaType";
 import { CtxFactoryHeadASTNode } from "./expr-dsl-new/parse-ast/sematics/visitor-parts/ctx-header";
 import { traverse } from "./expr-dsl-new/parse-ast/sematics/helpers";
 
+const getState = _getState;
 declare module "./state" {
     interface ASTState {
         ast: FormulaASTNode | CtxFactoryHeadASTNode;
@@ -41,6 +42,11 @@ declare module "./state" {
 // ============================================================================
 // 基础工厂
 // ============================================================================
+
+interface ExprFactory {
+    (strings: TemplateStringsArray, ...values: Substitutable[]): Expr;
+    type: 'expr'  // okay tbh this is only to make expr highlighted the same color as expl (being considered as a object rather than a pure function)
+}
 
 /**
  * expr 工厂函数：创建表达式（纯表达式、方程等）
@@ -56,7 +62,7 @@ declare module "./state" {
  * const e3 = expr`x^2 + y^2 = 1`; // 隐式方程
  * ```
  */
-export const expr = (strings: TemplateStringsArray, ...values: Substitutable[]): Expr => {
+export const expr: ExprFactory = Object.assign((strings: TemplateStringsArray, ...values: Substitutable[]): Expr => {
     const template = createTemplatePayload(strings, values);
     const ast = parseFormula(template);
     const info = analyzeTypeAndCheck(ast, "expr");
@@ -78,9 +84,11 @@ export const expr = (strings: TemplateStringsArray, ...values: Substitutable[]):
     }
     getState(result).ast ??= { ast };
     return result;
-};
+}, {
+    type: 'expr' as const
+});
 
-const explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl => {
+let explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl => {
     const template = createTemplatePayload(strings, values);
     const ast = parseFormula(template);
     const info = analyzeTypeAndCheck(ast, "expl");
@@ -151,7 +159,7 @@ const checkNoNestedWith = (formula: Formula, isStarterWith = false, visited = ne
     const toChecks = isCtxExp(formula) ? [...formula.deps, formula.body] : formula.deps;
     for (const dep of toChecks) {
         // And exclude the case of the dep is PrimitiveValue
-        if (dep instanceof Formula) {
+        if (dep instanceof Formula && !(dep instanceof CtxVar)) {
             checkNoNestedWith(dep, false, visited);
         }
     }
@@ -274,6 +282,7 @@ const createCtxExpressionIntermediate = <K extends CtxKindNotFunc>(
 
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxExpression(template, ctxVars, body, kind);
+        getState(result).ast ??= { ast };
 
         // With 语句嵌套检查
         if (kind === 'with') {
@@ -287,8 +296,6 @@ const createCtxExpressionIntermediate = <K extends CtxKindNotFunc>(
             state.ctxVar ??= {};
             state.ctxVar.sourceCtx = result;
         });
-
-        getState(result).ast ??= { ast };
         return result;
     }
 
@@ -321,6 +328,7 @@ const createCtxVarExplIntermediate = <K extends CtxKindNotFunc>(
 
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxVarExpl(template, ctxVars, body, kind);
+        getState(result).ast ??= { ast };
 
         // With 语句嵌套检查
         if (kind === 'with') {
@@ -335,7 +343,6 @@ const createCtxVarExplIntermediate = <K extends CtxKindNotFunc>(
             state.ctxVar.sourceCtx = result;
         });
 
-        getState(result).ast ??= { ast };
         return result;
     }
 
@@ -410,6 +417,7 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
     ): CtxFuncExpl<TFunc> => {
         const body = callback(ctxObj);
         const result = createCallableCtxFuncExpl<TFunc>(template, params, ctxVars, body);
+        getState(result).ast ??= { ast };
 
         // 检查函数定义内是否收到外源上下文变量
         checkNoExternalCtxVarPassingToFunc(result);
@@ -421,7 +429,6 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
             state.ctxVar ??= {};
             state.ctxVar.sourceCtx = result;
         });
-        getState(result).ast ??= { ast };
         return result;
     };
 }
@@ -476,6 +483,8 @@ interface ExplFactory {
     Diff: (strings: TemplateStringsArray, ...values: Substitutable[]) => IntermediateType<'diff', CtxVarExpl>;
 
     (strings: TemplateStringsArray, ...values: Substitutable[]): Expl;
+
+    type: 'expl'
 }
 
 // 将扩展挂载到 expl 函数对象上
@@ -501,4 +510,5 @@ export const expl: ExplFactory = Object.assign(explFn, {
     Prod: explProd,
     Int: explInt,
     Diff: explDiff,
+    type: 'expl' as const
 });

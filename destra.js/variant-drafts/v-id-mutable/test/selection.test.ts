@@ -40,7 +40,7 @@ describe('Selection', () => {
     });
 
     it('should handle multiple levels of nesting and prepending', () => {
-        const myVar = expl`x`.id('myVar');
+        const myVar = expl`0 in 0:1:1`.id('myVar');
         
         const level1 = selection({ myVar });
         level1.prefix('L1'); // myVar -> L1.myVar
@@ -55,7 +55,7 @@ describe('Selection', () => {
         // calculate: strictly typed selection only accepts IdMutable, 
         // but in JS runtime anything could happen. 
         // Our implementation checks `isIdMutable`.
-        const a = expl`a`.id('a');
+        const a = expl`1`.id('a');
         const sel = selection({ a, random: 123 } as any);
         
         sel.prefix('test');

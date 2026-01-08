@@ -69,6 +69,9 @@ FormulaVisitor.prototype.atomicExp = function (ctx: any) {
     if (ctx.NumberLiteral) {
         return this.toNumberAST(ctx.NumberLiteral[0].image);
     }
+    if (ctx.ColorHexLiteral) {
+        return this.toColorHexLiteralAST(ctx.ColorHexLiteral[0].image);
+    }
     if (ctx.Constant) {
         return this.toConstantAST(ctx.Constant[0].image);
     }
@@ -111,7 +114,7 @@ FormulaVisitor.prototype.builtinFuncCall = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.argsList = function (ctx: any) {
-    return ctx.arg ? this.visit(ctx.arg) : [];
+    return ctx.arg ? this.batchVisit(ctx.arg) : [];
 }
 
 FormulaVisitor.prototype.varOrCall = function (ctx: any)

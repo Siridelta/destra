@@ -1,5 +1,5 @@
 import { Lexer } from "chevrotain";
-import { Whitespace, SingleLineComment, NumberLiteral, Placeholder, CustomIdentifier } from "../tokens/others";
+import { Whitespace, SingleLineComment, NumberLiteral, Placeholder, CustomIdentifier, ColorHexLiteral } from "../tokens/others";
 import { keywords } from "../tokens/keywords";
 import { opAndPuncs } from "../tokens/op-and-puncs";
 import { reservedWords } from "../tokens/reserved-words";
@@ -12,6 +12,7 @@ export const tokensList = [
     ...keywords,
     
     NumberLiteral,
+    ColorHexLiteral,
 
     ...opAndPuncs,
 

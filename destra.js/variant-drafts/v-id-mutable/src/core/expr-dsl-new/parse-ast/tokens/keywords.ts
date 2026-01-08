@@ -43,16 +43,7 @@ export const DiffKeyword = createToken({
             .before(identifierPattern)
             .notBefore(ctxVarNameExcludePattern),
     ),
-});
-
-export const Int_dVarKeyword = createToken({
-    name: "int_dVarKeyword",
-    pattern: createRegExp(
-        exactly("d")
-            .before(identifierPattern)
-            .notBefore(ctxVarNameExcludePattern),
-    ),
-});
+}); 
 
 export const RootofKeyword = createToken({
     name: "rootofKeyword",
@@ -67,6 +58,5 @@ export const keywords = [
     IntKeyword,
     InKeyword,
     DiffKeyword,
-    Int_dVarKeyword,
     RootofKeyword,
 ];

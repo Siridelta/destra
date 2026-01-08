@@ -1,7 +1,7 @@
 import { CtxVar, Formula, Substitutable } from "../../../formula/base";
 import { getState } from "../../../state";
 import { DiffClauseASTNode, ForClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode, WithClauseASTNode } from "./visitor-parts/addSub-level"
-import { TupleExpASTNode } from "./visitor-parts/atomic-exps";
+import { ParenExpASTNode, TupleExpASTNode } from "./visitor-parts/atomic-exps";
 import { FormulaVisitor } from "./base-visitor";
 import { SubstitutionASTNode, VarIRNode } from "./visitor-parts/terminals";
 import { FunctionDefinitionASTNode } from "./visitor-parts/top-level";
@@ -120,6 +120,10 @@ export function scanUdRsVarRefs(node: any) {
 
 export function isTupleExp(node: any): node is TupleExpASTNode {
     return node?.type === "tupleExp";
+}
+
+export function isParenExp(node: any): node is ParenExpASTNode {
+    return node?.type === "parenExp";
 }
 
 export function isVarIR(node: any): node is VarIRNode {

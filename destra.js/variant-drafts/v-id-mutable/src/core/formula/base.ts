@@ -6,7 +6,7 @@
  */
 
 import { CtxFactoryHeadASTNode } from "../expr-dsl-new/parse-ast/sematics/visitor-parts/ctx-header";
-import { type FormulaTypeInfo } from "../expr-dsl/analyzeType";
+import { type FormulaTypeInfo } from "../expr-dsl-new/analyzeFormulaType";
 import { getState } from "../state";
 
 // ============================================================================

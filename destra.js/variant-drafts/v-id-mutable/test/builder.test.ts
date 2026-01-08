@@ -69,7 +69,7 @@ describe('Builder', () => {
     
     it('should handle dynamic parameters in builder', () => {
         const createIndexed = builder((idDrvs) => (index: number) => {
-            return expl`x`.id(`var_${index}`).applyIdDrvs(idDrvs);
+            return expl`0`.id(`var_${index}`).applyIdDrvs(idDrvs);
         });
         
         createIndexed.prefix('loop');
