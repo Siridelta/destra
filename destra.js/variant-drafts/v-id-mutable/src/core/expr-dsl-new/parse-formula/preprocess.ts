@@ -1,5 +1,5 @@
 import { createRegExp } from "magic-regexp";
-import { specialSymbolsMap } from "../syntax/specialSymbols";
+import { specialSymbolsMap } from "../syntax-reference/specialSymbols";
 
 const specialSymbolsRegExpMap = Object.fromEntries(
     Object.entries(specialSymbolsMap)

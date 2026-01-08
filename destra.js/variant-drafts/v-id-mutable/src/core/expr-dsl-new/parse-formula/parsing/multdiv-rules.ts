@@ -3,6 +3,7 @@ import { Bang, BracketClose, BracketOpen, Comma, ComparisonOperator1, Comparison
 import { SupportExtensionFunc, SupportOmittedCallFunc } from "../tokens/reserved-words/builtin-funcs/categories";
 import { Attribute } from "../tokens/reserved-words/reservedVars";
 import { FormulaParser } from "./parser";
+import { tokenMatcher } from "chevrotain";
 
 declare module './parser' {
     export interface FormulaParser {
@@ -26,16 +27,26 @@ export function initMultDivRules(this: FormulaParser) {
         this.SUBRULE(this.iMultAndOCallLevel, { LABEL: "lhs" });
         this.OPTION(() => {
             this.OR([
-                { ALT: () => this.CONSUME(Multiply) },
-                { ALT: () => this.CONSUME(Divide) },
+                { ALT: () => this.CONSUME(Multiply, { LABEL: "operator" }) },
+                { ALT: () => this.CONSUME(Divide, { LABEL: "operator" }) },
             ]);
             this.SUBRULE2(this.multDivLevel, { LABEL: "rhs" });
         });
     });
 
     this.iMultAndOCallLevel = this.RULE("iMultAndOCallLevel", () => {
-        this.AT_LEAST_ONE({
-            DEF: () => this.SUBRULE(this.prefixLevel),
+        this.SUBRULE(this.prefixLevel);
+        this.MANY({
+            GATE: () => {
+                const nextToken = this.LA(1);
+                // Implicit multiplication cannot start with + or - operator
+                // e.g. "a + b" should be addition, not "a * (+b)"
+                if (tokenMatcher(nextToken, Plus) || tokenMatcher(nextToken, Minus)) {
+                    return false;
+                }
+                return true;
+            },
+            DEF: () => this.SUBRULE2(this.prefixLevel),
         })
     });
 

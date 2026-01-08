@@ -1,6 +1,9 @@
+import { CtxVar, Formula, Substitutable } from "../../../formula/base";
+import { getState } from "../../../state";
 import { DiffClauseASTNode, ForClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode, WithClauseASTNode } from "./addSub-level"
 import { PointExpASTNode } from "./atomic-exps";
-import { VarIRNode } from "./terminals";
+import { FormulaVisitor } from "./base-visitor";
+import { SubstitutionASTNode, VarIRNode } from "./terminals";
 import { FunctionDefinitionASTNode } from "./top-level";
 
 export function traverse(
@@ -120,4 +123,43 @@ export function isPointExp(node: any): node is PointExpASTNode {
 
 export function isVarIR(node: any): node is VarIRNode {
     return node?.type === "varIR";
+}
+
+
+export function traceSubstitution(ast: SubstitutionASTNode, obj: FormulaVisitor | Formula): Substitutable {
+    if (obj instanceof FormulaVisitor) {
+        return obj.values[ast.index];
+    }
+    if (obj instanceof Formula) {
+        return obj.template.values[ast.index];
+    }
+    throw new Error(`Internal error: Invalid object type ${typeof obj}.`);
+}
+
+export function traceAST(formula: Formula): Record<string, any> {
+    if (formula instanceof CtxVar) {
+        const ctxExpHeadAST = getState(getState(formula).ctxVar!.sourceCtx!).ctxExpHead!.head!.ast;
+        if (ctxExpHeadAST.subtype === "expr") {
+            const def = ctxExpHeadAST.ctxVarDefs.find(d => d.name === formula.name);
+            if (!def) {
+                throw new Error(`Internal error: Context variable ${formula.name} not found in ctxFactoryExprDefHead.`);
+            }
+            return def.expr;
+        }
+        if (ctxExpHeadAST.subtype === "range") {
+            const def = ctxExpHeadAST.ctxVarDef;
+            if (!def) {
+                throw new Error(`Internal error: Context variable ${formula.name} not found in ctxFactoryRangeDefHead.`);
+            }
+            return def;
+        }
+        if (ctxExpHeadAST.subtype === "null") {
+            const def = ctxExpHeadAST.ctxVarDefs.find(d => d.name === formula.name);
+            if (!def) {
+                throw new Error(`Internal error: Context variable ${formula.name} not found in ctxFactoryNullDefHead.`);
+            }
+            return def;
+        }
+    }
+    return getState(formula).ast!;
 }

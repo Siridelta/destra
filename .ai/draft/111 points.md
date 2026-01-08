@@ -22,3 +22,9 @@ level downwards restrictions
 
 
 report magic regexp bug in visitor numberliteral resolution
+
+
+nulllable or application
+
+
+(A, B) with A = a -> a + 1, B = b -> 2b

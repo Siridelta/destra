@@ -1,6 +1,6 @@
 import { createToken, Lexer } from "chevrotain";
 import { anyOf, charIn, charNotIn, createRegExp, digit, exactly, maybe, oneOrMore, whitespace } from "magic-regexp";
-import { identifierPattern } from "../../syntax/commonRegExpPatterns";
+import { identifierPattern } from "../../syntax-reference/commonRegExpPatterns";
 
 export const Whitespace = createToken({
     name: "Whitespace",
@@ -24,11 +24,13 @@ export const SingleLineComment = createToken({
 // 所以：
 // 整数后面跟的小数点，不能再跟2个点号（否则会干扰 RangeDots 的解析）；
 // 除非这2个点号后面还有1个点（如1....3）。这时可以安全并且应当把第一个点作为小数点解析掉。
+
+// Modify: Removed leading optional sign to avoid ambiguity with subtraction.
+// "2 -3" should be parsed as "2" - "3", not "2" * "-3".
+// Negative numbers will be parsed as UnaryMinus + Number.
 export const NumberLiteral = createToken({
     name: "NumberLiteral",
     pattern: createRegExp(
-        // 可选正负号
-        maybe(anyOf("-", "+")),
         // 数值 / 科学计数法底数
         anyOf(
             // 必带整数部分，可选小数部分，123.456, 123., ...

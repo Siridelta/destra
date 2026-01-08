@@ -1,6 +1,7 @@
 import { FormulaVisitor } from "./base-visitor";
 
-import './top-level';
+import './formula';
+import './ctx-header';
 import './actionBatch-level';
 import './piecewise-exp';
 import './addSub-level';
@@ -9,4 +10,4 @@ import './postfix-level';
 import './atomic-exps';
 import './terminals';
 
-export const formulaVisitor = new FormulaVisitor();
+export { FormulaVisitor };

@@ -1,6 +1,6 @@
 import { CstParser, TokenType } from "chevrotain";
 
-export class MyCstParserBase extends CstParser {
+export class BaseCstParser extends CstParser {
     constructor(tokens: TokenType[]) {
         super(tokens);
     }

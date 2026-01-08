@@ -64,8 +64,6 @@ export type VarIRNode = {
 }
 
 export const numberRegex = createRegExp(
-    // 可选正负号
-    maybe(anyOf("-", "+").groupedAs("sign")),
     // 数值 / 科学计数法底数
     anyOf(
         // 必带整数部分，可选小数部分，123.456, 123., ...
@@ -97,12 +95,11 @@ FormulaVisitor.prototype.toNumberAST = function (image: string): NumberASTNode {
     if (!match) {
         throw new Error(`Internal error: Reveiced invalid number literal: ${image}`);
     }
-    const { sign, integer, decimal1, decimal2, exponentSign, exponentInteger } = match.groups!;
+    const { integer, decimal1, decimal2, exponentSign, exponentInteger } = match.groups!;
     const decimal = decimal1 || decimal2;
 
     return {
         type: "number",
-        sign: sign as '+' | '-' | undefined,
         base: {
             integer: integer,
             decimal: decimal,

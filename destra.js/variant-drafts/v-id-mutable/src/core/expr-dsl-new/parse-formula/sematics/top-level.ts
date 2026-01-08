@@ -1,6 +1,6 @@
 import { FormulaVisitor } from "./base-visitor";
 import { getCtxNodeCtxVars, isCtxClause, isPointExp, isVarIR, scanUdRsVarRefs } from "./helpers";
-import { reservedVars } from "../../syntax/reservedWords";
+import { reservedVars } from "../../syntax-reference/reservedWords";
 import { maybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
 import { traverse } from "./helpers";

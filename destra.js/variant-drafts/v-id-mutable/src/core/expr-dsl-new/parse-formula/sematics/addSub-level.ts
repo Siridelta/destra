@@ -13,7 +13,7 @@ declare module './base-visitor' {
         diff(ctx: any): any;
         fromForKeyword(ctx: any): any;
         fromWithKeyword(ctx: any): any;
-        ctxVariable(ctx: any): any;
+        ctxVarInDef(ctx: any): any;
     }
 }
 
@@ -28,11 +28,11 @@ export type SubtractionASTNode = {
     right: any,
 }
 
-export type CtxVarReferenceDefASTNode = {
+export type CtxVarExprDefASTNode = {
     type: "ctxVarDef",
     name: string,
-    subtype: 'reference',
-    reference: any,
+    subtype: 'expr',
+    expr: any,
 }
 export type CtxVarRangeDefASTNode = {
     type: "ctxVarDef",
@@ -47,7 +47,7 @@ export type CtxVarNullDefASTNode = {
     subtype: 'null',
 }
 export type CtxVarDefASTNode = 
-    | CtxVarReferenceDefASTNode
+    | CtxVarExprDefASTNode
     | CtxVarRangeDefASTNode
     | CtxVarNullDefASTNode;
 
@@ -229,8 +229,8 @@ function findDuplicateVarNames(names: string[]): string[] {
 
 FormulaVisitor.prototype.context_type2_level = function (ctx: any): any {
     const content = this.visit(ctx.content);
-    const forCtxVarDefs = ctx.fromForKeyword ? this.visit(ctx.fromForKeyword) as CtxVarReferenceDefASTNode[] : null;
-    const withCtxVarDefs = ctx.fromWithKeyword ? this.visit(ctx.fromWithKeyword) as CtxVarReferenceDefASTNode[] : null;
+    const forCtxVarDefs = ctx.fromForKeyword ? this.visit(ctx.fromForKeyword) as CtxVarExprDefASTNode[] : null;
+    const withCtxVarDefs = ctx.fromWithKeyword ? this.visit(ctx.fromWithKeyword) as CtxVarExprDefASTNode[] : null;
     if (forCtxVarDefs) {
         const duplicateNames = findDuplicateVarNames(forCtxVarDefs.map(d => d.name));
         if (duplicateNames.length > 0) {
@@ -262,43 +262,45 @@ FormulaVisitor.prototype.context_type2_level = function (ctx: any): any {
     return content;
 }
 
-FormulaVisitor.prototype.fromForKeyword = function (ctx: any): CtxVarReferenceDefASTNode[] {
+FormulaVisitor.prototype.fromForKeyword = function (ctx: any): CtxVarExprDefASTNode[] {
     const ctxVarNames = this.batchVisit(ctx.ctxVar);
     const contents = this.batchVisit(ctx.content);
+    
     if (ctxVarNames.length !== contents.length) {
         throw new Error("Internal error: fromForKeyword should have the same number of ctxVarNames and contents.");
     }
-    const ctxVarDefs: CtxVarReferenceDefASTNode[] = [];
+    const ctxVarDefs: CtxVarExprDefASTNode[] = [];
     for (let i = 0; i < ctxVarNames.length; i++) {
         ctxVarDefs.push({
             type: "ctxVarDef",
             name: ctxVarNames[i],
-            subtype: 'reference',
-            reference: contents[i],
+            subtype: 'expr',
+            expr: contents[i],
         });
     }
     return ctxVarDefs;
 }
 
-FormulaVisitor.prototype.fromWithKeyword = function (ctx: any): CtxVarReferenceDefASTNode[] {
+FormulaVisitor.prototype.fromWithKeyword = function (ctx: any): CtxVarExprDefASTNode[] {
     const ctxVarNames = this.batchVisit(ctx.ctxVar);
     const contents = this.batchVisit(ctx.content);
+
     if (ctxVarNames.length !== contents.length) {
         throw new Error("Internal error: fromWithKeyword should have the same number of ctxVarNames and contents.");
     }
-    const ctxVarDefs: CtxVarReferenceDefASTNode[] = [];
+    const ctxVarDefs: CtxVarExprDefASTNode[] = [];
     for (let i = 0; i < ctxVarNames.length; i++) {
         ctxVarDefs.push({
             type: "ctxVarDef",
             name: ctxVarNames[i],
-            subtype: 'reference',
-            reference: contents[i],
+            subtype: 'expr',
+            expr: contents[i],
         });
     }
     return ctxVarDefs;
 }
 
-FormulaVisitor.prototype.ctxVariable = function (ctx: any): string {
+FormulaVisitor.prototype.ctxVarInDef = function (ctx: any): string {
     const ctxVarName = this.visit(ctx.ctxVarName);
     return ctxVarName.image;
 }

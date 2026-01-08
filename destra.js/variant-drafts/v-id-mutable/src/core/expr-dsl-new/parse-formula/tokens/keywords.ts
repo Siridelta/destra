@@ -1,6 +1,6 @@
 import { createToken } from "chevrotain";
 import { createRegExp, exactly, whitespace } from "magic-regexp";
-import { ctxVarNameExcludePattern, identifierPattern, internalVarNameExcludePattern } from "../../syntax/commonRegExpPatterns";
+import { ctxVarNameExcludePattern, identifierPattern } from "../../syntax-reference/commonRegExpPatterns";
 
 // --- Keywords ---
 

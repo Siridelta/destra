@@ -16,7 +16,7 @@ declare module './parser' {
         diff: any;
         fromForKeyword: any;
         fromWithKeyword: any;
-        ctxVariable: any;
+        ctxVarInDef: any;
     }
 }
 
@@ -53,7 +53,7 @@ export function initAddSubRules(this: FormulaParser) {
     this.sum = this.RULE("sum", () => {
         this.CONSUME(SumKeyword);
         this.CONSUME(ParenthesisOpen);
-        this.SUBRULE(this.ctxVariable, { LABEL: "ctxVar" });
+        this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
         this.CONSUME(Equal);
         this.SUBRULE(this.addSubLevel, { LABEL: "lower" });
         this.CONSUME(Comma);
@@ -66,7 +66,7 @@ export function initAddSubRules(this: FormulaParser) {
     this.prod = this.RULE("prod", () => {
         this.CONSUME(ProdKeyword);
         this.CONSUME(ParenthesisOpen);
-        this.SUBRULE(this.ctxVariable, { LABEL: "ctxVar" });
+        this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
         this.CONSUME(Equal);
         this.SUBRULE(this.addSubLevel, { LABEL: "lower" });
         this.CONSUME(Comma);
@@ -88,7 +88,7 @@ export function initAddSubRules(this: FormulaParser) {
             {
                 ALT: () => {
                     this.CONSUME(Int_dVarKeyword);
-                    this.SUBRULE(this.ctxVariable, { LABEL: "ctxVar" });
+                    this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
                     this.SUBRULE(this.multDivLevel, { LABEL: "content" });
                 }
             },
@@ -96,7 +96,7 @@ export function initAddSubRules(this: FormulaParser) {
                 ALT: () => {
                     this.SUBRULE2(this.multDivLevel, { LABEL: "content" });
                     this.CONSUME2(Int_dVarKeyword);
-                    this.SUBRULE2(this.ctxVariable, { LABEL: "ctxVar" });
+                    this.SUBRULE2(this.ctxVarInDef, { LABEL: "ctxVar" });
                 }
             },
         ]);
@@ -105,7 +105,7 @@ export function initAddSubRules(this: FormulaParser) {
     // d/dVar expr
     this.diff = this.RULE("diff", () => {
         this.CONSUME(DiffKeyword);
-        this.SUBRULE(this.ctxVariable, { LABEL: "ctxVar" });
+        this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
         this.SUBRULE(this.multDivLevel, { LABEL: "content" });
     });
 
@@ -125,7 +125,7 @@ export function initAddSubRules(this: FormulaParser) {
         this.AT_LEAST_ONE_SEP({
             SEP: Comma,
             DEF: () => {
-                this.SUBRULE(this.ctxVariable, { LABEL: "ctxVar" });
+                this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
                 this.CONSUME(Equal);
                 this.SUBRULE(this.multDivLevel, { LABEL: "content" });
             },
@@ -137,7 +137,7 @@ export function initAddSubRules(this: FormulaParser) {
         this.AT_LEAST_ONE_SEP({
             SEP: Comma,
             DEF: () => {
-                this.SUBRULE(this.ctxVariable, { LABEL: "ctxVar" });
+                this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
                 this.CONSUME(Equal);
                 this.SUBRULE(this.multDivLevel, { LABEL: "content" });
             },
@@ -150,7 +150,7 @@ export function initAddSubRules(this: FormulaParser) {
     // The ReservedVar below is not the actual ReservedVar, 
     // but still a ctxVariable that takes that name
 
-    this.ctxVariable = this.RULE("ctxVariable", () => {
+    this.ctxVarInDef = this.RULE("ctxVarInDef", () => {
         this.OR([
             { ALT: () => this.CONSUME(CustomIdentifier, { LABEL: "ctxVarName" }) },
             { ALT: () => this.CONSUME(ReservedVar, { LABEL: "ctxVarName" }) },

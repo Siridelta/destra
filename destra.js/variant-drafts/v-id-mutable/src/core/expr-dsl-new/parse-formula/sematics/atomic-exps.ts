@@ -113,9 +113,9 @@ FormulaVisitor.prototype.argsList = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.varOrCall = function (ctx: any) {
-    const placeholder = ctx.Placeholder ? this.visit(ctx.Placeholder) : null;
-    const customVar = ctx.CustomIdentifier ? this.visit(ctx.CustomIdentifier) : null;
-    const reservedVar = ctx.ReservedVar ? this.visit(ctx.ReservedVar) : null;
+    const placeholder = ctx.Placeholder ? ctx.Placeholder[0] : null;
+    const customVar = ctx.CustomIdentifier ? ctx.CustomIdentifier[0] : null;
+    const reservedVar = ctx.ReservedVar ? ctx.ReservedVar[0] : null;
     const args = ctx.argsList ? this.visit(ctx.argsList) : null;
 
     if (reservedVar) {
