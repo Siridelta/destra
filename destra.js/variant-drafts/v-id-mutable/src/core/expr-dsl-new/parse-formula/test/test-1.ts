@@ -1,40 +1,27 @@
-import { lexer } from "../lexing/lexer";
-import { formulaParser } from "../parsing/parser";
-import { formulaVisitor } from "../sematics/visitor";
+import { parseAst } from "../../parseAst";
+import { Formula, FormulaType, TemplatePayload } from "../../../formula/base";
 
-
-function parseCST(input: string) {
-    const lexResult = lexer.tokenize(input);
-    if (lexResult.errors.length > 0) {
-        console.error("Lexing errors:", lexResult.errors);
-        return;
+// Mock implementation to bypass protected constructor
+class MockFormula extends Formula {
+    constructor(public type: FormulaType, public isEmbeddable: boolean) {
+        // @ts-ignore
+        super({ strings: [""], values: [] });
     }
-    formulaParser.input = lexResult.tokens;
-    const cst = formulaParser.formula();
-    if (formulaParser.errors.length > 0) {
-        console.error("Parsing errors:", formulaParser.errors);
-        return;
-    }
-    return cst;
 }
 
-function parseAST(input: string) {
-    const cst = parseCST(input);
-    if (!cst) return;
-    const ast = formulaVisitor.visit(cst);
-    return ast;
+const v = new MockFormula(FormulaType.Variable, true);
+const f = new MockFormula(FormulaType.Function, true);
+
+const inputTemplate: TemplatePayload = {
+    strings: ["1 + ", " + ", "(2)"],
+    values: [v, f]
+};
+
+console.log("Testing parseAst with object interpolation...");
+
+try {
+    const ast = parseAst(inputTemplate);
+    console.dir(ast, { depth: null });
+} catch (e) {
+    console.error(e);
 }
-
-
-
-const ast1 = parseAST(`
-    (
-       1, 
-       [1...10][5...][[1...10] > e]
-    ).x!
-    in
-        ln 30
-        : random([1...10])
-`);
-console.log('AST:', ast1);
-console.log('end');
