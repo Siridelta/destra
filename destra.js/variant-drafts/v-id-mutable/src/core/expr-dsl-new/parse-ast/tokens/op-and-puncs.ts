@@ -25,6 +25,13 @@ export const TopLevelComparisonOperator = createToken({
     pattern: Lexer.NA,
 });
 
+//     --- length = 5 ---
+
+export const Cross = createToken({
+    name: "cross",
+    pattern: createRegExp("cross"),
+});
+
 //     --- length = 3 ---
 
 export const RangeDots = createToken({

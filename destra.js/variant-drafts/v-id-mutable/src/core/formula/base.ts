@@ -395,11 +395,15 @@ export const createFunctionCallExpression = <TFunc extends FuncExplTFuncBase>(
     return new Expression(template);
 };
 
+export const isFuncExpl = <TFunc extends FuncExplTFuncBase>(formula: Formula): formula is FuncExpl<TFunc> => {
+    return formula instanceof FuncExplClass && formula.type === FormulaType.Function;
+}
+
 // ============================================================================
 //   CtxExp 相关类型定义和实现
 // ============================================================================
 
-export type CtxKind = 'with' | 'for' | 'sum' | 'int' | 'func';
+export type CtxKind = 'with' | 'for' | 'sum' | 'int' | 'prod' | 'func' | 'diff';
 
 export type CtxExpBody = PrimitiveValue | Expression | VarExpl;
 

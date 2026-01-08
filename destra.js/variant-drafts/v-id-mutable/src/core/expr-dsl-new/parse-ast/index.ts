@@ -45,7 +45,7 @@ function runParser(tokens: IToken[], ruleName: keyof FormulaParser): CstNode {
     return cst;
 }
 
-export const parseAst = (template: TemplatePayload): FormulaASTNode => {
+export const parseFormula = (template: TemplatePayload): FormulaASTNode => {
     const { tokens, values } = lex(template);
     const cst = runParser(tokens, 'formula');
     

@@ -13,11 +13,7 @@ calculator type restrictions
 
 '#' = count
 
-cross
-
-level downwards restrictions
-
-
+ast level in ts-type & downwards restrictions
 
 
 
@@ -25,6 +21,3 @@ report magic regexp bug in visitor numberliteral resolution
 
 
 nulllable or application
-
-
-(A, B) with A = a -> a + 1, B = b -> 2b

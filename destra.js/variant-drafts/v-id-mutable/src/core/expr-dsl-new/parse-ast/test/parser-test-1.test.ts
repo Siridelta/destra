@@ -72,4 +72,7 @@ describe("Operator Precedence & Implicit Multiplication", () => {
     it("8. Number Implicit Mult (Allowed)", () => {
         expect(getAstType(parse("2(-y)"))).toBe("implicitMult");
     });
+
+    // it("9. Defined Function Call Check", () => {
+    //     expect(() => parse("sin(x)")).toThrowError();
 });

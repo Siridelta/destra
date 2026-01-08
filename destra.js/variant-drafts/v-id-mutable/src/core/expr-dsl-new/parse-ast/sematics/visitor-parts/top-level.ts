@@ -1,7 +1,7 @@
 import { FormulaVisitor } from "../base-visitor";
 import { getCtxNodeCtxVars, isCtxClause, isTupleExp, isVarIR, scanUdRsVarRefs } from "../helpers";
 import { reservedVars } from "../../../syntax-reference/reservedWords";
-import { maybeFuncDefIRNode } from "./atomic-exps";
+import { MaybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
 import { traverse } from "../helpers";
 
@@ -108,8 +108,8 @@ function resolveVarIRs(ast: any) {
     traverse(ast, { enter, exit });
 }
 
-const isMaybeFuncDefIR = (node: any): node is maybeFuncDefIRNode => node?.type === "maybeFuncDefIR";
-function resolveNamedFuncDef(IRNode: maybeFuncDefIRNode, content: any): FunctionDefinitionASTNode {
+const isMaybeFuncDefIR = (node: any): node is MaybeFuncDefIRNode => node?.type === "maybeFuncDefIR";
+function resolveNamedFuncDef(IRNode: MaybeFuncDefIRNode, content: any): FunctionDefinitionASTNode {
     const params = IRNode.params;
     // Check params are all varIRs
     for (const param of params) {

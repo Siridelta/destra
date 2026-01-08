@@ -51,7 +51,14 @@ export type PowerASTNode = {
     exponent: any,
 }
 
-
+const isMultDivType = (type: string) => 
+    type === 'multiplication' 
+    || type === 'division' 
+    || type === 'cross';
+const multDivOpToType = (op: string) => 
+    op === '*' ? 'multiplication' : 
+    op === '/' ? 'division' : 
+    op === 'cross' ? 'cross' : null;
 FormulaVisitor.prototype.multDivLevel = function (ctx: any) {
     // Transform to left-associative AST tree
 
@@ -59,19 +66,16 @@ FormulaVisitor.prototype.multDivLevel = function (ctx: any) {
     const operator = ctx.operator?.[0]?.image || null;
     const rhs = ctx.rhs ? this.visit(ctx.rhs) : null;
 
-    if (operator && rhs
-        && (rhs.type === 'multiplication' || rhs.type === 'division')) {
+    if (operator && rhs && isMultDivType(rhs.type)) {
         // deep seek rhs's left-most mult/div child
         let currentNode = rhs;
-        while (
-            currentNode.left.type === 'multiplication'
-            || currentNode.left.type === 'division'
-        ) {
+
+        while (isMultDivType(currentNode.left.type)) {
             currentNode = currentNode.left;
         }
         // here currentNode is the left-most mult/div child
         currentNode.left = {
-            type: operator === '*' ? 'multiplication' : 'division',
+            type: multDivOpToType(operator),
             left: lhs,
             right: currentNode.left,
         }
@@ -79,7 +83,7 @@ FormulaVisitor.prototype.multDivLevel = function (ctx: any) {
     }
     if (operator && rhs) {
         return {
-            type: operator === '*' ? 'multiplication' : 'division',
+            type: multDivOpToType(operator),
             left: lhs,
             right: rhs,
         }

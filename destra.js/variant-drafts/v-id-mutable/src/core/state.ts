@@ -33,7 +33,6 @@ import { Label } from "./formula/label";
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface CtxVarState { }
-export interface CtxExpState { }
 export interface ExplIdState { }
 export interface StyleState { }
 export interface ASTState { }
@@ -42,8 +41,6 @@ export interface CompileState { }
 export interface FormulaState {
     // State specific to CtxVar --- realname
     ctxVar?: CtxVarState;
-    // State specific to CtxExp --- factory definition head, ...
-    ctxExpHead?: CtxExpState;
     // State specific to Expl --- id, realname, ...
     explId?: ExplIdState;
 

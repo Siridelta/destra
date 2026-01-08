@@ -4,6 +4,8 @@ import { BuiltinFuncASTNode, SubstitutionASTNode, VarIRNode } from "./terminals"
 import { SupportOmittedCallFunc } from "../../tokens/reserved-words/builtin-funcs/categories";
 import { RangeDots } from "../../tokens/op-and-puncs";
 import { CommasASTNode } from "./commas-level";
+import { traceSubstitution } from "../helpers";
+import { Formula, isFuncExpl } from "../../../../formula/base";
 
 
 declare module '../base-visitor' {
@@ -36,7 +38,7 @@ export type MaybeOCallFuncIRNode = {
     func: BuiltinFuncASTNode
 }
 
-export type maybeFuncDefIRNode = {
+export type MaybeFuncDefIRNode = {
     type: "maybeFuncDefIR",
     func: VarIRNode,
     params: any[],
@@ -112,7 +114,8 @@ FormulaVisitor.prototype.argsList = function (ctx: any) {
     return ctx.arg ? this.visit(ctx.arg) : [];
 }
 
-FormulaVisitor.prototype.varOrCall = function (ctx: any) {
+FormulaVisitor.prototype.varOrCall = function (ctx: any)
+    : VarIRNode | SubstitutionASTNode | DefinedFuncCallASTNode | MaybeFuncDefIRNode {
     const placeholder = ctx.Placeholder ? ctx.Placeholder[0] : null;
     const customVar = ctx.CustomIdentifier ? ctx.CustomIdentifier[0] : null;
     const reservedVar = ctx.ReservedVar ? ctx.ReservedVar[0] : null;
@@ -123,9 +126,18 @@ FormulaVisitor.prototype.varOrCall = function (ctx: any) {
     }
     if (placeholder) {
         if (args) {
+            // check if it is FuncExpl
+            const substAST = this.toSubstitutionAST(placeholder.image);
+            const funcExpl = traceSubstitution(substAST, this);
+            if (!(funcExpl instanceof Formula) || !isFuncExpl(funcExpl)) {
+                throw new Error(
+                    `Ambiguous syntax: Do not place a value / variable with a left parenthesis.`
+                    + `Consider using '*' to express multiplication.`
+                );
+            }
             return {
                 type: "definedFuncCall",
-                func: this.toSubstitutionAST(placeholder.image),
+                func: substAST,
                 args: args,
             }
         } else {
@@ -144,6 +156,7 @@ FormulaVisitor.prototype.varOrCall = function (ctx: any) {
             return this.toVarIR(customVar.image);
         }
     }
+    throw new Error(`Internal error: Unexpected token ${JSON.stringify(ctx)} in varOrCall`);
 }
 
 FormulaVisitor.prototype.parenExp = function (ctx: any) {

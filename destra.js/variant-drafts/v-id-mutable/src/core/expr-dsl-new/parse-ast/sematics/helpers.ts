@@ -5,6 +5,7 @@ import { TupleExpASTNode } from "./visitor-parts/atomic-exps";
 import { FormulaVisitor } from "./base-visitor";
 import { SubstitutionASTNode, VarIRNode } from "./visitor-parts/terminals";
 import { FunctionDefinitionASTNode } from "./visitor-parts/top-level";
+import { CtxFactoryHeadASTNode } from "./visitor-parts/ctx-header";
 
 export function traverse(
     ast: any,
@@ -72,7 +73,7 @@ export function isCtxClause(node: any): node is
 }
 
 // func definition top node is also included
-export function getCtxNodeCtxVars(ctxNode: CtxClauseASTNode) {
+export function getCtxNodeCtxVars(ctxNode: CtxClauseASTNode): string[] {
     const ctxVars: string[] = [];
     if (
         ctxNode?.type === 'forClause'
@@ -138,7 +139,7 @@ export function traceSubstitution(ast: SubstitutionASTNode, obj: FormulaVisitor 
 
 export function traceAST(formula: Formula): Record<string, any> {
     if (formula instanceof CtxVar) {
-        const ctxExpHeadAST = getState(getState(formula).ctxVar!.sourceCtx!).ctxExpHead!.head!.ast;
+        const ctxExpHeadAST = getState(getState(formula).ctxVar!.sourceCtx!).ast!.ast as CtxFactoryHeadASTNode;
         if (ctxExpHeadAST.subtype === "expr") {
             const def = ctxExpHeadAST.ctxVarDefs.find(d => d.name === formula.name);
             if (!def) {
