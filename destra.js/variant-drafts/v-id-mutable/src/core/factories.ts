@@ -25,11 +25,11 @@ import {
     isCtxExp,
 } from "./formula/base";
 import { getState as _getState } from "./state";
-import { FormulaASTNode } from "./expr-dsl-new/parse-ast/sematics/visitor-parts/formula";
-import { parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula } from "./expr-dsl-new/parse-ast";
-import { analyzeTypeAndCheck } from "./expr-dsl-new/analyzeFormulaType";
-import { CtxFactoryHeadASTNode } from "./expr-dsl-new/parse-ast/sematics/visitor-parts/ctx-header";
-import { traverse } from "./expr-dsl-new/parse-ast/sematics/helpers";
+import { FormulaASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/formula";
+import { parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula } from "./expr-dsl/parse-ast";
+import { analyzeTypeAndCheck } from "./expr-dsl/analyzeFormulaType";
+import { CtxFactoryHeadASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/ctx-header";
+import { traverse } from "./expr-dsl/parse-ast/sematics/helpers";
 
 const getState = _getState;
 declare module "./state" {

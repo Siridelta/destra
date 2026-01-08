@@ -10,7 +10,7 @@
  */
 
 import { createRegExp } from "magic-regexp";
-import { idPattern, idSegmentPattern } from "../expr-dsl-new/syntax-reference/commonRegExpPatterns";
+import { idPattern, idSegmentPattern } from "../expr-dsl/syntax-reference/commonRegExpPatterns";
 import { Expl } from "./base";
 import { getState } from "../state";
 import { IdMutable, idMutableMethods } from "../id/idMutable";
