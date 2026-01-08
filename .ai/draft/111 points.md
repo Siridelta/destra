@@ -3,13 +3,18 @@
 fix `2.real` to `(2).real`
 
 
-calculator type restrictions
+later feats:
 
-ast level in ts-type & downwards restrictions
+- calculator type restrictions
+
+- ast level in ts-type & downwards restrictions
+
+- static / functional-static value type analysis
 
 
 
-report magic regexp bug in visitor numberliteral resolution
+chores:
 
+- report magic regexp bug in visitor numberliteral resolution
 
-nulllable or application
+- nulllable or application
