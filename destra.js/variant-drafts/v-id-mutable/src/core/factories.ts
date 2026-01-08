@@ -31,7 +31,7 @@ import { extractParameters, iterativeCheckBrackets, buildInspectableSource } fro
 import { anyOf, createRegExp, wordBoundary } from "magic-regexp";
 import { idPattern } from "./expr-dsl/syntax/commonRegExpPatterns";
 import { getState } from "./state";
-import { FormulaASTNode } from "./expr-dsl-new/parse-formula/sematics/formula";
+import { FormulaASTNode } from "./expr-dsl-new/parse-ast/sematics/formula";
 
 declare module "./state" {
     interface ASTState {

@@ -1,5 +1,5 @@
 import { FormulaType } from "../formula/base";
-import { FormulaASTNode } from "./parse-formula";
+import { FormulaASTNode } from "./parse-ast";
 
 // ============================================================================
 // 类型定义
