@@ -9,7 +9,7 @@ import { expl, expr, Expression, VarExpl, LineStyle, PointStyle } from '../src/c
 describe('Style API Tests (New Architecture)', () => {
 
     test('应该能通过 .style(obj) 设置基本样式 (Deep Merge)', () => {
-        const e = expl`x^2`;
+        const e = expr`x^2`;
         
         e.style({
             color: '#ff0000',
@@ -21,7 +21,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('应该能通过 .style(callback) 进行精细编辑 (Mutation)', () => {
-        const e = expl`x^2`;
+        const e = expr`x^2`;
         
         e.style(s => {
             // 1. 原生赋值 - 叶子节点
@@ -43,7 +43,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('应该支持不对称读写 (Asymmetric Access)', () => {
-        const e = expl`sin(x)`;
+        const e = expr`sin(x)`;
         
         e.style(s => {
             // Setter 接受值
@@ -79,7 +79,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('Editor.update() Deep Merge 更新逻辑', () => {
-        const e = expl`cos(x)`;
+        const e = expr`cos(x)`;
         
         // 初始设置
         e.style({
@@ -102,7 +102,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('Editor.set() (及赋值操作符) 覆盖行为', () => {
-        const e = expl`sin(x)`;
+        const e = expr`sin(x)`;
         
         // 初始设置
         e.style({
@@ -134,7 +134,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('删除属性 (.delete 和 undefined)', () => {
-        const e = expl`x`;
+        const e = expr`x`;
         e.style({ color: 'red', line: { width: 5 } });
         expect(e.styleData.color).toBe('red');
         
@@ -157,7 +157,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('Editor 路径自动创建 (Auto-vivification)', () => {
-        const e = expl`x`;
+        const e = expr`x`;
         
         e.style(s => {
             // 访问不存在的路径是安全的，返回空 Editor
@@ -172,7 +172,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('Editor .set() 支持 Updater 函数', () => {
-        const e = expl`x`;
+        const e = expr`x`;
         e.style({ point: { size: 10 } });
 
         e.style(s => {
@@ -185,7 +185,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('Editor .update() 显式 Merge', () => {
-        const e = expl`x`;
+        const e = expr`x`;
         e.style({ point: { size: 10, opacity: 0.5 } });
 
         e.style(s => {
@@ -198,7 +198,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('Editor .set() 显式覆盖 (Overwrite) 对象节点', () => {
-        const e = expl`x`;
+        const e = expr`x`;
         e.style({ point: { size: 10, opacity: 0.5 } });
 
         e.style(s => {
@@ -211,7 +211,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('.setStyle() 完全覆盖 (Overwrite)', () => {
-        const e = expl`x`;
+        const e = expr`x`;
         e.style({ color: 'red', point: { size: 10 } });
 
         e.setStyle({ color: 'blue' });
@@ -221,7 +221,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('一级属性 Setters (setPoint, setLine...) 完全覆盖', () => {
-        const e = expl`x`;
+        const e = expr`x`;
         e.style({ point: { size: 10, opacity: 0.5 } });
 
         // 使用 setPoint 覆盖 point
@@ -232,11 +232,11 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('应该支持 Expression 和 VarExpl 作为样式值', () => {
-        const e = expl`x^2`;
+        const e = expr`x^2`;
         
         // 1. 创建用于样式的变量和表达式
-        const C = expl`C` as VarExpl; // Color variable
-        const w = expl`w` as VarExpl; // Width variable
+        const C = expl`rgb(0, 0, 0)` as VarExpl; // Color variable
+        const w = expl`w = 0` as VarExpl; // Width variable
         const widthExpr = expl`${w} * 2` as VarExpl;
         
         e.style({
@@ -259,8 +259,8 @@ describe('Style API Tests (New Architecture)', () => {
 
     test('Editor 应该能处理 Expression 和 VarExpl 类型的读写', () => {
         const e = expr`y = x^2`;
-        const C1 = expl`C_1` as VarExpl;
-        const C2 = expl`C_2` as VarExpl;
+        const C1 = expl`C_1 = 0` as VarExpl;
+        const C2 = expl`C_2 = 0` as VarExpl;
         
         e.style({ color: C1 });
         
@@ -276,7 +276,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     describe('Runtime Validation (运行时校验)', () => {
-        const e = expl`x`;
+        const e = expr`x`;
 
         test('应该拦截非法的枚举值', () => {
             expect(() => {
@@ -341,8 +341,8 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     describe('Editor Safety Checks (防止误传 Editor)', () => {
-        const e1 = expl`x`;
-        const e2 = expl`y`;
+        const e1 = expr`x`;
+        const e2 = expr`y`;
         e2.style({ line: { width: 10 } });
 
         test('应该拦截将 Editor 传给 .style() 的尝试', () => {
@@ -392,7 +392,7 @@ describe('Style API Tests (New Architecture)', () => {
     });
 
     test('应该拦截 null 值 (应使用 undefined 或 .delete())', () => {
-        const e = expl`x`;
+        const e = expr`x`;
         e.style({ line: { width: 5 } });
 
         expect(() => {

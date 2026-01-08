@@ -9,7 +9,7 @@ export type Selection<T extends Record<string, IdMutable>> = T & IdMutable;
  * 创建一个选区 (Selection)
  * 
  * 选区是一个包含多个 IdMutable 对象（如 Expl, Builder 或嵌套的 Selection）的集合。
- * 对选区调用 idPrepend 会同步地对选区内所有对象调用 idPrepend。
+ * 对选区调用 prefix 会同步地对选区内所有对象调用 prefix。
  * 
  * @param items 包含 IdMutable 对象的字典
  * @returns 选区对象

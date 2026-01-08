@@ -5,12 +5,12 @@
  * 
  * 这些方法支持：
  * - `Expl.id(value, isImplicit)`: 设置或更新表达式的 Destra ID
- * - `Expl.idPrepend(segment)`: 在现有 ID 前添加前缀段（用于批量操作）
+ * - `Expl.prefix(segment)`: 在现有 ID 前添加前缀段（用于批量操作）
  * - `Expl.applyIdDrvs(drvs)`: 应用 ID 衍生函数（支持 builder 等场景）
  */
 
 import { createRegExp } from "magic-regexp";
-import { idPattern, idSegmentPattern } from "../expr-dsl/syntax/commonRegExpPatterns";
+import { idPattern, idSegmentPattern } from "../expr-dsl/syntax-reference/commonRegExpPatterns";
 import { Expl } from "./base";
 import { getState } from "../state";
 import { IdMutable, idMutableMethods } from "../id/idMutable";
@@ -99,11 +99,11 @@ declare module "./base" {
          * @example
          * ```typescript
          * const vec = expl`(1, 2)`.id("vec");
-         * vec.idPrepend("physics"); // ID 变为 "physics.vec"
-         * vec.idPrepend("core");    // ID 变为 "core.physics.vec"
+         * vec.prefix("physics"); // ID 变为 "physics.vec"
+         * vec.prefix("core");    // ID 变为 "core.physics.vec"
          * ```
          */
-        idPrepend(segment: string): this;
+        prefix(segment: string): this;
     }
 }
 

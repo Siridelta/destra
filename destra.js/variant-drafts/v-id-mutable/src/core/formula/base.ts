@@ -5,7 +5,8 @@
  * 这些是构建整个表达式系统的基础。
  */
 
-import { type FormulaTypeInfo } from "../expr-dsl/analyzeType";
+import { CtxFactoryHeadASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/ctx-header";
+import { type FormulaTypeInfo } from "../expr-dsl/analyzeFormulaType";
 import { getState } from "../state";
 
 // ============================================================================
@@ -16,7 +17,7 @@ import { getState } from "../state";
  * 原始值类型：字符串、数字、布尔值、null、undefined
  */
 export type PrimitiveValue =
-    | string
+    // | string
     | number
 //    | boolean
 //    | null
@@ -394,11 +395,15 @@ export const createFunctionCallExpression = <TFunc extends FuncExplTFuncBase>(
     return new Expression(template);
 };
 
+export const isFuncExpl = <TFunc extends FuncExplTFuncBase>(formula: Formula): formula is FuncExpl<TFunc> => {
+    return formula instanceof FuncExplClass && formula.type === FormulaType.Function;
+}
+
 // ============================================================================
-// CtxExp 相关类型定义和实现
+//   CtxExp 相关类型定义和实现
 // ============================================================================
 
-export type CtxKind = 'with' | 'for' | 'sum' | 'int' | 'func';
+export type CtxKind = 'with' | 'for' | 'sum' | 'int' | 'prod' | 'func' | 'diff';
 
 export type CtxExpBody = PrimitiveValue | Expression | VarExpl;
 
@@ -454,6 +459,17 @@ export class CtxVar extends Formula {
     protected get _content(): string {
         return this.name;
     }
+}
+
+declare module "../state" {
+    interface CtxExpState {
+        head?: CtxExpHeadState;
+    }
+}
+
+export interface CtxExpHeadState {
+    template: TemplatePayload;
+    ast: CtxFactoryHeadASTNode;
 }
 
 /**

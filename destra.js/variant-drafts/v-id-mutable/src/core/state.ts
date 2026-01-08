@@ -35,10 +35,19 @@ import { Label } from "./formula/label";
 export interface CtxVarState { }
 export interface ExplIdState { }
 export interface StyleState { }
+export interface ASTState { }
+export interface CompileState { }
+
 export interface FormulaState {
+    // State specific to CtxVar --- realname
     ctxVar?: CtxVarState;
+    // State specific to Expl --- id, realname, ...
     explId?: ExplIdState;
+
+    // Common states
     style?: StyleState;
+    ast?: ASTState;
+    compile?: CompileState;    // ast tree, compiled latex string
 }
 
 /**
@@ -52,11 +61,11 @@ const formulaStates = new WeakMap<Formula, FormulaState>();
 /**
  * Label 状态
  */
-export interface LabelCompileState {
-    compiled?: string;
-}
 export interface LabelState {
     compile?: LabelCompileState;
+}
+export interface LabelCompileState {
+    compiled?: string;
 }
 const labelStates = new WeakMap<Label, LabelState>();
 

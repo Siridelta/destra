@@ -7,10 +7,10 @@ export interface IdMutable {
      * 在现有 ID 前添加前缀段
      * @param segment ID 片段
      */
-    idPrepend(segment: string): this;
+    prefix(segment: string): this;
 }
 export const idMutableMethods = [
-    'idPrepend'
+    'prefix'
 ] as const satisfies (keyof IdMutable)[];
 
 /**

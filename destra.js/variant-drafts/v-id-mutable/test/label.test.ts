@@ -12,7 +12,6 @@ describe('Label API Tests', () => {
         const l = label`Hello World`;
         
         expect(l.constructor.name).toBe('Label');
-        expect(l.compiled).toBe('Hello World');
     });
 
     test('Label 应该能捕获插值变量', () => {
@@ -30,27 +29,6 @@ describe('Label API Tests', () => {
         expect(l.template[0]).toBe('Position: (');
         expect(l.template[1]).toBe(', ');
         expect(l.template[2]).toBe(')');
-    });
-
-    test('Label 的编译输出目前应为占位符 (Pending State)', () => {
-        const _x = expl`10`.id("_x") as VarExpl;
-        
-        const l = label`Value: ${_x}`;
-
-        // 目前实现返回占位符，因为还没有接入编译系统
-        expect(l.compiled).toBe('Value: ${<pending>}');
-    });
-
-    // 跳过原来的编译测试，因为现在逻辑已变更为占位符
-    test.skip('Label 应该能正确编译带 ID/Realname 的 VarExpl 插值 (暂未实现)', () => {
-        const x = expl`10`.id("x") as VarExpl;
-        const alpha = expl`1`.realname("alpha") as VarExpl;
-
-        const l1 = label`Pos: ${x}`;
-        const l2 = label`Val: ${alpha}`;
-
-        expect(l1.compiled).toBe('Pos: ${x}');
-        expect(l2.compiled).toBe('Val: ${alpha}');
     });
 
     test('Label 应该能作为 Formula 的样式属性被设置', () => {

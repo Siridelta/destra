@@ -17,7 +17,7 @@ describe('Selection', () => {
         const b = expl`(3, 4)`.id('b');
         
         const sel = selection({ a, b });
-        sel.idPrepend('group');
+        sel.prefix('group');
         
         expect(a.id()).toBe('group.a');
         expect(b.id()).toBe('group.b');
@@ -33,20 +33,20 @@ describe('Selection', () => {
         // outer selection containing an expl and the inner selection
         const outer = selection({ a, inner });
         
-        outer.idPrepend('root');
+        outer.prefix('root');
         
         expect(a.id()).toBe('root.a');
         expect(b.id()).toBe('root.b');
     });
 
     it('should handle multiple levels of nesting and prepending', () => {
-        const myVar = expl`x`.id('myVar');
+        const myVar = expl`0 in 0:1:1`.id('myVar');
         
         const level1 = selection({ myVar });
-        level1.idPrepend('L1'); // myVar -> L1.myVar
+        level1.prefix('L1'); // myVar -> L1.myVar
         
         const level2 = selection({ level1 });
-        level2.idPrepend('L2'); // myVar -> L2.L1.myVar
+        level2.prefix('L2'); // myVar -> L2.L1.myVar
         
         expect(myVar.id()).toBe('L2.L1.myVar');
     });
@@ -55,10 +55,10 @@ describe('Selection', () => {
         // calculate: strictly typed selection only accepts IdMutable, 
         // but in JS runtime anything could happen. 
         // Our implementation checks `isIdMutable`.
-        const a = expl`a`.id('a');
+        const a = expl`1`.id('a');
         const sel = selection({ a, random: 123 } as any);
         
-        sel.idPrepend('test');
+        sel.prefix('test');
         
         expect(a.id()).toBe('test.a');
         expect(sel.random).toBe(123);
@@ -71,7 +71,7 @@ describe('Selection', () => {
         });
 
         const sel = selection({ createPoint });
-        sel.idPrepend('lib');
+        sel.prefix('lib');
 
         const pt = createPoint('origin');
         expect(pt.id()).toBe('lib.origin');

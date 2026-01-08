@@ -1,7 +1,7 @@
 import { IdMutable } from "./idMutable";
 import { IdData } from "../formula/id";
 import { createRegExp } from "magic-regexp";
-import { idSegmentPattern } from "../expr-dsl/syntax/commonRegExpPatterns";
+import { idSegmentPattern } from "../expr-dsl/syntax-reference/commonRegExpPatterns";
 
 /**
  * 自定义 ID 修改量类型（id => newId 函数）
@@ -23,7 +23,7 @@ export type DrvFuncsType = {
 }
 
 export const drvFuncs = {
-    'idPrepend': (idData: IdData, drvData: DrvDataTypes['idPrepend']['data']) => {
+    'prefix': (idData: IdData, drvData: DrvDataTypes['prefix']['data']) => {
         const idSegmentRegex = createRegExp(idSegmentPattern);
         const [segment] = drvData;
 

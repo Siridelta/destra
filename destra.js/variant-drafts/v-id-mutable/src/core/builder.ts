@@ -32,7 +32,7 @@ export type Builder<TFunc extends (...args: any[]) => any> = TFunc & IdMutable;
  * });
  * 
  * // createPoint 是一个 Builder
- * createPoint.idPrepend("system");
+ * createPoint.prefix("system");
  * 
  * // 调用生成函数
  * const p = createPoint(1, 2); 
