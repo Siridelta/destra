@@ -1,5 +1,5 @@
 import { FormulaVisitor } from "../base-visitor";
-import { getCtxNodeCtxVars, isCtxClause, isPointExp, isVarIR, scanUdRsVarRefs } from "../helpers";
+import { getCtxNodeCtxVars, isCtxClause, isTupleExp, isVarIR, scanUdRsVarRefs } from "../helpers";
 import { reservedVars } from "../../../syntax-reference/reservedWords";
 import { maybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
@@ -131,13 +131,13 @@ function resolveNamedFuncDef(IRNode: maybeFuncDefIRNode, content: any): Function
     }
 }
 function resolveAnonymousFuncDef(lhs: any, rhs: any): FunctionDefinitionASTNode {
-    if (!isPointExp(lhs)) {
+    if (!isTupleExp(lhs)) {
         throw new Error(
             `Invalid syntax: Anonymous function definition must start with an parameter list. `
             + `Got [${lhs.type}].`
         );
     }
-    const params = lhs.coords;
+    const params = lhs.items;
     // Check params are all varIRs
     for (const param of params) {
         if (!isVarIR(param)) {
@@ -158,20 +158,8 @@ function resolveAnonymousFuncDef(lhs: any, rhs: any): FunctionDefinitionASTNode 
     }
 }
 
-// If there is any pointCoordsIR node in the AST, this means there is invalid syntax of commas
-function checkNoPointCoordsIR(ast: any) {
-    const enter = (node: any) => {
-        if (node?.type === "pointCoordsIR") {
-            throw new Error(
-                `Invalid syntax: Unrecognized comma syntax with ${node.coords.map((c: any) => `[${c.type}]`).join(", ")}.`
-            );
-        }
-    }
-    traverse(ast, { enter });
-}
-
 FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
-    let [lhs, rhs, ...remains] = this.batchVisit(ctx.actionBatchLevel);
+    let [lhs, rhs, ...remains] = this.batchVisit(ctx.commasLevel);
     const equalOp = ctx['=']?.[0];
     const tildeOp = ctx['~']?.[0];
     const arrowOp = ctx['=>']?.[0];
@@ -192,14 +180,6 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     } else {
         resolveVarIRs(lhs);
         resolveVarIRs(rhs);
-    }
-
-    // Check no pointCoordsIR
-    if (funcDefAST) {
-        checkNoPointCoordsIR(funcDefAST);
-    } else {
-        checkNoPointCoordsIR(lhs);
-        checkNoPointCoordsIR(rhs);
     }
 
     // '=', 'myVar = ...'

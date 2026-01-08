@@ -98,7 +98,7 @@ export function initAtomicRules(this: FormulaParser) {
 
     this.parenExp = this.RULE("parenExp", () => {
         this.CONSUME(ParenthesisOpen);
-        this.SUBRULE(this.actionBatchLevel);
+        this.SUBRULE(this.commasLevel);
         this.CONSUME(ParenthesisClose);
     });
 

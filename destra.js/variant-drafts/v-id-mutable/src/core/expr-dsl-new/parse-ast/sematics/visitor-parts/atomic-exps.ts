@@ -3,7 +3,7 @@ import { FormulaVisitor } from "../base-visitor";
 import { BuiltinFuncASTNode, SubstitutionASTNode, VarIRNode } from "./terminals";
 import { SupportOmittedCallFunc } from "../../tokens/reserved-words/builtin-funcs/categories";
 import { RangeDots } from "../../tokens/op-and-puncs";
-import { ActionBatchASTNode, PointCoordsIRNode } from "./actionBatch-level";
+import { CommasASTNode } from "./commas-level";
 
 
 declare module '../base-visitor' {
@@ -47,9 +47,9 @@ export type ParenExpASTNode = {
     content: any,
 }
 
-export type PointExpASTNode = {
-    type: "pointExp",
-    coords: any[],
+export type TupleExpASTNode = {
+    type: "tupleExp",
+    items: any[],
 }
 
 export type ListExpASTNode = {
@@ -147,13 +147,13 @@ FormulaVisitor.prototype.varOrCall = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.parenExp = function (ctx: any) {
-    const content = this.visit(ctx.actionBatchLevel) as PointCoordsIRNode | ActionBatchASTNode;
+    const content = this.visit(ctx.commasLevel);
 
-    // point coords IR node -> PointExp
-    if (content.type === 'pointCoordsIR') {
+    // commas node -> TupleExp
+    if (content.type === 'commas') {
         return {
-            type: "pointExp",
-            coords: content.coords,
+            type: "tupleExp",
+            items: content.items,
         }
     }
     // other types -> ParenExp

@@ -8,7 +8,7 @@ declare module './parser' {
         inLevel: any;
         sliderDef: any;
         topLevel: any;
-        actionBatchLevel: any;
+        commasLevel: any;
         actionLevel: any;
     }
 }
@@ -57,7 +57,7 @@ export function initFormulaRules(this: FormulaParser) {
     });
 
     this.topLevel = this.RULE("topLevel", () => {
-        this.SUBRULE(this.actionBatchLevel);
+        this.SUBRULE(this.commasLevel);
         this.OPTION(() => {
             this.OR([
                 {
@@ -67,7 +67,7 @@ export function initFormulaRules(this: FormulaParser) {
                             { ALT: () => this.CONSUME(ArrowFunc) },
                             { ALT: () => this.CONSUME(Equal) },
                         ]);
-                        this.SUBRULE2(this.actionBatchLevel);
+                        this.SUBRULE2(this.commasLevel);
                     }
                 },
                 {
@@ -75,7 +75,7 @@ export function initFormulaRules(this: FormulaParser) {
                         this.CONSUME(TopLevelComparisonOperator);
                         this.AT_LEAST_ONE_SEP({
                             SEP: TopLevelComparisonOperator,
-                            DEF: () => this.SUBRULE3(this.actionBatchLevel),
+                            DEF: () => this.SUBRULE3(this.commasLevel),
                         });
                     }
                 },
@@ -83,7 +83,7 @@ export function initFormulaRules(this: FormulaParser) {
         });
     });
 
-    this.actionBatchLevel = this.RULE("actionBatchLevel", () => {
+    this.commasLevel = this.RULE("commasLevel", () => {
         this.AT_LEAST_ONE_SEP({
             SEP: Comma,
             DEF: () => this.SUBRULE(this.actionLevel),

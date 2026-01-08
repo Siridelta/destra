@@ -1,7 +1,7 @@
 import { CtxVar, Formula, Substitutable } from "../../../formula/base";
 import { getState } from "../../../state";
 import { DiffClauseASTNode, ForClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode, WithClauseASTNode } from "./visitor-parts/addSub-level"
-import { PointExpASTNode } from "./visitor-parts/atomic-exps";
+import { TupleExpASTNode } from "./visitor-parts/atomic-exps";
 import { FormulaVisitor } from "./base-visitor";
 import { SubstitutionASTNode, VarIRNode } from "./visitor-parts/terminals";
 import { FunctionDefinitionASTNode } from "./visitor-parts/top-level";
@@ -117,8 +117,8 @@ export function scanUdRsVarRefs(node: any) {
     };
 }
 
-export function isPointExp(node: any): node is PointExpASTNode {
-    return node?.type === "pointExp";
+export function isTupleExp(node: any): node is TupleExpASTNode {
+    return node?.type === "tupleExp";
 }
 
 export function isVarIR(node: any): node is VarIRNode {
