@@ -67,12 +67,13 @@ export {
 // ============================================================================
 
 import {
-    expr, expl, For, With, Sum, Int, Func,
+    expr, expl, For, With, Sum, Int, Prod, Diff, Func,
 } from "./factories";
-export { expr, expl, For, With, Sum, Int, Func };
+export { expr, expl, For, With, Sum, Int, Prod, Diff, Func };
 
 export * from "./selection";
 export * from "./builder";
+export * from "./compile";
 
 // ============================================================================
 // 导出解析器相关（可选，供高级用户使用）
