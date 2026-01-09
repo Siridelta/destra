@@ -153,7 +153,7 @@ graph TD
 ### Step 1: ID 查重与索引构建 (ID Registry & Collision Check)
 
 **输入**: `Graph` 对象
-**输出**: 填充 `CompileContext` 的 `idMap`, `formulaToFolder`, `rootFormulas`, `implicitRootFormulas`
+**输出**: 填充 `CompileContext` 的 `idMap`, `formulaToFolder`, `rootFormulas`, `implicitRootFormulas`, `ctxVarForceRealnameSet`
 
 检查所有表达式对象及文件夹的 ID 是否冲突，并构建索引表：ID-公式表，公式-文件夹表，可供后续步骤使用。
 
@@ -181,16 +181,17 @@ graph TD
         *  **定义自依赖检查**: 确保上下文变量的定义表达式不依赖同级变量。
     *   已确定在验证合法性时最佳算符是逐公式的"需求(Requirement)计算"，因此大部分合法性检查的工作已被迁移至公式创建时即时计算，Step 1.5 仅负责在最终各 root 入口处检查验收。
     *   详见 [结构合法性检查](./结构合法性检查.md)。
+6.  **CtxVar 强制真名收集**: 提前收集所有 `CtxVar` 对象的强制真名，用于后续真名决议。
 
 ### Step 2: 全局真名决议 (Realname Resolution)
 
-**输入**: `CompileContext` (主要使用 `idMap`)
+**输入**: `CompileContext` (主要使用 `idMap`, `ctxVarForceRealnameSet`)
 **输出**: 填充 `CompileContext` 的 `globalRealnameMap`, `globalUsedNames`
 
 基于 Step 1 的 ID 表，确定每个公式在 Desmos 中的最终变量名 (Realname)。这一步至关重要，因为后续的上下文变量必须避让这些全局真名。
 
 构建一个全局真名表：`Map<Formula, string>`，记录 Expl 公式-决议真名的关系。
-同时构建一个全局已用名集合：`Set<string>`，包含所有决议出的真名以及 Desmos 内置关键字（如 `x`, `y`, `sin` 等）。
+同时构建一个全局已用名集合：`Set<string>`，包含所有决议出的真名以及 Desmos 内置关键字（如 `x`, `y`, `sin` 等）。CtxVar 的强制真名也加入这个集合。CtxVar 的强制真名和 Expl 的强制真名之间也不能冲突，如果冲突需要报错。CtxVar 之间强制真名暂时可以重复，后续再检查是否在任意一条 Scope Node 链上重复。
 
 我们围绕三层命名系统的设计实际上形成了不同的命名优先级，所以需要分批优先命名。优先级为：
 
@@ -231,17 +232,15 @@ graph TD
 
 Destra 需要支持在不同的作用域语句表达式中使用相同的上下文变量名，并自动解决冲突重命名为不同的真名。这一步位于全局真名决议之后，因为上下文变量必须**无条件避让**全局变量名，以防止意外覆盖。
 
-为了解决嵌套上下文和重名冲突问题，我们引入 **Scope Tree** 数据结构，构建一张只包含我们关心节点的精简版依赖图。
+为了解决嵌套上下文和重名冲突问题，我们引入 **Scope DAG** 数据结构，构建一张只包含我们关心节点的精简版依赖图。
 
-1.  **Scope Tree 构建**: 遍历图表依赖关系，构建一棵包含所有“Factory 作用域”和“Internal DSL 作用域”的树。
-2.  **两阶段决议**:
-    *   **Bottom-up**: 收集强制命名约束。
-    *   **Top-down**: 自顶向下分配真名。在每个节点，首先继承父级已占用的名字和 `globalUsedNames` 作为“禁区”，然后分配本级变量名。如果发生冲突（无论是与全局变量，还是与父级上下文变量），则对本级变量进行重命名（数字增量）。
+1.  **Scope DAG 构建**: 遍历图表依赖关系，构建一张包含所有“Factory 作用域”和“Internal DSL 作用域”的 DAG。
+2.  自顶向下分配真名。在每个节点，首先继承父级已占用的名字和 `globalUsedNames` 作为“禁区”，然后分配本级变量名。如果发生冲突（无论是与全局变量，还是与父级上下文变量），则对本级变量进行重命名（数字增量）。
 
 这确保了：
 *   上下文变量永远避让全局变量。
 *   内部上下文变量永远避让外部上下文变量（除非用户显式强制）。
-*   同名变量在不同嵌套层级会被自动区分（如 `i`, `i_{2}`）。
+*   同名变量在同一条 Scope Node 链上的不同嵌套层级会被自动区分（如 `i`, `i_{2}`），但如果完全不存在同一条 Scope Node 链，两个 Scope Node 之间同名变量可以重复。
 
 详见 [上下文变量真名决议](./上下文变量真名决议.md)。
 
