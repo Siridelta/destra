@@ -8,6 +8,7 @@ import { CstNode, IToken } from "chevrotain";
 import { preprocess } from "./preprocess";
 
 export { FormulaASTNode, CtxFactoryExprDefHeadASTNode, CtxFactoryNullDefHeadASTNode, CtxFactoryRangeDefHeadASTNode };
+export * from "./sematics/helpers";
 
 /**
  * 构建可检查的源代码字符串

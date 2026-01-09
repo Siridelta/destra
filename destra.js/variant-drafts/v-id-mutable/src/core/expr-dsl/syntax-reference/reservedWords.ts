@@ -33,6 +33,7 @@ export const builtInFuncs4 = [
     "real", "imag", "arg", "conj",
     "midpoint", "distance", "polygon", "length",
     "join", "sort", "shuffle", "unique",
+    "rgb", "hsv", "okhsv", "oklab", "oklch",
 ] as const;
 export const builtInFuncs5 = [
     "mean", "median", "min", "max", "quartile", "quantile", "stdev", "stdevp", "var", "varp", "mad", "cov", "covp", "corr", "spearman", "stats", "count", "total",

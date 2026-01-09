@@ -116,6 +116,27 @@ export default new Graph({
 
 编译过程被划分为以下四个有序步骤。设计原则是**"错误前置"**：所有可能导致失败的检查（如 ID 冲突等）都应在前面几个步骤中完成，以尽可能 fast fail，进入后续步骤之后过程不再会失败。
 
+为了在各步骤间高效共享数据，我们引入一个 **`CompileContext`** 对象，贯穿整个编译流程。
+
+```typescript
+interface CompileContext {
+    // Step 1 产出
+    idMap: Map<string, Formula>;            // ID -> Formula
+    formulaToFolder: Map<Formula, Folder>;  // Formula -> Folder
+    rootFormulas: Set<Formula>;             // 显式顶级公式
+    implicitRootFormulas: Set<Formula>;     // 隐式顶级公式 (依赖型)
+    
+    // Step 2 产出
+    globalRealnameMap: Map<Formula, string>; // Formula -> Global Realname
+    globalUsedNames: Set<string>;            // 所有已占用的全局真名 (含 Desmos 关键字)
+
+    // Step 3 产出
+    scopeTree: ScopeTree;                    // 上下文作用域树
+    ctxVarRealnameMap: Map<CtxVar, string>;  // CtxVar -> Realname
+    astVarRealnameMap: Map<ASTNode, string>; // Internal AST Node -> Realname
+}
+```
+
 由于我们切换到了创建时即时解析 AST 的方案，所有 AST 数据已经预备就绪，位于每个 Formula 对象的 `getState(formula).ast.ast` 属性中。
 
 ```mermaid
@@ -127,6 +148,9 @@ graph TD
 ```
 
 ### Step 1: ID 查重与索引构建 (ID Registry & Collision Check)
+
+**输入**: `Graph` 对象
+**输出**: 填充 `CompileContext` 的 `idMap`, `formulaToFolder`, `rootFormulas`, `implicitRootFormulas`
 
 检查所有表达式对象及文件夹的 ID 是否冲突，并构建索引表：ID-公式表，公式-文件夹表，可供后续步骤使用。
 
@@ -147,11 +171,29 @@ graph TD
     *   如果发现两个不同对象拥有相同 ID，则报错。
     *   如果发现对象 ID 为空 (undefined/null/empty string)，则报错。（一般用户会使用创作形式，即使未手动调用 `.id()`，系统也应自动生成 ID，因此最终编译时遇到空 ID 属于异常状态）。
 
+#### Step 1.5: 结构合法性检查 (Structural Validation)
+
+**输入**: `CompileContext` (利用 `idMap` 等索引)
+**输出**: 无 (仅抛出错误)
+
+确保图表的依赖结构符合 Destra 和 Desmos 的限制，拦截非法结构。
+
+1.  **CtxVar 逃逸检查**: 确保上下文变量只在其定义的作用域内被引用，防止从 Factory 作用域逃逸到全局或其他无关路径。采用“染色法”验证所有引用的合法性。
+2.  **函数闭包检查**: 确保 `FuncExpl` 内部只引用自身的参数，不引用外部 CtxVar（Desmos 函数不支持闭包）。
+3.  **With 嵌套检查**: 确保 `With` 语句没有通过内联表达式发生非法嵌套。
+4.  **定义自依赖检查**: 确保上下文变量的定义表达式不依赖同级变量。
+
+详见 [结构合法性检查](./结构合法性检查.md)。
+
 ### Step 2: 全局真名决议 (Realname Resolution)
 
-基于 Step 1 的 ID 表，确定每个公式在 Desmos 中的最终变量名 (Realname)。
+**输入**: `CompileContext` (主要使用 `idMap`)
+**输出**: 填充 `CompileContext` 的 `globalRealnameMap`, `globalUsedNames`
 
-构建一个全局真名表：`Map<string, Formula>`，记录 Expl 公式-决议真名的关系，供后续步骤使用。
+基于 Step 1 的 ID 表，确定每个公式在 Desmos 中的最终变量名 (Realname)。这一步至关重要，因为后续的上下文变量必须避让这些全局真名。
+
+构建一个全局真名表：`Map<Formula, string>`，记录 Expl 公式-决议真名的关系。
+同时构建一个全局已用名集合：`Set<string>`，包含所有决议出的真名以及 Desmos 内置关键字（如 `x`, `y`, `sin` 等）。
 
 我们围绕三层命名系统的设计实际上形成了不同的命名优先级，所以需要分批优先命名。优先级为：
 
@@ -167,7 +209,7 @@ graph TD
     Desmos 的变量名有严格限制（单字符主名 + 可选下标）。为了在严格限制下保持 ID 的可读性，采用以下转换算法：
     假设 ID 为 `path.t_o._KEY` (以 `.` 分割)
     *   **去除下划线**：如果 ID 中每段里包含下划线，则清洗/去除下划线。ID 变为 `path.to.KEY`。
-    *   **Head (主字符)**: 为 ID 末段 `KEY` 的首字母。例外是，如果 `KEY` 是希腊字母全拼 (即 alias, 如 `alpha`)，则主字符为该希腊字母的 Latex 指令 (如 `\alpha`)。
+    *   **Head (主字符)**: 为 ID 末段 `KEY` 的首字母。例外是，如果 `KEY` 能检测到以希腊字母英文别名开头 (如 `alpha`)，则主字符定为该希腊字母的 Latex 指令 (如 `\alpha`)。
     *   **Body (下标前缀)**: `KEY` 的剩余部分。
     *   **Qualifiers (下标后缀)**: 将 ID 的路径部分各段 (`path`, `to`) **倒序**排列，并将各段首字母大写（尽量转换为驼峰命名，但如果用户乱写我们也没办法x）。
     *   **结果**: `Head_{Body}{Qualifiers}`。
@@ -175,49 +217,54 @@ graph TD
         *   `path.to.KEY` -> `K_{EYToPath}`。
         *   `scene_levelA.portal_0.pos.x` -> `x_{PosPortal0SceneLevelA}`。
          
-    *   注：如果设置了 realname 则跳过初始转换。
+    *   注：如果设置了 realname 则跳过初始转换；但是也需要进行规范化处理，统一转换为带花括号形式 `t` -> `t_{2}`。
 3.  **分批处理冲突**: 
-    检查初步转换后的名称是否与 Desmos 内置关键词（如 `x`, `y`, `sin`）或其他已决议名称冲突。由于 Step 1 已经保证了 ID 唯一，这里的冲突主要来自初步转换后的命名空间压缩。此时分批逐个进行**自动重命名**。
-    *   按照优先级依次处理第 1-3 批。在每一批里依次遍历每个公式，遇到与 Desmos 内置关键词或前面已分配名称冲突时，采用添加数字后缀的方式，递增尝试直到不冲突为止。
-    *   重命名冲突的方案：**数字增量策略**。
+    检查初步转换后的名称是否与 `globalUsedNames` (初始包含 Desmos 关键字) 冲突。由于 Step 1 已经保证了 ID 唯一，这里的冲突主要来自初步转换后的命名空间压缩。此时分批逐个进行**自动重命名**。
+    *   按照优先级依次处理第 1-3 批。在每一批里依次遍历每个公式，遇到冲突时，采用添加数字后缀的方式，递增尝试直到不冲突为止。
+    *   每确定一个真名，立即将其加入 `globalRealnameMap` 和 `globalUsedNames`。
+    *   重命名冲突的方案：目前采用**数字增量策略**。
         1.  如果目标名称 `Name` 已存在，尝试在下标末尾追加数字 `2`，即生成 `Name` -> `Name2` (如果原名无下标则新建下标，如果原名有下标则追加在下标内容最后)。
         2.  如果 `Name2` 也冲突，则尝试 `Name3`，以此类推，直到找到未被占用的名称。
-        3.  由于 ID 唯一性的保证，这种冲突仅源于命名空间的压缩，通常只会产生极小的数字后缀，在保证唯一性的同时最大程度保留可读性。
-*   注：
-    *    在 Desmos Latex 中，如果下标包含多个字符，必须用花括号包裹。即 `x_2` 可以写成 `x_2`，但 `x_{10}` 必须写成 `x_{10}`。为了统一，我们建议生成的后缀始终在花括号内，如果没有花括号则始终创建新的花括号。例如：`t` -> `t_{2}`，`v_{al}` -> `v_{al2}`。
+    *   注：我们生成的后缀始终在花括号内，例如：`t` -> `t_{2}`。
 
 ### Step 3: 上下文变量真名决议 (Context Variable Realname Resolution)
 
-Destra 需要支持在不同的作用域语句表达式中使用相同的上下文变量名，并自动解决冲突重命名为不同的真名。同时这一步位于全局真名决议之后，也符合我们的直觉：上下文变量名的真名决议优先级要比前面全局变量的三个优先级都低，不能为了上下文变量名而调整全局变量名，但是为了不与全局变量名冲突而调整上下文变量名是合理的。
+**输入**: `CompileContext` (主要使用 `globalUsedNames`)
+**输出**: 填充 `CompileContext` 的 `scopeTree`, `ctxVarRealnameMap`, `astVarRealnameMap`
 
-在 Desmos 里上下文语句的作用域覆盖它的整个身体表达式的上游依赖树。只要在它的身体表达式的依赖树范围内，引用该 Desmos 上下文变量名就必定会触发上下文补全的语义。因此，当表达式树的一部分同时位于两个上下文语句的作用域（嵌套的）时，如果这两个上下文语句具有相同的变量名，就会出现一些很难建模的行为，一个变量会覆盖其他变量，甚至还会覆盖全局变量：更内部的强型(with)上下文变量 > 更外部的强型(with)上下文变量 > 全局变量 > 更内部的弱型(其他)上下文变量 > 更外部的弱型(其他)上下文变量。
+Destra 需要支持在不同的作用域语句表达式中使用相同的上下文变量名，并自动解决冲突重命名为不同的真名。这一步位于全局真名决议之后，因为上下文变量必须**无条件避让**全局变量名，以防止意外覆盖。
 
-但是在 Destra 里，用户组织的 JS 表达式结构，或者更具体地说用户选择将哪个上下文变量嵌入到哪个表达式中，是已经体现了用户的意图的；更何况默认模式是比较偏向于构建和工程化、而非完全的特性利用的。所以我们需要避免在 Destra 里建模、或者中介那些刚才提到的 Desmos 上下文变量名覆盖的特性（和优先级规则），而是要以我们/用户自己的、在 JS 里符合直觉地构建的这些逻辑结构为准，在 Desmos 里通过调整上下文变量命名、“避让冲突/碰撞”的方法来确保 JS 侧 / Destra 默认模式侧结构逻辑在 Desmos 里正确呈现，即使要以命名有概率被轻微调整为代价。同时因为 Desmos 原生上下文变量覆盖特性难以通过实验完全确定，且机制可能反直觉，因此我们宁可不利用任何 Desmos 原生的上下文变量覆盖特性，宁可在任何一处有冲突处都进行重命名/避让。
+为了解决嵌套上下文和重名冲突问题，我们引入 **Scope Tree** 数据结构，构建一张只包含我们关心节点的精简版依赖图。
 
-因此我们需要对上下文变量进行合理的重命名与冲突解决：只要两个（或多个）作用域有重叠、重叠区域有其中一个上下文语句的上下文变量的引用，并且该上下文变量的名称在两个以上作用域中出现（重名），就需要视为冲突而被重命名。
+1.  **Scope Tree 构建**: 遍历图表依赖关系，构建一棵包含所有“Factory 作用域”和“Internal DSL 作用域”的树。
+2.  **两阶段决议**:
+    *   **Bottom-up**: 收集强制命名约束。
+    *   **Top-down**: 自顶向下分配真名。在每个节点，首先继承父级已占用的名字和 `globalUsedNames` 作为“禁区”，然后分配本级变量名。如果发生冲突（无论是与全局变量，还是与父级上下文变量），则对本级变量进行重命名（数字增量）。
 
-或者我们可以再收窄一下范围：只要上下文语句嵌套并存在重名变量时，无论在下文中是否存在对该变量的引用，都需要视为冲突而被重命名。
+这确保了：
+*   上下文变量永远避让全局变量。
+*   内部上下文变量永远避让外部上下文变量（除非用户显式强制）。
+*   同名变量在不同嵌套层级会被自动区分（如 `i`, `i_{2}`）。
 
 详见 [上下文变量真名决议](./上下文变量真名决议.md)。
 
 ### Step 4: 编译输出 (Compilation)
 
-这是"组装"阶段，将之前准备好的数据合并为最终结果。由于前置步骤已完成校验及解析，此步骤应一气呵成。
+**输入**: 完整的 `CompileContext`
+**输出**: `DesmosState` JSON 对象
 
-1.  **规范化 AST 生成**:
-    
-    由于 Desmos 和 Destra DSL 语法上的一些差异，我们需要在编译前对 AST 进行一些修改，例如补全乘号、补全小括号、展开各种语法糖等等。可能需要直接修改 AST 节点，也可能需要在原 AST 旁边重新生成一个新的规范化 AST。（先暂时采用后者？）
+这是"组装"阶段，将 `CompileContext` 中的数据合并为最终结果。
 
-2.  **Latex 生成**:
-    *   利用 Step 2 的 AST 和 Step 3 的 Realname Map，生成最终的 Latex 字符串。
-    *   递归处理插值：将依赖对象的引用替换为其 Realname (for Expl) 或者其 Latex 代码 (for Expr)。这里 Latex 代码也应该被缓存到 state 里，方便一个 expr 对象被多次复用。
-    *   处理上下文变量：局部变量（如 `For` 里的 `i`）直接使用其字面名，不进行全局决议。
-3.  **Desmos Item 组装**:
-    *   **Folder**: 为 Folder 对象分配 Desmos Row ID，生成 `{ type: 'folder', id: string, ... }`。
-    *   **Formula**: 为 Formula 对象分配 Desmos Row ID，生成 `{ type: 'expression', id: string, latex: string, ... }`。
-        *   如果该公式在 Step 1 中被标记为属于某文件夹，添加 `folderId` 属性。
-    *   **样式组装**: 读取 `formula.style` 数据，通过映射函数转换为 Desmos 属性。（Destra Style 也包括了参数方程定义域、以及 click handler 等）
-    *   **Slider 注入**: 读取 `Expl` 的 Slider 定义 (`min`, `max`, `step`)，转换为 Desmos 属性。
-    *   Desmos Row ID 可以直接使用公式的 ID (或其 hash)，以保持稳定性。
-4.  **JSON 构建**:
+1.  **Latex 生成**:
+    *   利用 `globalRealnameMap` 和 `ctxVarRealnameMap`/`astVarRealnameMap`，生成最终的 Latex 字符串。
+    *   递归处理插值：将依赖对象的引用替换为其 Realname (for Expl) 或者其 Latex 代码 (for Expr)。
+    *   **规范化**: 在生成过程中，处理语法糖展开、补全乘号/括号等规范化操作。
+2.  **Desmos Item 组装**:
+    *   **Folder**: 生成 `{ type: 'folder', id: string, ... }`。
+    *   **Formula**: 生成 `{ type: 'expression', id: string, latex: string, ... }`。
+        *   使用 `formulaToFolder` 查找归属，添加 `folderId`。
+    *   **样式组装**: 读取 `formula.style`，转换为 Desmos 属性。
+    *   **Slider 注入**: 读取 `Expl` 的 Slider 定义，转换为 Desmos 属性。
+3.  **JSON 构建**:
     *   生成包含 `version`, `randomSeed`, `graph`, `expressions` 的完整 JSON 对象。
+
