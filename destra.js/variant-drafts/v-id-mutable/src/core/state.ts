@@ -37,6 +37,7 @@ export interface ExplIdState { }
 export interface StyleState { }
 export interface ASTState { }
 export interface CompileState { }
+export interface CtxValidityState {}
 
 export interface FormulaState {
     // State specific to CtxVar --- realname
@@ -48,6 +49,7 @@ export interface FormulaState {
     style?: StyleState;
     ast?: ASTState;
     compile?: CompileState;    // ast tree, compiled latex string
+    ctxValidity?: CtxValidityState;
 }
 
 /**

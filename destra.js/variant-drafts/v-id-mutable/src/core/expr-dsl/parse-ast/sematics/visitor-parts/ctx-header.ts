@@ -1,5 +1,7 @@
 import { FormulaVisitor } from "../base-visitor";
 import { CtxVarExprDefASTNode, CtxVarRangeDefASTNode, CtxVarNullDefASTNode } from "./addSub-level";
+import { traverse } from "../helpers";
+import { resolveVarIRs } from "./top-level";
 
 declare module '../base-visitor' {
     interface FormulaVisitor {
@@ -29,9 +31,48 @@ export type CtxFactoryHeadASTNode =
     | CtxFactoryRangeDefHeadASTNode 
     | CtxFactoryNullDefHeadASTNode;
 
+function checkNoMaybeFuncDefIR(ast: any) {
+    traverse(ast, {
+        enter: (node) => {
+            if (node.type === 'maybeFuncDefIR') {
+                throw new Error(
+                    `Invalid Syntax: 'identifier(...)' is not allowed in context factory head.`
+                );
+            }
+        }
+    });
+}
+
+// 额外检查不应包含与本 Context 定义的变量同名的未定义变量
+function ctxHeadResolveVarIRs(ast: any, ctxVarNames: string[]) {
+    // 借用 top-level 的 resolveVarIRs 函数，
+    // 会把 VarIR 转换为 udVar, rsVar 或 ctxVar
+    resolveVarIRs(ast);
+
+    const enter = (node: any) => {
+        if (node.type === 'undefinedVar') {
+            if (ctxVarNames.includes(node.name)) {
+                throw new Error(
+                    `Found dependency on '${node.name}'. Context factory head cannot depend on vars it itself defines.`
+                );
+            }
+        }
+    }
+    traverse(ast, { enter });
+}
+
+function checkNoDuplicateCtxVarNames(ctxVarNames: string[]) {
+    const uniqueNames = new Set(ctxVarNames);
+    if (uniqueNames.size !== ctxVarNames.length) {
+        throw new Error("Duplicate context variable names are not allowed.");
+    }
+}
+
 FormulaVisitor.prototype.ctxFactoryExprDefHead = function (ctx: any): CtxFactoryExprDefHeadASTNode {
     const ctxVarNames = this.batchVisit(ctx.ctxVar);
     const values = this.batchVisit(ctx.value);
+
+    checkNoDuplicateCtxVarNames(ctxVarNames);
 
     // Zipping
     const ctxVarDefs: CtxVarExprDefASTNode[] = ctxVarNames.map((name: string, i: number) => ({
@@ -40,6 +81,11 @@ FormulaVisitor.prototype.ctxFactoryExprDefHead = function (ctx: any): CtxFactory
         subtype: 'expr',
         expr: values[i],
     }));
+
+    ctxVarDefs.forEach(def => {
+        checkNoMaybeFuncDefIR(def.expr);
+        ctxHeadResolveVarIRs(def.expr, ctxVarNames);
+    });
 
     return {
         type: "ctxFactoryHead",
@@ -62,6 +108,11 @@ FormulaVisitor.prototype.ctxFactoryRangeDefHead = function (ctx: any): CtxFactor
         upper: upper,
     };
 
+    [lower, upper].forEach(expr => {
+        checkNoMaybeFuncDefIR(expr);
+        ctxHeadResolveVarIRs(expr, [ctxVarName]);
+    });
+
     return {
         type: "ctxFactoryHead",
         subtype: "range",
@@ -76,6 +127,8 @@ FormulaVisitor.prototype.ctxFactoryNullDefHead = function (ctx: any): CtxFactory
         name: name,
         subtype: 'null',
     }));
+
+    checkNoDuplicateCtxVarNames(ctxVarNames);
 
     return {
         type: "ctxFactoryHead",

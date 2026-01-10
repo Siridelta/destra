@@ -12,6 +12,7 @@ import { anyOf, createRegExp, digit, exactly, letter, maybe, oneOrMore } from "m
 import { specialSymbolsMap, specialSymbolsPaged } from "../expr-dsl/syntax-reference/specialSymbols";
 import { CtxVar, Expl } from "./base";
 import { getState } from "../state";
+import { reservedVars, reservedWords } from "../expr-dsl/syntax-reference/reservedWords";
 
 // ============================================================================
 // 0. 数据结构与状态扩展
@@ -102,7 +103,7 @@ declare module "./base" {
  * 例如：a, a_b, α, α_1, α_1xy, alpha_1xy2z
  * 按理 Destra 还应该防止你使用保留变量（x, y, z, t）作为变量名，但是既然你要使用 realname() 这种 hacky 的方法了，额，那就给你 hack 的空间吧（绝对不是因为我懒得写排除（绝对不是）），不要把你的图表玩坏就好。
  */
-const realnamePattern = exactly(
+export const realnamePattern = exactly(
     exactly("").at.lineStart(),
     anyOf(
         letter,
@@ -111,10 +112,17 @@ const realnamePattern = exactly(
         anyOf(...specialSymbolsPaged.greekLowerCase.chars),
         anyOf(...specialSymbolsPaged.greekUpperCase.chars),
     ).groupedAs("head"),
-    maybe(
+    maybe(anyOf(
         "_",
-        oneOrMore(anyOf(letter, digit)).groupedAs("subscript"),
-    ),
+        anyOf(
+            oneOrMore(anyOf(letter, digit)).groupedAs("subscript1"),
+            exactly(
+                "{",
+                oneOrMore(anyOf(letter, digit)).groupedAs("subscript2"),
+                "}",
+            )
+        )
+    )),
     exactly("").at.lineEnd(),
 );
 
@@ -125,10 +133,8 @@ const realnamePattern = exactly(
  * @throws {TypeError} 当名字不符合规范时抛出
  * @example
  * ```typescript
- * const a = normalizeName("a");
- * console.log(a); // "a"
- * const alpha = normalizeName("α");
- * console.log(alpha); // "alpha"
+ * const a = normalizeName("a");      // "a"
+ * const alpha = normalizeName("α");  // "alpha"
  * ```
  */
 function normalizeName(name: string): string {
@@ -144,7 +150,7 @@ function normalizeName(name: string): string {
             .find(([_, char]) => char === head);
     if (maybeSpecialSymbol) {
         const [alias, _] = maybeSpecialSymbol;
-        const maybeSubscript = match.groups.subscript;
+        const maybeSubscript = match.groups.subscript1 || match.groups.subscript2;
         finalName = maybeSubscript ? `${alias}_${maybeSubscript}` : alias;
     }
     return finalName;
@@ -172,8 +178,12 @@ function _Expl_realname(this: Expl, name?: string): Expl | string | undefined {
     if (typeof name !== 'string') {
         throw new TypeError("真名必须是一个字符串。");
     }
+    const nName = normalizeName(name);
+    if (reservedWords.includes(nName as any)) {
+        throw new TypeError(`Reserved word '${nName}' cannot be used as a realname.`);
+    }
     state.explId ??= {};
-    state.explId.realname = normalizeName(name);
+    state.explId.realname = nName;
     return this;
 }
 
@@ -192,8 +202,12 @@ function _CtxVar_realname(this: CtxVar, name?: string): CtxVar | string | undefi
     if (typeof name !== 'string') {
         throw new TypeError("真名必须是一个字符串。");
     }
+    const nName = normalizeName(name);
+    if (reservedWords.includes(nName as any) && !reservedVars.includes(nName as any)) {
+        throw new TypeError(`Reserved word '${nName}' cannot be used as a realname.`);
+    }
     state.ctxVar ??= {};
-    state.ctxVar.realname = normalizeName(name);
+    state.ctxVar.realname = nName;
     return this;
 }
 CtxVar.prototype.realname = _CtxVar_realname;
@@ -218,3 +232,25 @@ Object.defineProperty(CtxVar.prototype, "_realname", {
     enumerable: true,
     configurable: true,
 });
+
+// --- 更多 Normalize ---
+
+// Normalize name further. Normalizes 'a_1' to 'a_{1}'.
+export function normalizeName2(name: string): string {
+    const match = name.match(createRegExp(realnamePattern));
+    if (!match) {
+        throw new TypeError(`Invalid realname: ${name}`);
+    }
+    const head = match.groups.head!;
+    const maybeSubscript = match.groups.subscript1 || match.groups.subscript2;
+    return `${head}${maybeSubscript ? `_{${maybeSubscript}}` : ''}`;
+}
+
+// Turns greek alias to LaTeX format.
+export function normalizeName3(name: string): string {
+    const match = name.match(/^[a-zA-Z]{2,}/);
+    if (match) {
+        return `\\${name}`;
+    }
+    return name;
+}

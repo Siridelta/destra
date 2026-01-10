@@ -2,12 +2,12 @@ import { lexer } from "./lexing/lexer";
 import { FormulaParser, formulaParser } from "./parsing/parser";
 import { FormulaVisitor } from "./sematics/visitor";
 import type { FormulaASTNode } from "./sematics/visitor-parts/formula";
-import type { CtxFactoryExprDefHeadASTNode, CtxFactoryNullDefHeadASTNode, CtxFactoryRangeDefHeadASTNode } from "./sematics/visitor-parts/ctx-header";
+import type { CtxFactoryExprDefHeadASTNode, CtxFactoryHeadASTNode, CtxFactoryNullDefHeadASTNode, CtxFactoryRangeDefHeadASTNode } from "./sematics/visitor-parts/ctx-header";
 import { TemplatePayload } from "../../formula/base";
 import { CstNode, IToken } from "chevrotain";
 import { preprocess } from "./preprocess";
 
-export { FormulaASTNode, CtxFactoryExprDefHeadASTNode, CtxFactoryNullDefHeadASTNode, CtxFactoryRangeDefHeadASTNode };
+export { FormulaASTNode, CtxFactoryHeadASTNode, CtxFactoryExprDefHeadASTNode, CtxFactoryNullDefHeadASTNode, CtxFactoryRangeDefHeadASTNode };
 export * from "./sematics/helpers";
 
 /**

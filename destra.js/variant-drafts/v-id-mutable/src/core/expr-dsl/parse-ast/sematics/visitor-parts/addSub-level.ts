@@ -76,12 +76,12 @@ export type DiffClauseASTNode = {
 }
 export type ForClauseASTNode = {
     type: "forClause",
-    ctxVarDefs: CtxVarDefASTNode[],
+    ctxVarDefs: CtxVarExprDefASTNode[],
     content: any,
 }
 export type WithClauseASTNode = {
     type: "withClause",
-    ctxVarDefs: CtxVarDefASTNode[],
+    ctxVarDefs: CtxVarExprDefASTNode[],
     content: any,
 }
 

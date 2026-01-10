@@ -68,7 +68,7 @@ export type TopLevelASTNode =
 // traverse and resolve all varIRs in the AST to udVar, rsVar or ctxVar
 // side-effectively modify the AST
 // also supports checking a top-level function definition AST node
-function resolveVarIRs(ast: any) {
+export function resolveVarIRs(ast: any) {
     const ctxNodeStack: any[] = [];
     const enter = (node: any) => {
         const _isCtxClause = isCtxClause(node);

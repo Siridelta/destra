@@ -1,4 +1,5 @@
 import { FormulaVisitor } from "../base-visitor";
+import { SubstitutionASTNode } from "./terminals";
 
 
 declare module '../base-visitor' {
@@ -14,7 +15,7 @@ export type CommasASTNode = {
 }
 export type ActionASTNode = {
     type: "action",
-    target: any, // TODO: placeholder (substitution) AST Node
+    target: SubstitutionASTNode,
     value: any,
 }
 

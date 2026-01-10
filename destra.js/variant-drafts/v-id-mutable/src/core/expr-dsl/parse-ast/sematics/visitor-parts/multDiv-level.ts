@@ -23,6 +23,11 @@ export type DivisionASTNode = {
     left: any,
     right: any,
 }
+export type CrossASTNode = {
+    type: "cross",
+    left: any,
+    right: any,
+}
 export type OmittedCallASTNode = {
     type: "omittedCall",
     func: BuiltinFuncASTNode,

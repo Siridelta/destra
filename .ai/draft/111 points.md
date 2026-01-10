@@ -1,6 +1,19 @@
+todo feats:
+
+- fix `2.real` to `(2).real`
 
 
-fix `2.real` to `(2).real`
+
+
+fix / ...
+
+- xyz / tuv reserved var usage passing down ...?
+
+- udVar & rsVar involving realname resolution ...?
+
+- AST getChildren
+
+
 
 
 later feats:

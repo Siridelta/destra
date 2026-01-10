@@ -23,7 +23,7 @@ export type FactorialASTNode = {
 export type AttrAccessASTNode = {
     type: "attrAccess",
     operand: any,
-    attr: any,
+    attr: string,
 }
 export type ExtensionFuncCallASTNode = {
     type: "extensionFuncCall",

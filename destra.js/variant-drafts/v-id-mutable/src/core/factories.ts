@@ -29,14 +29,26 @@ import { FormulaASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/form
 import { parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula } from "./expr-dsl/parse-ast";
 import { analyzeTypeAndCheck } from "./expr-dsl/analyzeFormulaType";
 import { CtxFactoryHeadASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/ctx-header";
-import { traverse } from "./expr-dsl/parse-ast/sematics/helpers";
+
+import { evalAndSetCtxValidityState } from "./formula/validity";
 
 declare module "./state" {
     interface ASTState {
-        ast: FormulaASTNode | CtxFactoryHeadASTNode;
+        root: FormulaASTNode | CtxFactoryHeadASTNode;
     }
 }
 
+export function setASTState(formula: Formula, ast: FormulaASTNode | CtxFactoryHeadASTNode) {
+    const s = getState(formula);
+    if (s.ast) s.ast.root = ast;
+    else s.ast = { root: ast };
+}
+
+export function setSourceCtx(ctxVar: CtxVar, sourceCtx: CtxExp) {
+    const s = getState(ctxVar);
+    s.ctxVar ??= {};
+    s.ctxVar.sourceCtx = sourceCtx;
+}
 
 // ============================================================================
 // 基础工厂
@@ -81,7 +93,8 @@ export const expr: ExprFactory = Object.assign((strings: TemplateStringsArray, .
             result = new Regression(template);
             break;
     }
-    getState(result).ast ??= { ast };
+    setASTState(result, ast);
+    evalAndSetCtxValidityState(result);
     return result;
 }, {
     type: 'expr' as const
@@ -103,12 +116,11 @@ let explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl =
             break;
         case FormulaType.Function:
             const funcExpl = createCallableFuncExpl(template, info);
-            // 检查函数定义内是否收到外源上下文变量
-            checkNoExternalCtxVarPassingToFunc(funcExpl);
             result = funcExpl;
             break;
     }
-    getState(result).ast ??= { ast };
+    setASTState(result, ast);
+    evalAndSetCtxValidityState(result);
     return result;
 };
 
@@ -122,116 +134,6 @@ type ContextObject = Record<string, CtxVar>;
 const buildContextObj = (ctxVars: CtxVar[]): ContextObject => {
     return Object.fromEntries(ctxVars.map(v => [v.name, v]));
 };
-
-
-// 检查是否包含嵌套的 With 语句
-// 在 VarExpl / FuncExpl 终止检查（允许嵌套）
-
-const checkNoNestedWith = (formula: Formula, isStarterWith = false, visited = new Set<Formula>()) => {
-    if (visited.has(formula)) return;
-    visited.add(formula);
-
-    // Check if the formula itself is a 'with' CtxExp
-    if (isCtxExp(formula) && formula.ctxKind === 'with' && !isStarterWith) {
-        throw new TypeError("在同个函数作用域 / 全局作用域内，with 语句不支持嵌套。");
-    }
-
-    // Check if the formula is a FuncExpl / CtxFuncExpl / VarExpl / CtxVarExpl
-    // If so, we don't need to check for nested with; neither its DSL content.
-    if (formula.type === FormulaType.Function || formula.type === FormulaType.Variable) {
-        return;
-    }
-
-    // Check if the formula's embedded DSL content has 'with' keyword
-    traverse(
-        getState(formula).ast!.ast,
-        {
-            enter: (ast) => {
-                if (ast?.type === 'withClause') {
-                    throw new TypeError("该公式内部包含 with 语句或包含语法错误。在同个函数作用域 / 全局作用域内，with 语句不支持嵌套。");
-                }
-            },
-        }
-    );
-
-    // Recursive check
-    const toChecks = isCtxExp(formula) ? [...formula.deps, formula.body] : formula.deps;
-    for (const dep of toChecks) {
-        // And exclude the case of the dep is PrimitiveValue
-        if (dep instanceof Formula && !(dep instanceof CtxVar)) {
-            checkNoNestedWith(dep, false, visited);
-        }
-    }
-};
-
-// 检查本 CtxExp 可视范围内，是否存在内层 CtxExp 的 CtxVar 被传递到外层
-// 方法：递归检查依赖树，在遇到内层 CtxExp 时停止并收集引用；在遇到 CtxVar 时收集引用。收集完毕后检查是否存在 CtxVar 的 sourceCtx 指向已收集的 CtxExp。
-const checkNoCtxVarPassingToOuter = (formula: CtxExp) => {
-    const seenCtxExps = new Set<CtxExp>();
-    const seenCtxVars = new Set<CtxVar>();
-
-    const visited = new Set<Formula>();
-    const iterate = (f: Formula) => {
-        if (visited.has(f)) return;
-        visited.add(f);
-
-        if (isCtxExp(f) && f !== formula) {
-            seenCtxExps.add(f);
-            return; // Stop recursion for nested CtxExp
-        }
-
-        if (f instanceof CtxVar) {
-            seenCtxVars.add(f);
-            return;
-        }
-
-        f.deps.forEach(dep => iterate(dep));
-        // Check body for CtxExp
-        if (isCtxExp(f) && f.body instanceof Formula) {
-            iterate(f.body);
-        }
-    }
-    iterate(formula);
-    seenCtxExps.forEach(e => {
-        if (e.ctxVars.some(v => seenCtxVars.has(v))) {
-            throw new TypeError("检测到上下文变量被传递到上下文语句外。");
-        }
-    });
-}
-
-// 检查 expl 创建的 FuncExpl 或 Func CtxExp 是否收到并非来源于自己的 CtxVar
-const checkNoExternalCtxVarPassingToFunc = (formula: FuncExpl<FuncExplTFuncBase> | CtxFuncExpl<FuncExplTFuncBase>) => {
-    const seenCtxVars = new Set<CtxVar>();
-
-    const visited = new Set<Formula>();
-    const iterate = (f: Formula) => {
-        if (visited.has(f)) return;
-        visited.add(f);
-
-        if (f.type === FormulaType.Function && f !== formula) {
-            return;
-        }
-
-        if (f instanceof CtxVar) {
-            seenCtxVars.add(f);
-            return;
-        }
-
-        f.deps.forEach(dep => iterate(dep));
-        if (isCtxExp(f) && f.body instanceof Formula) {
-            iterate(f.body);
-        }
-    }
-    iterate(formula);
-
-    const internalVars: readonly CtxVar[] = 'ctxVars' in formula ? formula.ctxVars : [];
-
-    seenCtxVars.forEach(v => {
-        if (!internalVars.includes(v)) {
-            throw new TypeError("检测到外源上下文变量被传递到函数定义内。");
-        }
-    });
-}
 
 // 检查同语句内变量定义重名
 const checkNoDuplicateVarDefinitions = (names: readonly string[]) => {
@@ -276,25 +178,19 @@ const createCtxExpressionIntermediate = <K extends CtxKindNotFunc>(
     const ctxVarNames = getCtxVarNames(ast);
     checkNoDuplicateVarDefinitions(ctxVarNames);
 
-    const ctxVars = ctxVarNames.map(name => new CtxVar(name));
+    const ctxVars = ctxVarNames.map(name => {
+        const v = new CtxVar(name);
+        // Initialize validity for CtxVar
+        evalAndSetCtxValidityState(v);
+        return v;
+    });
     const ctxObj = buildContextObj(ctxVars);
 
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxExpression(template, ctxVars, body, kind);
-        getState(result).ast ??= { ast };
-
-        // With 语句嵌套检查
-        if (kind === 'with') {
-            checkNoNestedWith(result, true);
-        }
-        // 检查本 CtxExp 可视范围内，是否存在内层 CtxExp 的 CtxVar 被传递到外层
-        checkNoCtxVarPassingToOuter(result);
-
-        ctxVars.forEach(v => {
-            const state = getState(v);
-            state.ctxVar ??= {};
-            state.ctxVar.sourceCtx = result;
-        });
+        setASTState(result, ast);
+        ctxVars.forEach(v => setSourceCtx(v, result));
+        evalAndSetCtxValidityState(result);
         return result;
     }
 
@@ -322,26 +218,18 @@ const createCtxVarExplIntermediate = <K extends CtxKindNotFunc>(
     const ctxVarNames = getCtxVarNames(ast);
     checkNoDuplicateVarDefinitions(ctxVarNames);
 
-    const ctxVars = ctxVarNames.map(name => new CtxVar(name));
+    const ctxVars = ctxVarNames.map(name => {
+        const v = new CtxVar(name);
+        evalAndSetCtxValidityState(v);
+        return v;
+    });
     const ctxObj = buildContextObj(ctxVars);
 
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxVarExpl(template, ctxVars, body, kind);
-        getState(result).ast ??= { ast };
-
-        // With 语句嵌套检查
-        if (kind === 'with') {
-            checkNoNestedWith(result, true);
-        }
-        // 检查本 CtxExp 可视范围内，是否存在内层 CtxExp 的 CtxVar 被传递到外层
-        checkNoCtxVarPassingToOuter(result);
-
-        ctxVars.forEach(v => {
-            const state = getState(v);
-            state.ctxVar ??= {};
-            state.ctxVar.sourceCtx = result;
-        });
-
+        setASTState(result, ast);
+        ctxVars.forEach(v => setSourceCtx(v, result));
+        evalAndSetCtxValidityState(result);
         return result;
     }
 
@@ -406,7 +294,11 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
     const template = createTemplatePayload(strings, values);
     const ast = parseCtxFactoryNullDefHead(template);
     const params = getCtxVarNames(ast);
-    const ctxVars = params.map(name => new CtxVar(name));
+    const ctxVars = params.map(name => {
+        const v = new CtxVar(name);
+        evalAndSetCtxValidityState(v);
+        return v;
+    });
     const ctxObj = buildContextObj(ctxVars);
 
     // 返回一个接收 callback 的函数，该 callback 返回 CtxExpBody，
@@ -416,18 +308,9 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
     ): CtxFuncExpl<TFunc> => {
         const body = callback(ctxObj);
         const result = createCallableCtxFuncExpl<TFunc>(template, params, ctxVars, body);
-        getState(result).ast ??= { ast };
-
-        // 检查函数定义内是否收到外源上下文变量
-        checkNoExternalCtxVarPassingToFunc(result);
-        // 检查本 CtxExp 可视范围内，是否存在内层 CtxExp 的 CtxVar 被传递到外层
-        checkNoCtxVarPassingToOuter(result);
-
-        ctxVars.forEach(v => {
-            const state = getState(v);
-            state.ctxVar ??= {};
-            state.ctxVar.sourceCtx = result;
-        });
+        setASTState(result, ast);
+        ctxVars.forEach(v => setSourceCtx(v, result));
+        evalAndSetCtxValidityState(result);
         return result;
     };
 }

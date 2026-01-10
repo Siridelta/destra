@@ -6,23 +6,7 @@ import { FormulaVisitor } from "./base-visitor";
 import { SubstitutionASTNode, VarIRNode } from "./visitor-parts/terminals";
 import { FunctionDefinitionASTNode } from "./visitor-parts/top-level";
 import { CtxFactoryHeadASTNode } from "./visitor-parts/ctx-header";
-
-export function traverse(
-    ast: any,
-    { enter = () => { }, exit = () => { } }:
-        { enter?: (ast: any) => any, exit?: (ast: any) => any }
-) {
-    enter(ast);
-    if (ast && Object.getPrototypeOf(ast) !== String.prototype) {
-        for (const [k, v] of Object.entries(ast)) {
-            if (v && typeof v === 'object') {
-                traverse(v, { enter, exit });
-            }
-        }
-    }
-    exit(ast);
-    return ast;
-}
+import { traverse } from "./traverse-ast";
 
 export enum ComparisonOperator {
     Greater = ">",
@@ -141,9 +125,11 @@ export function traceSubstitution(ast: SubstitutionASTNode, obj: FormulaVisitor 
     throw new Error(`Internal error: Invalid object type ${typeof obj}.`);
 }
 
+// trace AST, 
+// would also traces CtxVar (no AST data in its state) to its definition AST in its host CtxExp
 export function traceAST(formula: Formula): Record<string, any> {
     if (formula instanceof CtxVar) {
-        const ctxExpHeadAST = getState(getState(formula).ctxVar!.sourceCtx!).ast!.ast as CtxFactoryHeadASTNode;
+        const ctxExpHeadAST = getState(getState(formula).ctxVar!.sourceCtx!).ast!.root as CtxFactoryHeadASTNode;
         if (ctxExpHeadAST.subtype === "expr") {
             const def = ctxExpHeadAST.ctxVarDefs.find(d => d.name === formula.name);
             if (!def) {
@@ -168,3 +154,5 @@ export function traceAST(formula: Formula): Record<string, any> {
     }
     return getState(formula).ast!;
 }
+
+export { traverse };
