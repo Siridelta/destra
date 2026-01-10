@@ -2,17 +2,18 @@
 export function traverse(
     ast: any,
     { enter = () => { }, exit = () => { } }:
-        { enter?: (ast: any) => any, exit?: (ast: any) => any }
+        { enter?: (ast: any) => any, exit?: (ast: any) => any },
+    allowIR: boolean = false
 ) {
     enter(ast);
-    for (const child of getASTChildren(ast)) {
-        traverse(child, { enter, exit });
+    for (const child of getASTChildren(ast, allowIR)) {
+        traverse(child, { enter, exit }, allowIR);
     }
     exit(ast);
     return ast;
 }
 
-export function getASTChildren(ast: any): any[] {
+export function getASTChildren(ast: any, allowIR: boolean = false): any[] {
     return (() => {
         if (!ast)
             throw new Error('Internal error: AST is undefined in getASTChildren');
@@ -125,6 +126,12 @@ export function getASTChildren(ast: any): any[] {
                 return [...ast.items];
             case 'listRange':
                 return [ast.start, ast.end];
+            case 'absExp':
+                return [ast.content];
+            case 'piecewiseExp':
+                return [...ast.branches, ast.default];
+            case 'piecewiseBranch':
+                return [ast.condition, ast.value];
             case 'number':
                 return [];
             case 'colorHexLiteral':
@@ -142,6 +149,18 @@ export function getASTChildren(ast: any): any[] {
             case 'undefinedVar':
                 return [];
             default:
+                if (allowIR) {
+                    switch (ast.type) {
+                        case 'maybeOCallFuncIR':
+                            return [ast.func];
+                        case 'maybeFuncDefIR':
+                            return [ast.func, ...ast.params];
+                        case 'varIR':
+                            return [];
+                        default:
+                            throw new Error(`Internal error: Unexpected AST node type ${ast.type} in getASTChildren`);
+                    }
+                }
                 throw new Error(`Internal error: Unexpected AST node type ${ast.type} in getASTChildren`);
         }
     })().filter((c: any) => c !== null && c !== undefined);

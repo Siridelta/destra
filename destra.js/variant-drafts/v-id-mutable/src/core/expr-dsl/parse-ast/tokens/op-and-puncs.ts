@@ -181,6 +181,11 @@ export const BraceClose = createToken({
     pattern: createRegExp("}"),
 });
 
+export const Bar = createToken({
+    name: "|",
+    pattern: createRegExp("|"),
+});
+
 export const opAndPuncs = [
     RangeDots,
     GreaterEqual,
@@ -209,4 +214,5 @@ export const opAndPuncs = [
     BracketClose,
     BraceOpen,
     BraceClose,
+    Bar,
 ];

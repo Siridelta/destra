@@ -32,7 +32,7 @@ FormulaVisitor.prototype.piecewiseExp = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.piecewise_content = function (ctx: any) {
-    const branches = this.batchVisit(ctx.piecewise_branch);
+    const branches = ctx.piecewise_branch ? this.batchVisit(ctx.piecewise_branch) : [];
     let defaultValue: any | null = null;
 
     // scan for the last term being possible default,
@@ -88,8 +88,18 @@ FormulaVisitor.prototype.piecewise_content = function (ctx: any) {
 }
 
 FormulaVisitor.prototype.piecewise_branch = function (ctx: any) {
-    const condition = ctx.piecewise_compLevel ? this.visit(ctx.piecewise_compLevel) : null;
+    const condition = this.visit(ctx.piecewise_compLevel);
     const value = ctx.piecewise_actionLevel ? this.visit(ctx.piecewise_actionLevel) : null;
+
+    if (condition.type !== "comparison") {
+        if (value !== null) {
+            throw new Error(
+                `Invalid piecewise branch syntax: Condition not found at branch. `
+                + `Expected a comparison expression, got type '${condition.type}'.`
+            );
+        }
+        return condition;
+    }
     return {
         type: "piecewiseBranch",
         condition,
@@ -106,7 +116,7 @@ FormulaVisitor.prototype.piecewise_compLevel = function (ctx: any) {
         throw new Error("Internal error: multiple comparison operators found in piecewise_compLevel.");
     }
     if (!ops1 && !ops2) {
-        throw new Error("Internal error: no comparison operator found in piecewise_compLevel.");
+        return operands[0];
     }
     if (operands.length === 0) {
         throw new Error("Internal error: operands not found in piecewise_compLevel.");

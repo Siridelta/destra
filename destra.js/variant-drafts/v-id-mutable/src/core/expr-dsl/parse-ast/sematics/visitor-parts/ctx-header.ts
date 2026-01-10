@@ -40,7 +40,7 @@ function checkNoMaybeFuncDefIR(ast: any) {
                 );
             }
         }
-    });
+    }, true);
 }
 
 // 额外检查不应包含与本 Context 定义的变量同名的未定义变量
@@ -58,7 +58,7 @@ function ctxHeadResolveVarIRs(ast: any, ctxVarNames: string[]) {
             }
         }
     }
-    traverse(ast, { enter });
+    traverse(ast, { enter }, true);
 }
 
 function checkNoDuplicateCtxVarNames(ctxVarNames: string[]) {

@@ -1,12 +1,12 @@
 
 import { CtxFactoryHeadASTNode } from "../expr-dsl/parse-ast";
-import { FormulaASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/formula";
-import { TopLevelASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/top-level";
-import { Formula, CtxVar, CtxExp, FuncExpl, Expl } from "../formula/base";
-import { 
-    SumClauseASTNode, ProdClauseASTNode, IntClauseASTNode, DiffClauseASTNode, 
+import {
     ForClauseASTNode, WithClauseASTNode
 } from "../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
+import { DiffClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/context-type1";
+import { FormulaASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/formula";
+import { TopLevelASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/top-level";
+import { CtxExp, CtxVar, Expl, Formula, FuncExpl } from "../formula/base";
 import { ActionStyleValue, NumericStyleValue } from "../formula/style";
 
 // ============================================================================

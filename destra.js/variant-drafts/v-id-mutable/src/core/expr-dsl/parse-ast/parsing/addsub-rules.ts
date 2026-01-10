@@ -7,13 +7,7 @@ import { FormulaParser } from "./parser";
 declare module './parser' {
     export interface FormulaParser {
         addSubLevel: any;
-        contextLevel: any;
-        context_type1: any;
         context_type2_level: any;
-        sum: any;
-        prod: any;
-        int: any;
-        diff: any;
         fromForKeyword: any;
         fromWithKeyword: any;
         ctxVarInDef: any;
@@ -22,7 +16,7 @@ declare module './parser' {
 
 export function initAddSubRules(this: FormulaParser) {
     this.addSubLevel = this.RULE("addSubLevel", () => {
-        this.SUBRULE(this.contextLevel, { LABEL: "lhs" });
+        this.SUBRULE(this.context_type2_level, { LABEL: "lhs" });
         this.OPTION(() => {
             this.OR([
                 { ALT: () => this.CONSUME(Plus, { LABEL: "operator" }) },
@@ -30,68 +24,6 @@ export function initAddSubRules(this: FormulaParser) {
             ]);
             this.SUBRULE2(this.addSubLevel, { LABEL: "rhs" });
         });
-    });
-
-    this.contextLevel = this.RULE("contextLevel", () => {
-        this.OR([
-            { ALT: () => this.SUBRULE(this.context_type1) },
-            { ALT: () => this.SUBRULE(this.context_type2_level) },
-        ]);
-    });
-
-    // context type 1: sum, prod, int, diff
-    this.context_type1 = this.RULE("context_type1", () => {
-        this.OR([
-            { ALT: () => this.SUBRULE(this.sum) },
-            { ALT: () => this.SUBRULE(this.prod) },
-            { ALT: () => this.SUBRULE(this.int) },
-            { ALT: () => this.SUBRULE(this.diff) },
-        ]);
-    });
-
-    // sum(var=lower, upper) expr
-    this.sum = this.RULE("sum", () => {
-        this.CONSUME(SumKeyword);
-        this.CONSUME(ParenthesisOpen);
-        this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
-        this.CONSUME(Equal);
-        this.SUBRULE(this.addSubLevel, { LABEL: "lower" });
-        this.CONSUME(Comma);
-        this.SUBRULE2(this.addSubLevel, { LABEL: "upper" });
-        this.CONSUME(ParenthesisClose);
-        this.SUBRULE(this.multDivLevel, { LABEL: "content" });
-    });
-
-    // prod(var=lower, upper) expr
-    this.prod = this.RULE("prod", () => {
-        this.CONSUME(ProdKeyword);
-        this.CONSUME(ParenthesisOpen);
-        this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
-        this.CONSUME(Equal);
-        this.SUBRULE(this.addSubLevel, { LABEL: "lower" });
-        this.CONSUME(Comma);
-        this.SUBRULE2(this.addSubLevel, { LABEL: "upper" });
-        this.CONSUME(ParenthesisClose);
-        this.SUBRULE(this.multDivLevel, { LABEL: "content" });
-    });
-
-    // int(lower, upper) expr dx
-    // int(lower, upper) dx expr
-    this.int = this.RULE("int", () => {
-        this.CONSUME(IntKeyword);
-        this.CONSUME(ParenthesisOpen);
-        this.SUBRULE(this.addSubLevel, { LABEL: "lower" });
-        this.CONSUME(Comma);
-        this.SUBRULE2(this.addSubLevel, { LABEL: "upper" });
-        this.CONSUME(ParenthesisClose);
-        this.SUBRULE(this.multDivLevel, { LABEL: "content" });
-    });
-
-    // d/dVar expr
-    this.diff = this.RULE("diff", () => {
-        this.CONSUME(DiffKeyword);
-        this.SUBRULE(this.ctxVarInDef, { LABEL: "ctxVar" });
-        this.SUBRULE(this.multDivLevel, { LABEL: "content" });
     });
 
     // context type 2: for, with

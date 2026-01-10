@@ -4,7 +4,7 @@ import { identifierPattern } from "../../syntax-reference/commonRegExpPatterns";
 
 export const Whitespace = createToken({
     name: "Whitespace",
-    pattern: createRegExp(whitespace.times.atLeast(1)),
+    pattern: createRegExp(anyOf(whitespace, "\n", "\r").times.atLeast(1)),
     group: Lexer.SKIPPED,
 });
 

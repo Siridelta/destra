@@ -18,6 +18,7 @@ declare module '../base-visitor' {
         listExp(ctx: any): any;
         listItem(ctx: any): any;
         toListRangeASTNode(items: any[]): ListRangeASTNode;
+        absExp(ctx: any): any;
     }
 }
 
@@ -65,6 +66,11 @@ export type ListRangeASTNode = {
     end: any,
 }
 
+export type AbsExpASTNode = {
+    type: "absExp",
+    content: any,
+}
+
 FormulaVisitor.prototype.atomicExp = function (ctx: any) {
     if (ctx.NumberLiteral) {
         return this.toNumberAST(ctx.NumberLiteral[0].image);
@@ -92,10 +98,7 @@ FormulaVisitor.prototype.builtinFuncCall = function (ctx: any) {
             && funcToken.tokenType.CATEGORIES.includes(SupportOmittedCallFunc)) {
             return {
                 type: "maybeOCallFuncIR",
-                func: {
-                    type: "builtinFunc",
-                    name: funcToken.image,
-                },
+                func: this.toBuiltinFuncAST(funcToken.image),
             }
         }
         throw new Error(
@@ -105,10 +108,7 @@ FormulaVisitor.prototype.builtinFuncCall = function (ctx: any) {
     }
     return {
         type: "builtinFuncCall",
-        func: {
-            type: "builtinFunc",
-            name: funcToken.image,
-        },
+        func: this.toBuiltinFuncAST(funcToken.image),
         args: args,
     }
 }
@@ -194,7 +194,7 @@ FormulaVisitor.prototype.toListRangeASTNode = function (items: any[]): ListRange
 }
 
 FormulaVisitor.prototype.listExp = function (ctx: any) {
-    const items = this.batchVisit(ctx.listItem);
+    const items = ctx.listItem ? this.batchVisit(ctx.listItem) : [];
     let hasRange = false;
 
     // scan and merge comma seperated expr-rangedots-expr patterns
@@ -242,4 +242,12 @@ FormulaVisitor.prototype.listItem = function (ctx: any) {
         throw new Error(`Internal error: Invalid item syntax for listItem: unexpected term count ${terms.length}`);
     }
     return this.toListRangeASTNode(terms);
+}
+
+FormulaVisitor.prototype.absExp = function (ctx: any): AbsExpASTNode {
+    const content = this.visit(ctx.addSubLevel);
+    return {
+        type: "absExp",
+        content: content,
+    }
 }

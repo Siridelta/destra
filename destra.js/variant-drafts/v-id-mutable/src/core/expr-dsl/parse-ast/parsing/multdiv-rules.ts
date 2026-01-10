@@ -1,5 +1,5 @@
 import { RootofKeyword } from "../tokens/keywords";
-import { Bang, BracketClose, BracketOpen, Comma, ComparisonOperator1, ComparisonOperator2, Cross, Divide, Dot, Minus, Multiply, Plus, Power, RangeDots } from "../tokens/op-and-puncs";
+import { Bang, Bar, BracketClose, BracketOpen, Comma, ComparisonOperator1, ComparisonOperator2, Cross, Divide, Dot, Minus, Multiply, Plus, Power, RangeDots } from "../tokens/op-and-puncs";
 import { SupportExtensionFunc, SupportOmittedCallFunc } from "../tokens/reserved-words/builtin-funcs/categories";
 import { Attribute } from "../tokens/reserved-words/reservedVars";
 import { FormulaParser } from "./parser";
@@ -40,9 +40,9 @@ export function initMultDivRules(this: FormulaParser) {
         this.MANY({
             GATE: () => {
                 const nextToken = this.LA(1);
-                // Implicit multiplication cannot start with + or - operator
+                // Implicit multiplication cannot start with + or - or | operator
                 // e.g. "a + b" should be addition, not "a * (+b)"
-                if (tokenMatcher(nextToken, Plus) || tokenMatcher(nextToken, Minus)) {
+                if (tokenMatcher(nextToken, Plus) || tokenMatcher(nextToken, Minus) || tokenMatcher(nextToken, Bar)) {
                     return false;
                 }
                 return true;
@@ -70,7 +70,10 @@ export function initMultDivRules(this: FormulaParser) {
     });
 
     this.powerLevel = this.RULE("powerLevel", () => {
-        this.SUBRULE(this.postfixLevel);
+        this.OR([
+            { ALT: () => this.SUBRULE(this.postfixLevel) },
+            { ALT: () => this.SUBRULE(this.context_type1) },
+        ]);
         this.OPTION(() => {
             this.CONSUME(Power);
             this.SUBRULE2(this.powerLevel);

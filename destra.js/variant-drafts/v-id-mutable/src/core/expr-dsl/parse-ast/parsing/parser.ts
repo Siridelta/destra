@@ -6,6 +6,7 @@ import { initAtomicRules } from "./atomic-rules";
 import { initPiecewiseRules } from "./piecewise-rules";
 import { initFormulaRules } from "./formula-rules";
 import { initCtxHeaderRules } from "./ctx-header-rules";
+import { initContextType1Rules } from "./context-type-1-rules";
 
 export class FormulaParser extends BaseCstParser {
 
@@ -16,6 +17,7 @@ export class FormulaParser extends BaseCstParser {
         initCtxHeaderRules.call(this);
         initAddSubRules.call(this);
         initMultDivRules.call(this);
+        initContextType1Rules.call(this);
         initAtomicRules.call(this);
         initPiecewiseRules.call(this);
 

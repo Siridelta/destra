@@ -41,7 +41,10 @@ function runParser(tokens: IToken[], ruleName: keyof FormulaParser): CstNode {
     const cst = formulaParser[ruleName]();
     
     if (formulaParser.errors.length > 0) {
-        throw new Error(`Parsing errors in rule '${ruleName}': ${formulaParser.errors.map(e => e.message).join(", ")}`);
+        throw new Error(
+            `Parsing errors in rule '${ruleName}': ${formulaParser.errors.map(e => e.message).join(", ")} \n`
+            + `Stack trace: ${formulaParser.errors.map(e => e.stack).join("\n")}`
+        );
     }
     return cst;
 }

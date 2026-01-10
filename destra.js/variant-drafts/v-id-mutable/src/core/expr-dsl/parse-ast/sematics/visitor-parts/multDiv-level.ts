@@ -1,6 +1,7 @@
 import { FormulaVisitor } from "../base-visitor";
 import { BuiltinFuncASTNode } from "./terminals";
 import { MaybeOCallFuncIRNode } from "./atomic-exps";
+import { getASTChildren } from "../traverse-ast";
 
 
 declare module '../base-visitor' {
@@ -101,15 +102,13 @@ function traverseCheckOCallIR(node: any, isTop: boolean = true): boolean {
     if (node?.type === 'maybeOCallFuncIR' && !isTop) {
         return false;
     }
-    if (Object.getPrototypeOf(node) !== String.prototype) {
-        for (const [key, value] of Object.entries(node)) {
-            if (value && !traverseCheckOCallIR(value, false)) {
-                const oCallIR = value as MaybeOCallFuncIRNode;
-                throw new Error(
-                    `Unexpected operation on Function Identifier (Supports Omitted Call Syntax) '${oCallIR.func.name}'. `
-                    + `Context: ${JSON.stringify({ ...node, [key]: `[Function Identifier '${oCallIR.func.name}']` })}`
-                );
-            }
+    for (const child of getASTChildren(node, true)) {
+        if (child && !traverseCheckOCallIR(child, false)) {
+            const oCallIR = child as MaybeOCallFuncIRNode;
+            throw new Error(
+                `Unexpected operation on Function Identifier (Supports Omitted Call Syntax) '${oCallIR.func.name}'. `
+                + `Context: ${JSON.stringify(node)}`
+            );
         }
     }
     return true;
@@ -315,7 +314,8 @@ FormulaVisitor.prototype.rootofLevel = function (ctx: any) {
 
 FormulaVisitor.prototype.powerLevel = function (ctx: any) {
     // right-associative, no need for transform
-    const lhs = this.visit(ctx.postfixLevel);
+    const lhs = ctx.postfixLevel ? this.visit(ctx.postfixLevel) 
+                : ctx.context_type1 ? this.visit(ctx.context_type1) : null;
     const rhs = ctx.powerLevel ? this.visit(ctx.powerLevel) : null;
 
     if (rhs) {

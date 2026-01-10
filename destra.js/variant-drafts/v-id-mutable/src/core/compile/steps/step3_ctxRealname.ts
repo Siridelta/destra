@@ -144,7 +144,8 @@ export const ctxRealnameResolution = (context: CompileContext) => {
         }
 
         if (state.closestScopes.size === 0) {
-            throw new Error(`Internal Error: Formula ${f.toString()} has no closest scopes`);
+            // Maybe a 'reset' happens, connect it to root scope
+            state.closestScopes.add(rootScope);
         }
 
         let traverseInitialScopes = new Set<ScopeNode>();
@@ -344,7 +345,13 @@ function traverseAST(
         }
 
         for (const child of getASTChildren(node)) {
-            _traverse(child, currentScopes);
+            // A special escape case:
+            // On calls to FuncExpl (DefinedFuncCallASTNoed) that leads to FuncExpl substitution, scopes resets.
+            if (node.type === 'definedFuncCall' && child.type === 'substitution') {
+                _traverse(child, new Set([]));
+            } else {
+                _traverse(child, currentScopes);
+            }
         }
     }
     _traverse(node, currentScopes);

@@ -148,7 +148,7 @@ export abstract class Formula {
                     return;
                 }
                 if (value instanceof Expl && value.id()) {
-                    source += `\$${value.id()}`;
+                    source += `\$${value.id()}\$`;
                     return;
                 }
                 const depIndex = this.deps.findIndex(dep => dep === value);

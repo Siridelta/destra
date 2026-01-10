@@ -105,7 +105,7 @@ export function resolveVarIRs(ast: any) {
             ctxNodeStack.pop();
         }
     }
-    traverse(ast, { enter, exit });
+    traverse(ast, { enter, exit }, true);
 }
 
 const isMaybeFuncDefIR = (node: any): node is MaybeFuncDefIRNode => node?.type === "maybeFuncDefIR";
@@ -179,7 +179,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
         resolveVarIRs(funcDefAST);
     } else {
         resolveVarIRs(lhs);
-        resolveVarIRs(rhs);
+        if (rhs) resolveVarIRs(rhs);
     }
 
     // '=', 'myVar = ...'

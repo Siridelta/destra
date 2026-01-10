@@ -1,6 +1,7 @@
 import { FormulaVisitor } from "../base-visitor";
 import { ComparisonASTNode } from "../helpers";
 import { RangeDots } from "../../tokens/op-and-puncs";
+import { BuiltinFuncASTNode } from "./terminals";
 
 
 declare module '../base-visitor' {
@@ -28,7 +29,7 @@ export type AttrAccessASTNode = {
 export type ExtensionFuncCallASTNode = {
     type: "extensionFuncCall",
     receiver: any,
-    func: any,
+    func: BuiltinFuncASTNode,
     args: any[],
     withArgsList: boolean,
 }
@@ -163,7 +164,7 @@ FormulaVisitor.prototype.fromDot = function (ctx: any) {
                 {
                     type: "extensionFuncCall",
                     receiver: null,    // vacancy
-                    func: extFunc,
+                    func: this.toBuiltinFuncAST(extFunc),
                     args: argsList ?? [],
                     withArgsList: argsList !== null,
                 } :
@@ -175,12 +176,12 @@ FormulaVisitor.prototype.fromDot = function (ctx: any) {
 
 
     // no follow-up postfix syntaxes, return directly
-    if (!ctx.fromPostfix[0]) {
+    if (!ctx.fromPostfix) {
         return dotAST;
     }
 
     // follow-up postfix syntaxes, add to postfixAST
-    const postfixAST = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : null;
+    const postfixAST = this.visit(ctx.fromPostfix);
     if (!postfixAST) {
         return dotAST;
     } // else postfixAST exists

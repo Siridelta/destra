@@ -115,7 +115,10 @@ const traverse = (
         const id = formula.id();
         if (typeof id !== 'string' || id === '') {
             // In creation form, auto-ID should be generated. Empty ID is invalid at compile time.
-            throw new Error(`Formula found with empty ID during compilation.`);
+            throw new Error(
+                `Formula found with empty ID during compilation.`
+                + `Formula: ${formula['_content']}`
+            );
         }
 
         if (context.idMap.has(id)) {

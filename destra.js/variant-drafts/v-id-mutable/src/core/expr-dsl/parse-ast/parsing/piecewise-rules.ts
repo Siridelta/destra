@@ -29,26 +29,28 @@ export function initPiecewiseRules(this: FormulaParser) {
 
     this.piecewise_compLevel = this.RULE("piecewise_compLevel", () => {
         this.SUBRULE(this.piecewise_actionLevel);
-        this.OR([
-            {
-                ALT: () => {
-                    this.CONSUME(ComparisonOperator1);
-                    this.AT_LEAST_ONE_SEP({
-                        SEP: ComparisonOperator1,
-                        DEF: () => this.SUBRULE2(this.piecewise_actionLevel),
-                    })
-                }
-            },
-            {
-                ALT: () => {
-                    this.CONSUME(ComparisonOperator2);
-                    this.AT_LEAST_ONE_SEP2({
-                        SEP: ComparisonOperator2,
-                        DEF: () => this.SUBRULE3(this.piecewise_actionLevel),
-                    })
-                }
-            },
-        ]);
+        this.OPTION(() => {
+            this.OR([
+                {
+                    ALT: () => {
+                        this.CONSUME(ComparisonOperator1);
+                        this.AT_LEAST_ONE_SEP({
+                            SEP: ComparisonOperator1,
+                            DEF: () => this.SUBRULE2(this.piecewise_actionLevel),
+                        })
+                    }
+                },
+                {
+                    ALT: () => {
+                        this.CONSUME(ComparisonOperator2);
+                        this.AT_LEAST_ONE_SEP2({
+                            SEP: ComparisonOperator2,
+                            DEF: () => this.SUBRULE3(this.piecewise_actionLevel),
+                        })
+                    }
+                },
+            ]);
+        })
     });
 
     this.piecewise_actionLevel = this.RULE("piecewise_actionLevel", () => {

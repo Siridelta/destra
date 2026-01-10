@@ -44,13 +44,14 @@ export { type Label, label };
 
 // 样式相关方法的原型注入，并导出样式相关类型
 import {
-    LineStyle, PointStyle, DragMode, LabelOrientation,
-    NumericStyleValue, ColorStyleValue, LabelTextValue,
-    DestraStyle,
-    EditorBase, LeafEditor,
-    ShowPartsEditor, LineEditor, PointEditor, FillEditor,
-    LabelEditor, DomainEditor, RootStyleEditor,
+    type LineStyle, type PointStyle, type DragMode, type LabelOrientation,
+    type NumericStyleValue, type ColorStyleValue, type LabelTextValue,
+    type DestraStyle,
+    type EditorBase, type LeafEditor,
+    type ShowPartsEditor, type LineEditor, type PointEditor, type FillEditor,
+    type LabelEditor, type DomainEditor, type RootStyleEditor,
 } from "./formula/style";
+import './formula/style';
 
 export { 
     LineStyle, PointStyle, DragMode, LabelOrientation,

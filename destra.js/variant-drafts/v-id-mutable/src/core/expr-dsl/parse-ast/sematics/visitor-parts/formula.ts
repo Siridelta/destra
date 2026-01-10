@@ -60,7 +60,7 @@ FormulaVisitor.prototype.sliderDef = function (ctx: any) {
     // check 'to' term or 'step' term
     if (i < terms.length && terms[i].type) {
         if (i + 1 < terms.length) {  // lookahead, if there's anything following, it's 'step' term
-            step = terms[i + 1];
+            step = terms[i];
         } else {                     // else it's 'to' term
             to = terms[i];
         }

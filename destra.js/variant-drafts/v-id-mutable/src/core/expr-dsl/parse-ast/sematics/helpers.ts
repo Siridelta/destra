@@ -1,12 +1,13 @@
 import { CtxVar, Formula, Substitutable } from "../../../formula/base";
 import { getState } from "../../../state";
-import { DiffClauseASTNode, ForClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode, WithClauseASTNode } from "./visitor-parts/addSub-level"
-import { ParenExpASTNode, TupleExpASTNode } from "./visitor-parts/atomic-exps";
 import { FormulaVisitor } from "./base-visitor";
+import { traverse } from "./traverse-ast";
+import { ForClauseASTNode, WithClauseASTNode } from "./visitor-parts/addSub-level";
+import { ParenExpASTNode, TupleExpASTNode } from "./visitor-parts/atomic-exps";
+import { DiffClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode } from "./visitor-parts/context-type1";
+import { CtxFactoryHeadASTNode } from "./visitor-parts/ctx-header";
 import { SubstitutionASTNode, VarIRNode } from "./visitor-parts/terminals";
 import { FunctionDefinitionASTNode } from "./visitor-parts/top-level";
-import { CtxFactoryHeadASTNode } from "./visitor-parts/ctx-header";
-import { traverse } from "./traverse-ast";
 
 export enum ComparisonOperator {
     Greater = ">",
@@ -90,7 +91,7 @@ function _scanUdRsVarRefs(node: any) {
             rsVarRefs.add(node.name);
         }
     }
-    traverse(node, { enter });
+    traverse(node, { enter }, true);
     return { udVarRefs, rsVarRefs };
 }
 
@@ -156,3 +157,4 @@ export function traceAST(formula: Formula): Record<string, any> {
 }
 
 export { traverse };
+
