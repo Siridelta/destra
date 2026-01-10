@@ -1,13 +1,16 @@
 
+// return false in 'enter' to skip children
 export function traverse(
     ast: any,
     { enter = () => { }, exit = () => { } }:
         { enter?: (ast: any) => any, exit?: (ast: any) => any },
     allowIR: boolean = false
 ) {
-    enter(ast);
-    for (const child of getASTChildren(ast, allowIR)) {
-        traverse(child, { enter, exit }, allowIR);
+    const enterReturn = enter(ast);
+    if (enterReturn !== false) {
+        for (const child of getASTChildren(ast, allowIR)) {
+            traverse(child, { enter, exit }, allowIR);
+        }
     }
     exit(ast);
     return ast;

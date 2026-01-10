@@ -1,7 +1,8 @@
 import { FormulaVisitor } from "../base-visitor";
 import { CtxVarExprDefASTNode, CtxVarRangeDefASTNode, CtxVarNullDefASTNode } from "./addSub-level";
-import { traverse } from "../helpers";
+import { analyzeRsVarDepType, scanUdRsVarRefs, traverse } from "../helpers";
 import { resolveVarIRs } from "./top-level";
+import { RsVarDepType } from "../helpers";
 
 declare module '../base-visitor' {
     interface FormulaVisitor {
@@ -15,16 +16,22 @@ export type CtxFactoryExprDefHeadASTNode = {
     type: "ctxFactoryHead",
     subtype: "expr",
     ctxVarDefs: CtxVarExprDefASTNode[];
+    rsVarDepType: RsVarDepType | null;
+    rsVars: string[];
 };
 export type CtxFactoryRangeDefHeadASTNode = {
     type: "ctxFactoryHead",
     subtype: "range",
     ctxVarDef: CtxVarRangeDefASTNode;
+    rsVarDepType: RsVarDepType | null;
+    rsVars: string[];
 };
 export type CtxFactoryNullDefHeadASTNode = {
     type: "ctxFactoryHead",
     subtype: "null",
     ctxVarDefs: CtxVarNullDefASTNode[];
+    rsVarDepType: RsVarDepType | null;
+    rsVars: string[];
 };
 export type CtxFactoryHeadASTNode =
     | CtxFactoryExprDefHeadASTNode 
@@ -87,11 +94,18 @@ FormulaVisitor.prototype.ctxFactoryExprDefHead = function (ctx: any): CtxFactory
         ctxHeadResolveVarIRs(def.expr, ctxVarNames);
     });
 
-    return {
+    const ast: CtxFactoryExprDefHeadASTNode = {
         type: "ctxFactoryHead",
         subtype: "expr",
         ctxVarDefs,
+        rsVarDepType: null,
+        rsVars: [],
     };
+
+    const { rsVarRefs } = scanUdRsVarRefs(ast, this);
+    ast.rsVarDepType = analyzeRsVarDepType(rsVarRefs);
+    ast.rsVars = rsVarRefs;
+    return ast;
 }
 
 FormulaVisitor.prototype.ctxFactoryRangeDefHead = function (ctx: any): CtxFactoryRangeDefHeadASTNode {
@@ -113,11 +127,18 @@ FormulaVisitor.prototype.ctxFactoryRangeDefHead = function (ctx: any): CtxFactor
         ctxHeadResolveVarIRs(expr, [ctxVarName]);
     });
 
-    return {
+    const ast: CtxFactoryRangeDefHeadASTNode = {
         type: "ctxFactoryHead",
         subtype: "range",
         ctxVarDef,
+        rsVarDepType: null,
+        rsVars: [],
     };
+
+    const { rsVarRefs } = scanUdRsVarRefs(ast, this);
+    ast.rsVarDepType = analyzeRsVarDepType(rsVarRefs);
+    ast.rsVars = rsVarRefs;
+    return ast;
 }
 
 FormulaVisitor.prototype.ctxFactoryNullDefHead = function (ctx: any): CtxFactoryNullDefHeadASTNode {
@@ -134,5 +155,7 @@ FormulaVisitor.prototype.ctxFactoryNullDefHead = function (ctx: any): CtxFactory
         type: "ctxFactoryHead",
         subtype: "null",
         ctxVarDefs,
+        rsVarDepType: null,
+        rsVars: [],
     };
 }

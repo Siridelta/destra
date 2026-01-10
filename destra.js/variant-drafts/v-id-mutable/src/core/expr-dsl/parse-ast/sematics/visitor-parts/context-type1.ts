@@ -3,6 +3,7 @@ import { ctxVarNameExcludePattern, identifierPattern } from "../../../syntax-ref
 import { FormulaVisitor } from "../base-visitor";
 import { flattenMultLevel, isMultDivType, unflattenMultLevel } from "./multDiv-level";
 import { CtxVarNullDefASTNode, CtxVarRangeDefASTNode } from "./addSub-level";
+import { analyzeRsVarDepType, arrayUnion, RsVarDepType, scanUdRsVarRefs } from "../helpers";
 
 
 declare module '../base-visitor' {
@@ -19,21 +20,33 @@ export type SumClauseASTNode = {
     type: "sumClause",
     ctxVarDef: CtxVarRangeDefASTNode,
     content: any,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
+    forbiddenNames: string[],
 }
 export type ProdClauseASTNode = {
     type: "prodClause",
     ctxVarDef: CtxVarRangeDefASTNode,
     content: any,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
+    forbiddenNames: string[],
 }
 export type IntClauseASTNode = {
     type: "intClause",
     ctxVarDef: CtxVarRangeDefASTNode,
     content: any,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
+    forbiddenNames: string[],
 }
 export type DiffClauseASTNode = {
     type: "diffClause",
     ctxVarDef: CtxVarNullDefASTNode,
     content: any,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
+    forbiddenNames: string[],
 }
 
 
@@ -62,6 +75,13 @@ FormulaVisitor.prototype.sum = function (ctx: any): SumClauseASTNode {
     const lower = this.visit(ctx.lower);
     const upper = this.visit(ctx.upper);
     const content = this.visit(ctx.content);
+    
+    const rsVarsFromBody = scanUdRsVarRefs(content, this).rsVarRefs;
+    const rsVarsFromDef = [lower, upper].reduce((acc, expr) => {
+        return arrayUnion(acc, scanUdRsVarRefs(expr, this).rsVarRefs);
+    }, []);
+    const rsVars = arrayUnion(rsVarsFromBody, rsVarsFromDef);
+
     return {
         type: "sumClause",
         ctxVarDef: {
@@ -72,6 +92,9 @@ FormulaVisitor.prototype.sum = function (ctx: any): SumClauseASTNode {
             upper: upper,
         },
         content: content,
+        rsVarDepType: analyzeRsVarDepType(rsVars),
+        rsVars,
+        forbiddenNames: rsVarsFromBody,
     }
 }
 
@@ -80,6 +103,13 @@ FormulaVisitor.prototype.prod = function (ctx: any): ProdClauseASTNode {
     const lower = this.visit(ctx.lower);
     const upper = this.visit(ctx.upper);
     const content = this.visit(ctx.content);
+
+    const rsVarsFromBody = scanUdRsVarRefs(content, this).rsVarRefs;
+    const rsVarsFromDef = [lower, upper].reduce((acc, expr) => {
+        return arrayUnion(acc, scanUdRsVarRefs(expr, this).rsVarRefs);
+    }, []);
+    const rsVars = arrayUnion(rsVarsFromBody, rsVarsFromDef);
+
     return {
         type: "prodClause",
         ctxVarDef: {
@@ -90,6 +120,9 @@ FormulaVisitor.prototype.prod = function (ctx: any): ProdClauseASTNode {
             upper: upper,
         },
         content: content,
+        rsVarDepType: analyzeRsVarDepType(rsVars),
+        rsVars,
+        forbiddenNames: rsVarsFromBody,
     }
 }
 
@@ -119,6 +152,11 @@ FormulaVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
     let ctxVarName = null;
 
     const mkResult = (ctxVarName: string, content: any) => {
+        const rsVarsFromBody = scanUdRsVarRefs(content, this).rsVarRefs;
+        const rsVarsFromDef = [lower, upper].reduce((acc, expr) => {
+            return arrayUnion(acc, scanUdRsVarRefs(expr, this).rsVarRefs);
+        }, []);
+        const rsVars = arrayUnion(rsVarsFromBody, rsVarsFromDef);
         return {
             type: "intClause" as const,
             ctxVarDef: {
@@ -129,6 +167,9 @@ FormulaVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
                 upper: upper,
             },
             content: content,
+            rsVarDepType: analyzeRsVarDepType(rsVars),
+            rsVars,
+            forbiddenNames: rsVarsFromBody,
         }
     }
 
@@ -173,6 +214,8 @@ FormulaVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
 FormulaVisitor.prototype.diff = function (ctx: any): DiffClauseASTNode {
     const ctxVarName = this.visit(ctx.ctxVar);
     const content = this.visit(ctx.content);
+
+    const rsVarsFromBody = scanUdRsVarRefs(content, this).rsVarRefs;
     return {
         type: "diffClause",
         ctxVarDef: {
@@ -181,5 +224,8 @@ FormulaVisitor.prototype.diff = function (ctx: any): DiffClauseASTNode {
             subtype: 'null',
         },
         content: content,
+        rsVarDepType: analyzeRsVarDepType(rsVarsFromBody),
+        rsVars: rsVarsFromBody,
+        forbiddenNames: rsVarsFromBody,
     }
 }

@@ -1,6 +1,7 @@
 
-import { isCtxClause } from "../../expr-dsl/parse-ast/sematics/helpers";
+import { isCtxClause, traceASTState } from "../../expr-dsl/parse-ast/sematics/helpers";
 import { getASTChildren } from "../../expr-dsl/parse-ast/sematics/traverse-ast";
+import { reservedVars } from "../../expr-dsl/syntax-reference/reservedWords";
 import { CtxVar, Expression, Formula, isCtxExp, isFuncExpl } from "../../formula/base";
 import { getState } from "../../state";
 import {
@@ -189,6 +190,10 @@ export const ctxRealnameResolution = (context: CompileContext) => {
     // First initialize forbidden names for root scope
     for (const name of context.globalUsedNames)
         rootScope.forbiddenNames.add(name);
+    for (const name of reservedVars)
+        rootScope.forbiddenNames.delete(name);    
+        // reserved vars are conditionally allowed, 
+        // We tackle themwith the 'forbiddenNames' fields kept tracked everywhere
 
     for (const scope of rtSeriesScopeNode) {
         // Aggregate constraints
@@ -214,6 +219,9 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                     forcedName: cvState.ctxVar?.realname
                 });
             }
+
+            scope.forbiddenNames = scope.forbiddenNames.union(new Set(traceASTState(scope.context).forbiddenNames));
+
         } else if (scope.type === 'FuncExplScope') {
             for (let i = 0; i < scope.context.params.length; i++) {
                 const param = scope.context.params[i];
@@ -225,6 +233,9 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                     },
                 });
             }
+
+            scope.forbiddenNames = scope.forbiddenNames.union(new Set(traceASTState(scope.context).forbiddenNames));
+
         } else if (scope.type === 'InternalClauseScope') {
             const ctx = scope.context;
             if (ctx.type === 'forClause' || ctx.type === 'withClause') {
@@ -234,6 +245,9 @@ export const ctxRealnameResolution = (context: CompileContext) => {
             } else {
                 varsToResolve.push({ originalName: ctx.ctxVarDef.name, entity: ctx.ctxVarDef });
             }
+
+            scope.forbiddenNames = scope.forbiddenNames.union(new Set(ctx.forbiddenNames));
+
         }
 
         for (const v of varsToResolve) {

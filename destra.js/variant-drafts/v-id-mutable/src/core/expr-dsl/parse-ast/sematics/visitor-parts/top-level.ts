@@ -1,5 +1,5 @@
 import { FormulaVisitor } from "../base-visitor";
-import { getCtxNodeCtxVars, isCtxClause, isParenExp, isTupleExp, isVarIR, scanUdRsVarRefs } from "../helpers";
+import { analyzeRsVarDepType, getCtxNodeCtxVars, isCtxClause, isParenExp, isTupleExp, isVarIR, RsVarDepType, scanUdRsVarRefs } from "../helpers";
 import { reservedVars } from "../../../syntax-reference/reservedWords";
 import { MaybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
@@ -12,32 +12,26 @@ declare module '../base-visitor' {
     }
 }
 
-export type ParametricInfo = '1D' | '2D' | null;
 export type VariableDefinitionASTNode = {
     type: "variableDefinition",
     name: string,
     content: any,
-    parametric: ParametricInfo,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
 }
 export type ExplicitEquationASTNode = {
     type: "explicitEquation",
-    isOmitted: false,
     lhs: any,
     rhs: any,
     op: string,
-}
-export type OmittedExplicitEquationASTNode = {
-    type: "explicitEquation",
-    isOmitted: true,
-    lhs: null,
-    rhs: any,
-    op: null,
 }
 export type FunctionDefinitionASTNode = {
     type: "functionDefinition",
     name: string | null,
     params: CtxVarNullDefASTNode[],
     content: any,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
 }
 export type ImplicitEquationASTNode = {
     type: "implicitEquation",
@@ -54,12 +48,12 @@ export type RegressionASTNode = {
 export type ExpressionASTNode = {
     type: "expression",
     content: any,
-    parametric: ParametricInfo,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
 }
 export type TopLevelASTNode =
     | VariableDefinitionASTNode
     | ExplicitEquationASTNode
-    | OmittedExplicitEquationASTNode
     | FunctionDefinitionASTNode
     | ImplicitEquationASTNode
     | RegressionASTNode
@@ -99,7 +93,7 @@ export function resolveVarIRs(ast: any) {
     }
     const exit = (node: any) => {
         if (
-            ctxNodeStack.length > 0 
+            ctxNodeStack.length > 0
             && ctxNodeStack[ctxNodeStack.length - 1] === node
         ) {
             ctxNodeStack.pop();
@@ -109,7 +103,7 @@ export function resolveVarIRs(ast: any) {
 }
 
 const isMaybeFuncDefIR = (node: any): node is MaybeFuncDefIRNode => node?.type === "maybeFuncDefIR";
-function resolveNamedFuncDef(IRNode: MaybeFuncDefIRNode, content: any): FunctionDefinitionASTNode {
+function resolveNamedFuncDef(IRNode: MaybeFuncDefIRNode, content: any): Omit<FunctionDefinitionASTNode, 'rsVarDepType' | 'rsVars'> {
     const params = IRNode.params;
     // Check params are all varIRs
     for (const param of params) {
@@ -130,7 +124,7 @@ function resolveNamedFuncDef(IRNode: MaybeFuncDefIRNode, content: any): Function
         content,
     }
 }
-function resolveAnonymousFuncDef(lhs: any, rhs: any): FunctionDefinitionASTNode {
+function resolveAnonymousFuncDef(lhs: any, rhs: any): Omit<FunctionDefinitionASTNode, 'rsVarDepType' | 'rsVars'> {
     if (!isTupleExp(lhs) && !isParenExp(lhs)) {
         throw new Error(
             `Invalid syntax: Anonymous function definition must start with an parameter list. `
@@ -164,7 +158,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     const tildeOp = ctx['~']?.[0];
     const arrowOp = ctx['=>']?.[0];
     const inequalityOps = ctx.TopLevelComparisonOperator;
-    let funcDefAST: FunctionDefinitionASTNode | null = null;
+    let funcDefAST: Omit<FunctionDefinitionASTNode, 'rsVarDepType' | 'rsVars'> | null = null;
 
     // Check and resolve maybeFuncDefIR / anonymous func def
     if (isMaybeFuncDefIR(lhs)) {
@@ -186,10 +180,9 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     if (equalOp && lhs.type === "undefinedVar") {
         // test 'myVar = ...'
         // for explicit equation / variable definition
-        const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
+        const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs, this);
 
-        const isParametric1D = rsVarRefs.length > 0 && rsVarRefs.every(v => ['t'].includes(v));
-        const isParametric2D = rsVarRefs.length > 0 && rsVarRefs.every(v => ['u', 'v'].includes(v));
+        const rsVarDepType = analyzeRsVarDepType(rsVarRefs);
 
         if (udVarRefs.length > 1) {
             throw new Error(
@@ -206,44 +199,24 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
             }
             return {
                 type: "explicitEquation",
-                isOmitted: false,
                 lhs,
                 rhs,
                 op: equalOp.image,
-            }
-        }
-        if (!isParametric1D && !isParametric2D) {
-            if (rsVarRefs.length > 1) {
-                throw new Error(
-                    `Too many independent variables: ${rsVarRefs.map(v => `'${v}'`).join(', ')}.`
-                    + `Explicit equation (undefined variable type, dependent variable='${lhs.name}') must have exactly one independent variable.`
-                );
-            }
-            if (rsVarRefs.length === 1) {
-                return {
-                    type: "explicitEquation",
-                    isOmitted: false,
-                    lhs,
-                    rhs,
-                    op: equalOp.image,
-                }
             }
         }
         return {
             type: "variableDefinition",
             name: lhs.name,
             content: rhs,
-            parametric:
-                isParametric1D ? '1D' :
-                    isParametric2D ? '2D' :
-                        null,
+            rsVarDepType,
+            rsVars: rsVarRefs,
         }
     }
 
     // '=', 'rsVar = ...'
     if (equalOp && lhs.type === "reservedVar") {
         const lhsRsVar = lhs.name;
-        const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
+        const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs, this);
         let isExplicitEquation = false;
 
         if (!['x', 'y', 'z', 'r', 'rho'].includes(lhsRsVar)) {
@@ -319,7 +292,6 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
         if (isExplicitEquation) {
             return {
                 type: "explicitEquation",
-                isOmitted: false,
                 lhs,
                 rhs,
                 op: equalOp.image,
@@ -330,7 +302,8 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     // '=', 'f(x) = ...'
     // '=>', '(x) => ...'
     if (funcDefAST) {
-        const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
+        const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs, this);
+        const rsVarDepType = analyzeRsVarDepType(rsVarRefs);
 
         if (udVarRefs.length > 0) {
             throw new Error(
@@ -338,13 +311,11 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
                 + `Function definition (name='${funcDefAST.name}', params='${funcDefAST.params.join(", ")}') should not depend on undefined variables.`
             );
         }
-        if (rsVarRefs.length > 0) {
-            throw new Error(
-                `Detected reserved variables: ${rsVarRefs.map(v => `'${v}'`).join(", ")}.`
-                + `Function definition (name='${funcDefAST.name}', params='${funcDefAST.params.join(", ")}') should not depend on reserved variables.`
-            );
+        return {
+            ...funcDefAST,
+            rsVarDepType,
+            rsVars: rsVarRefs,
         }
-        return funcDefAST;
     }
 
     // '=', '<', '>', '>=', '<=', implicit equation / inequality
@@ -354,7 +325,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
 
         const { udVarRefsSet, rsVarRefsSet } = operands.reduce(
             (acc: { udVarRefsSet: Set<string>, rsVarRefsSet: Set<string> }, operand: any) => {
-                const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(operand);
+                const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(operand, this);
                 acc.udVarRefsSet.union(new Set(udVarRefs));
                 acc.rsVarRefsSet.union(new Set(rsVarRefs));
                 return acc;
@@ -405,7 +376,7 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
 
     // '~', 'Y ~ kX + b'
     if (tildeOp) {
-        const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs);
+        const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(rhs, this);
         if (rsVarRefs.length > 0) {
             throw new Error(
                 `Detected reserved variables: ${rsVarRefs.map(v => `'${v}'`).join(", ")}.`
@@ -422,7 +393,8 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     }
 
     // no operator, just an expression
-    const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(lhs);
+    const { udVarRefs, rsVarRefs } = scanUdRsVarRefs(lhs, this);
+    const rsVarDepType = analyzeRsVarDepType(rsVarRefs);
 
     if (udVarRefs.length > 0) {
         throw new Error(
@@ -431,33 +403,10 @@ FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
         );
     }
 
-    const isParametric1D = rsVarRefs.length > 0 && rsVarRefs.every(v => ['t'].includes(v));
-    const isParametric2D = rsVarRefs.length > 0 && rsVarRefs.every(v => ['u', 'v'].includes(v));
-    if (rsVarRefs.length > 0) {
-        if (rsVarRefs.length === 1 && ['x', 'y', 'z'].includes(rsVarRefs[0])) {
-            return {
-                type: "explicitEquation",
-                isOmitted: true,
-                lhs: null,
-                rhs: lhs,
-                op: null,
-            }
-        }
-        if (!isParametric1D && !isParametric2D) {
-            throw new Error(
-                `Detected reserved variables: ${rsVarRefs.map(v => `'${v}'`).join(", ")}.`
-                + `Expression should not depend on reserved variables, except for parametrics `
-                + `(1D: t, 2D: u, v).`
-            );
-        }
-    }
-
     return {
         type: "expression",
         content: lhs,
-        parametric:
-            isParametric1D ? '1D' :
-                isParametric2D ? '2D' :
-                    null,
+        rsVarDepType,
+        rsVars: rsVarRefs,
     }
 }

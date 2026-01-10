@@ -26,7 +26,7 @@ import {
 } from "./formula/base";
 import { getState } from "./state";
 import { FormulaASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/formula";
-import { parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula } from "./expr-dsl/parse-ast";
+import { analyzeRsVarDepType, arrayUnion, parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula, RsVarDepType } from "./expr-dsl/parse-ast";
 import { analyzeTypeAndCheck } from "./expr-dsl/analyzeFormulaType";
 import { CtxFactoryHeadASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/ctx-header";
 
@@ -35,13 +35,27 @@ import { evalAndSetCtxValidityState } from "./formula/validity";
 declare module "./state" {
     interface ASTState {
         root: FormulaASTNode | CtxFactoryHeadASTNode;
+        rsVarDepType: RsVarDepType | null;
+        rsVars: string[];
+        forbiddenNames: string[];
     }
 }
 
-export function setASTState(formula: Formula, ast: FormulaASTNode | CtxFactoryHeadASTNode) {
+export function setASTState(
+    formula: Formula, 
+    ast: FormulaASTNode | CtxFactoryHeadASTNode, 
+    rsVarDepType: RsVarDepType | null, 
+    rsVars: string[],
+    forbiddenNames: string[]
+) {
     const s = getState(formula);
-    if (s.ast) s.ast.root = ast;
-    else s.ast = { root: ast };
+    if (s.ast) {
+        s.ast.root = ast;
+        s.ast.rsVarDepType = rsVarDepType;
+        s.ast.rsVars = rsVars;
+        s.ast.forbiddenNames = forbiddenNames;
+    }
+    else s.ast = { root: ast, rsVarDepType, rsVars, forbiddenNames };
 }
 
 export function setSourceCtx(ctxVar: CtxVar, sourceCtx: CtxExp) {
@@ -93,7 +107,8 @@ export const expr: ExprFactory = Object.assign((strings: TemplateStringsArray, .
             result = new Regression(template);
             break;
     }
-    setASTState(result, ast);
+    const { rsVarDepType, rsVars } = ast;
+    setASTState(result, ast, rsVarDepType, rsVars, []);
     evalAndSetCtxValidityState(result);
     return result;
 }, {
@@ -119,7 +134,11 @@ let explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl =
             result = funcExpl;
             break;
     }
-    setASTState(result, ast);
+    const { rsVarDepType, rsVars } = ast;
+    setASTState(
+        result, ast, rsVarDepType, rsVars,
+        info.type === FormulaType.Function ? rsVars : []
+    );
     evalAndSetCtxValidityState(result);
     return result;
 };
@@ -188,7 +207,16 @@ const createCtxExpressionIntermediate = <K extends CtxKindNotFunc>(
 
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxExpression(template, ctxVars, body, kind);
-        setASTState(result, ast);
+
+        const rsVarsFromDef = ast.rsVars;
+        const rsVarsFromBody = 
+            body instanceof Formula && !(body instanceof CtxVar) ?
+                getState(body).ast?.rsVars ?? [] :
+                [];
+        const rsVars = arrayUnion(rsVarsFromDef, rsVarsFromBody);
+        const rsVarDepType = analyzeRsVarDepType(rsVars);
+        setASTState(result, ast, rsVarDepType, rsVars, rsVarsFromBody);
+
         ctxVars.forEach(v => setSourceCtx(v, result));
         evalAndSetCtxValidityState(result);
         return result;
@@ -227,7 +255,16 @@ const createCtxVarExplIntermediate = <K extends CtxKindNotFunc>(
 
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxVarExpl(template, ctxVars, body, kind);
-        setASTState(result, ast);
+
+        const rsVarsFromDef = ast.rsVars;
+        const rsVarsFromBody = 
+            body instanceof Formula && !(body instanceof CtxVar) ?
+                getState(body).ast?.rsVars ?? [] :
+                [];
+        const rsVars = arrayUnion(rsVarsFromDef, rsVarsFromBody);
+        const rsVarDepType = analyzeRsVarDepType(rsVars);
+        setASTState(result, ast, rsVarDepType, rsVars, rsVarsFromBody);
+
         ctxVars.forEach(v => setSourceCtx(v, result));
         evalAndSetCtxValidityState(result);
         return result;
@@ -308,7 +345,16 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
     ): CtxFuncExpl<TFunc> => {
         const body = callback(ctxObj);
         const result = createCallableCtxFuncExpl<TFunc>(template, params, ctxVars, body);
-        setASTState(result, ast);
+
+        const rsVarsFromDef = ast.rsVars;
+        const rsVarsFromBody = 
+            body instanceof Formula && !(body instanceof CtxVar) ?
+                getState(body).ast?.rsVars ?? [] :
+                [];
+        const rsVars = arrayUnion(rsVarsFromDef, rsVarsFromBody);
+        const rsVarDepType = analyzeRsVarDepType(rsVars);
+        setASTState(result, ast, rsVarDepType, rsVars, rsVarsFromBody);
+        
         ctxVars.forEach(v => setSourceCtx(v, result));
         evalAndSetCtxValidityState(result);
         return result;

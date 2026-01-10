@@ -2,6 +2,7 @@ import { createRegExp, exactly } from "magic-regexp";
 import { ctxVarNameExcludePattern, identifierPattern } from "../../../syntax-reference/commonRegExpPatterns";
 import { FormulaVisitor } from "../base-visitor";
 import { flattenMultLevel, isMultDivType, unflattenMultLevel } from "./multDiv-level";
+import { analyzeRsVarDepType, arrayUnion, RsVarDepType, scanUdRsVarRefs } from "../helpers";
 
 
 declare module '../base-visitor' {
@@ -52,11 +53,17 @@ export type ForClauseASTNode = {
     type: "forClause",
     ctxVarDefs: CtxVarExprDefASTNode[],
     content: any,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
+    forbiddenNames: string[],
 }
 export type WithClauseASTNode = {
     type: "withClause",
     ctxVarDefs: CtxVarExprDefASTNode[],
     content: any,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
+    forbiddenNames: string[],
 }
 
 // Needed transform to left-associative AST tree
@@ -116,10 +123,19 @@ FormulaVisitor.prototype.context_type2_level = function (ctx: any): any {
                 + `In a 'for' clause, each context variable should be defined only once.`
             );
         }
+
+        const rsVarsFromBody = scanUdRsVarRefs(content, this).rsVarRefs;
+        const rsVarsFromDef = forCtxVarDefs.reduce((acc, def) => {
+            return arrayUnion(acc, scanUdRsVarRefs(def, this).rsVarRefs);
+        }, [] as string[]);
+        const rsVars = arrayUnion(rsVarsFromBody, rsVarsFromDef);
         return {
             type: "forClause",
-            ctxVarDefs: forCtxVarDefs,
+            ctxVarDefs: forCtxVarDefs,  
             content: content,
+            rsVarDepType: analyzeRsVarDepType(rsVars),
+            rsVars,
+            forbiddenNames: rsVarsFromBody,
         }
     }
     if (withCtxVarDefs) {
@@ -130,10 +146,19 @@ FormulaVisitor.prototype.context_type2_level = function (ctx: any): any {
                 + `In a 'with' clause, each context variable should be defined only once.`
             );
         }
+
+        const rsVarsFromBody = scanUdRsVarRefs(content, this).rsVarRefs;
+        const rsVarsFromDef = withCtxVarDefs.reduce((acc, def) => {
+            return arrayUnion(acc, scanUdRsVarRefs(def, this).rsVarRefs);
+        }, [] as string[]);
+        const rsVars = arrayUnion(rsVarsFromBody, rsVarsFromDef);
         return {
             type: "withClause",
             ctxVarDefs: withCtxVarDefs,
             content: content,
+            rsVarDepType: analyzeRsVarDepType(rsVars),
+            rsVars,
+            forbiddenNames: rsVarsFromBody,
         }
     }
     return content;

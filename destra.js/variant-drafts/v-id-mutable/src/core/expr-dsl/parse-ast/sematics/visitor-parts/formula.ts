@@ -1,4 +1,5 @@
 import { FormulaVisitor } from "../base-visitor";
+import { RsVarDepType } from "../helpers";
 import { TopLevelASTNode } from "./top-level";
 
 
@@ -15,6 +16,8 @@ export interface FormulaASTNode {
     type: "formula",
     content: TopLevelASTNode,
     slider: SliderConfigASTNode | null,
+    rsVarDepType: RsVarDepType | null,
+    rsVars: string[],
 }
 
 export interface SliderConfigASTNode {
@@ -24,12 +27,24 @@ export interface SliderConfigASTNode {
     step: any | null,
 }
 
-FormulaVisitor.prototype.formula = function (ctx: any) {
-    const { content, slider } = this.visit(ctx.inLevel);
+FormulaVisitor.prototype.formula = function (ctx: any): FormulaASTNode {
+    const { content, slider } = this.visit(ctx.inLevel) as { content: TopLevelASTNode, slider: SliderConfigASTNode | null };
+    let rsVarDepType: RsVarDepType | null = null;
+    let rsVars: string[] = [];
+    if (
+        content.type === "variableDefinition"
+        || content.type === "functionDefinition"
+        || content.type === "expression"
+    ) {
+        rsVarDepType = content.rsVarDepType;
+        rsVars = content.rsVars;
+    }
     return {
         type: "formula",
         content,
         slider,
+        rsVarDepType,
+        rsVars,
     }
 }
 
