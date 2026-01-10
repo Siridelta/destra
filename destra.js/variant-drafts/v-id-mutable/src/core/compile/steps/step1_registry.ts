@@ -1,5 +1,5 @@
 
-import { Expl, Formula, CtxExp, CtxVar } from "../../formula/base";
+import { Expl, Formula, CtxExp, CtxVar, RegressionParameter, Regression } from "../../formula/base";
 import { normalizeName2 } from "../../formula/realname";
 import { getState } from "../../state";
 import { CompileContext, Folder, Graph } from "../types";
@@ -76,6 +76,27 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
                 .join(', ');
             throw new Error(`CtxVar Leakage detected in formula ${root instanceof Expl ? root.id() : 'anonymous'}. Missing contexts: ${missingNames}`);
         }
+    }
+
+    // Step 1.6: Regression Parameter Check
+    const allRegrs = new Set<RegressionParameter>();
+    const regrToRegression = new Map<RegressionParameter, Regression>();
+    for (const f of Array.from(visited)) {
+        if (f instanceof RegressionParameter) {
+            allRegrs.add(f);
+        } else if (f instanceof Regression) {
+            const regrs = f.deps.filter(dep => dep instanceof RegressionParameter);
+            for (const regr of regrs) {
+                if (regrToRegression.has(regr)) {
+                    throw new Error(`Regression Parameter ${regr.id()} is defined in multiple Regressions.`);
+                }
+                regrToRegression.set(regr, f);
+            }
+        }
+    }
+    const undefinedRegrs = allRegrs.difference(new Set(regrToRegression.keys()));
+    if (undefinedRegrs.size > 0) {
+        throw new Error(`Regression Parameter ${Array.from(undefinedRegrs).map(regr => regr.id()).join(', ')} is not defined in any Regression.`);
     }
 
     return context;

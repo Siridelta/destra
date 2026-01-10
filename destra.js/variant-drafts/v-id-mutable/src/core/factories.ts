@@ -5,7 +5,7 @@
  * 以及提供 `For`, `With`, `Sum`, `Int`, `Func` 等上下文语句工厂函数。
  */
 
-import { Substitutable, Expr, Expl, Formula, CtxExpBody, FuncExpl } from "./formula/base";
+import { Substitutable, Expr, Expl, Formula, CtxExpBody, FuncExpl, RegressionParameter } from "./formula/base";
 import {
     FormulaType,
     createTemplatePayload,
@@ -142,6 +142,22 @@ let explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl =
     evalAndSetCtxValidityState(result);
     return result;
 };
+
+interface RegrFactory {
+    (id?: string): RegressionParameter;
+    type: 'regr'
+}
+
+export const regr: RegrFactory = Object.assign((id?: string): RegressionParameter => {
+    const result = new RegressionParameter();
+    if (id) {
+        result.id(id);
+    }
+    evalAndSetCtxValidityState(result);
+    return result;
+}, {
+    type: 'regr' as const
+});
 
 // ============================================================================
 // 上下文语句工厂通用逻辑

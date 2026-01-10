@@ -69,8 +69,9 @@ export {
 
 import {
     expr, expl, For, With, Sum, Int, Prod, Diff, Func,
+    regr,
 } from "./factories";
-export { expr, expl, For, With, Sum, Int, Prod, Diff, Func };
+export { expr, expl, For, With, Sum, Int, Prod, Diff, Func, regr };
 
 export * from "./selection";
 export * from "./builder";

@@ -42,6 +42,7 @@ export enum FormulaType {
     ExplicitEquation = "explicit-equation",
     ImplicitEquation = "implicit-equation",
     Regression = "regression",
+    RegressionParameter = "regression-parameter",
 }
 
 // ============================================================================
@@ -254,6 +255,7 @@ export class Regression extends Expr {
     }
 }
 
+
 // ============================================================================
 // Expl 子类实现
 // ============================================================================
@@ -266,6 +268,17 @@ export class VarExpl extends Expl {
 
     public constructor(template: TemplatePayload) {
         super(template);
+    }
+}
+
+/**
+ * RegressionParameter：回归参数，没有内容，是一个占位符，需要嵌入唯一的 Regression 对象
+ */
+export class RegressionParameter extends Expl {
+    public readonly type = FormulaType.RegressionParameter;
+
+    public constructor() {
+        super({ strings: Object.freeze([""]), values: Object.freeze([]) });
     }
 }
 
@@ -594,7 +607,7 @@ export const isCtxExp = (formula: Formula): formula is CtxExp => {
 /**
  * Embeddable：可嵌入的表达式类型（可用于其他表达式中）
  */
-export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplTFuncBase> | CtxVar;
+export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplTFuncBase> | CtxVar | RegressionParameter;
 
 /**
  * Substitutable：可代入模板字符串插值的值类型（原始值或可嵌入的表达式）
