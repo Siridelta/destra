@@ -42,9 +42,9 @@ declare module "./state" {
 }
 
 export function setASTState(
-    formula: Formula, 
-    ast: FormulaASTNode | CtxFactoryHeadASTNode, 
-    rsVarDepType: RsVarDepType | null, 
+    formula: Formula,
+    ast: FormulaASTNode | CtxFactoryHeadASTNode,
+    rsVarDepType: RsVarDepType | null,
     rsVars: string[],
     forbiddenNames: string[]
 ) {
@@ -92,6 +92,7 @@ export const expr: ExprFactory = Object.assign((strings: TemplateStringsArray, .
     const ast = parseFormula(template);
     const info = analyzeTypeAndCheck(ast, "expr");
 
+    // Create result by type
     let result: Expr;
     switch (info.type) {
         case FormulaType.Expression:
@@ -107,19 +108,24 @@ export const expr: ExprFactory = Object.assign((strings: TemplateStringsArray, .
             result = new Regression(template);
             break;
     }
+
+    // Set Sidecar states
     const { rsVarDepType, rsVars } = ast;
     setASTState(result, ast, rsVarDepType, rsVars, []);
     evalAndSetCtxValidityState(result);
+
     return result;
 }, {
     type: 'expr' as const
 });
 
 let explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl => {
+    // Parse and analyze
     const template = createTemplatePayload(strings, values);
     const ast = parseFormula(template);
     const info = analyzeTypeAndCheck(ast, "expl");
 
+    // Create result by type
     let result: Expl;
     switch (info.type) {
         case FormulaType.Variable:
@@ -134,12 +140,15 @@ let explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl =
             result = funcExpl;
             break;
     }
+
+    // Set Sidecar states
     const { rsVarDepType, rsVars } = ast;
     setASTState(
         result, ast, rsVarDepType, rsVars,
         info.type === FormulaType.Function ? rsVars : []
     );
     evalAndSetCtxValidityState(result);
+
     return result;
 };
 
@@ -202,6 +211,7 @@ const createCtxExpressionIntermediate = <K extends CtxKindNotFunc>(
     strings: TemplateStringsArray,
     values: Substitutable[]
 ): IntermediateType<K, CtxExpression> => {
+    // Parse and analyze
     const template = createTemplatePayload(strings, values);
     const ast =
         kind === 'for' || kind === 'with' ?
@@ -209,10 +219,12 @@ const createCtxExpressionIntermediate = <K extends CtxKindNotFunc>(
             kind === 'sum' || kind === 'int' || kind === 'prod' ?
                 parseCtxFactoryRangeDefHead(template) :
                 parseCtxFactoryNullDefHead(template);
-
     const ctxVarNames = getCtxVarNames(ast);
+
+    // Checks
     checkNoDuplicateVarDefinitions(ctxVarNames);
 
+    // Build ctxVars and ctxObj
     const ctxVars = ctxVarNames.map(name => {
         const v = new CtxVar(name);
         // Initialize validity for CtxVar
@@ -221,11 +233,12 @@ const createCtxExpressionIntermediate = <K extends CtxKindNotFunc>(
     });
     const ctxObj = buildContextObj(ctxVars);
 
+    // Logic after user passes callback
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxExpression(template, ctxVars, body, kind);
 
         const rsVarsFromDef = ast.rsVars;
-        const rsVarsFromBody = 
+        const rsVarsFromBody =
             body instanceof Formula && !(body instanceof CtxVar) ?
                 getState(body).ast?.rsVars ?? [] :
                 [];
@@ -238,6 +251,7 @@ const createCtxExpressionIntermediate = <K extends CtxKindNotFunc>(
         return result;
     }
 
+    // Create Intermediate by type
     return (
         kind === 'with' || kind === 'for' ?
             (callback: (ctx: ContextObject) => CtxExpBody) => mkResult(callback(ctxObj)) :
@@ -251,6 +265,7 @@ const createCtxVarExplIntermediate = <K extends CtxKindNotFunc>(
     strings: TemplateStringsArray,
     values: Substitutable[]
 ): IntermediateType<K, CtxVarExpl> => {
+    // Parse and analyze
     const template = createTemplatePayload(strings, values);
     const ast =
         kind === 'for' || kind === 'with' ?
@@ -258,10 +273,12 @@ const createCtxVarExplIntermediate = <K extends CtxKindNotFunc>(
             kind === 'sum' || kind === 'int' || kind === 'prod' ?
                 parseCtxFactoryRangeDefHead(template) :
                 parseCtxFactoryNullDefHead(template);
-
     const ctxVarNames = getCtxVarNames(ast);
+
+    // Checks
     checkNoDuplicateVarDefinitions(ctxVarNames);
 
+    // Build ctxVars and ctxObj
     const ctxVars = ctxVarNames.map(name => {
         const v = new CtxVar(name);
         evalAndSetCtxValidityState(v);
@@ -269,11 +286,12 @@ const createCtxVarExplIntermediate = <K extends CtxKindNotFunc>(
     });
     const ctxObj = buildContextObj(ctxVars);
 
+    // Logic after user passes callback
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxVarExpl(template, ctxVars, body, kind);
 
         const rsVarsFromDef = ast.rsVars;
-        const rsVarsFromBody = 
+        const rsVarsFromBody =
             body instanceof Formula && !(body instanceof CtxVar) ?
                 getState(body).ast?.rsVars ?? [] :
                 [];
@@ -286,6 +304,7 @@ const createCtxVarExplIntermediate = <K extends CtxKindNotFunc>(
         return result;
     }
 
+    // Create Intermediate by type
     return (
         kind === 'with' || kind === 'for' ?
             (callback: (ctx: ContextObject) => CtxExpBody) => mkResult(callback(ctxObj)) :
@@ -344,9 +363,12 @@ export const Diff = (strings: TemplateStringsArray, ...values: Substitutable[]) 
  * @example Func`x, y`(({x, y}) => expr`${x}^2 + ${y}^2`)
  */
 export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) => {
+    // Parse and analyze
     const template = createTemplatePayload(strings, values);
     const ast = parseCtxFactoryNullDefHead(template);
     const params = getCtxVarNames(ast);
+
+    // Build ctxVars and ctxObj
     const ctxVars = params.map(name => {
         const v = new CtxVar(name);
         evalAndSetCtxValidityState(v);
@@ -354,6 +376,8 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
     });
     const ctxObj = buildContextObj(ctxVars);
 
+    // Logic after user passes callback
+    // 
     // 返回一个接收 callback 的函数，该 callback 返回 CtxExpBody，
     // 最终返回 CtxFuncExpl (FuncExpl 的子类，可调用)
     return <TFunc extends FuncExplTFuncBase>(
@@ -363,14 +387,14 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
         const result = createCallableCtxFuncExpl<TFunc>(template, params, ctxVars, body);
 
         const rsVarsFromDef = ast.rsVars;
-        const rsVarsFromBody = 
+        const rsVarsFromBody =
             body instanceof Formula && !(body instanceof CtxVar) ?
                 getState(body).ast?.rsVars ?? [] :
                 [];
         const rsVars = arrayUnion(rsVarsFromDef, rsVarsFromBody);
         const rsVarDepType = analyzeRsVarDepType(rsVars);
         setASTState(result, ast, rsVarDepType, rsVars, rsVarsFromBody);
-        
+
         ctxVars.forEach(v => setSourceCtx(v, result));
         evalAndSetCtxValidityState(result);
         return result;

@@ -2,6 +2,7 @@ import { FormulaVisitor } from "../base-visitor";
 import { BuiltinFuncASTNode } from "./terminals";
 import { MaybeOCallFuncIRNode } from "./atomic-exps";
 import { getASTChildren } from "../traverse-ast";
+import { isUpToPostfixLevelASTNode, UpToPostfixLevel } from "./postfix-level";
 
 
 declare module '../base-visitor' {
@@ -26,6 +27,16 @@ export type DivisionASTNode = {
 }
 export type CrossASTNode = {
     type: "cross",
+    left: any,
+    right: any,
+}
+export type PercentOfASTNode = {
+    type: "percentOf",
+    left: any,
+    right: any,
+}
+export type ModASTNode = {
+    type: "mod",
     left: any,
     right: any,
 }
@@ -57,14 +68,92 @@ export type PowerASTNode = {
     exponent: any,
 }
 
-export const isMultDivType = (type: string) =>
-    type === 'multiplication'
-    || type === 'division'
-    || type === 'cross';
+export type MultDivLevelASTNode =
+    | MultiplicationASTNode
+    | DivisionASTNode
+    | CrossASTNode
+    | PercentOfASTNode
+    | ModASTNode;
+export type PrefixLevelASTNode =
+    | UnaryMinusASTNode
+    | UnaryPlusASTNode;
+
+export type UpToMultDivLevel<allowIR extends boolean = false> =
+    | MultDivLevelASTNode
+    | UpToOmittedCallLevel<allowIR>;
+export type UpToOmittedCallLevel<allowIR extends boolean = false> =
+    | OmittedCallASTNode
+    | UpToImplicitMultLevel<allowIR>;
+export type UpToImplicitMultLevel<allowIR extends boolean = false> =
+    | ImplicitMultASTNode
+    | UpToPrefixLevel<allowIR>;
+export type UpToPrefixLevel<allowIR extends boolean = false> =
+    | PrefixLevelASTNode
+    | UpToRootofLevel<allowIR>;
+export type UpToRootofLevel<allowIR extends boolean = false> =
+    | RootofASTNode
+    | UpToPowerLevel<allowIR>;
+export type UpToPowerLevel<allowIR extends boolean = false> =
+    | PowerASTNode
+    | UpToPostfixLevel<allowIR>;
+
+export function isMultDivLevelASTNode(node: any): node is MultDivLevelASTNode {
+    return (
+        node?.type === 'multiplication'
+        || node?.type === 'division'
+        || node?.type === 'cross'
+        || node?.type === 'percentOf'
+        || node?.type === 'mod'
+    );
+}
+export function isOmittedCallASTNode(node: any): node is OmittedCallASTNode {
+    return node?.type === 'omittedCall';
+}
+export function isImplicitMultASTNode(node: any): node is ImplicitMultASTNode {
+    return node?.type === 'implicitMult';
+}
+export function isPrefixLevelASTNode(node: any): node is PrefixLevelASTNode {
+    return node?.type === 'unaryMinus' || node?.type === 'unaryPlus';
+}
+export function isRootofASTNode(node: any): node is RootofASTNode {
+    return node?.type === 'rootof';
+}
+export function isPowerASTNode(node: any): node is PowerASTNode {
+    return node?.type === 'power';
+}
+
+export function isUpToMultDivLevelASTNode(node: any): node is UpToMultDivLevel {
+    return isMultDivLevelASTNode(node)
+        || isUpToOmittedCallLevelASTNode(node);
+}
+export function isUpToOmittedCallLevelASTNode(node: any): node is UpToOmittedCallLevel {
+    return isOmittedCallASTNode(node)
+        || isUpToImplicitMultLevelASTNode(node);
+}
+export function isUpToImplicitMultLevelASTNode(node: any): node is UpToImplicitMultLevel {
+    return isImplicitMultASTNode(node)
+        || isUpToPrefixLevelASTNode(node);
+}
+export function isUpToPrefixLevelASTNode(node: any): node is UpToPrefixLevel {
+    return isPrefixLevelASTNode(node)
+        || isUpToRootofLevelASTNode(node);
+}
+export function isUpToRootofLevelASTNode(node: any): node is UpToRootofLevel {
+    return isRootofASTNode(node)
+        || isUpToPowerLevelASTNode(node);
+}
+export function isUpToPowerLevelASTNode(node: any): node is UpToPowerLevel {
+    return isPowerASTNode(node)
+        || isUpToPostfixLevelASTNode(node);
+}
+
+
 export const multDivOpToType = (op: string) =>
     op === '*' ? 'multiplication' :
         op === '/' ? 'division' :
-            op === 'cross' ? 'cross' : null;
+            op === 'cross' ? 'cross' :
+                op === '%of' ? 'percentOf' :
+                    op === '%' ? 'mod' : null;
 FormulaVisitor.prototype.multDivLevel = function (ctx: any) {
     // Transform to left-associative AST tree
 
@@ -72,11 +161,11 @@ FormulaVisitor.prototype.multDivLevel = function (ctx: any) {
     const operator = ctx.operator?.[0]?.image || null;
     const rhs = ctx.rhs ? this.visit(ctx.rhs) : null;
 
-    if (operator && rhs && isMultDivType(rhs.type)) {
+    if (operator && rhs && isMultDivLevelASTNode(rhs)) {
         // deep seek rhs's left-most mult/div child
         let currentNode = rhs;
 
-        while (isMultDivType(currentNode.left.type)) {
+        while (isMultDivLevelASTNode(currentNode.left)) {
             currentNode = currentNode.left;
         }
         // here currentNode is the left-most mult/div child
@@ -200,16 +289,16 @@ FormulaVisitor.prototype.iMultAndOCallLevel = function (ctx: any) {
 
 export interface FlattenedMultLevel {
     nodes: any[];
-    ops: ('*' | '/' | 'cross' | 'iMult')[];
+    opTypes: (MultDivLevelASTNode['type'] | ImplicitMultASTNode['type'])[];
 }
 export const flattenMultLevel = (ast: any): any => {
     const nodes: FlattenedMultLevel['nodes'] = [];
-    const ops: FlattenedMultLevel['ops'] = [];
+    const ops: FlattenedMultLevel['opTypes'] = [];
 
     const visitMultDivLevel = (node: any) => {
-        if (isMultDivType(node.type)) {
+        if (isMultDivLevelASTNode(node)) {
             visitMultDivLevel(node.left);
-            ops.push(node.operator);
+            ops.push(node.type);
             visitMultDivLevel(node.right);
         } else if (node.type === 'implicitMult') {
             visitImplicitMult(node);
@@ -222,7 +311,7 @@ export const flattenMultLevel = (ast: any): any => {
             const operand = node.operands[i];
             nodes.push(operand);
             if (i < node.operands.length - 1) {
-                ops.push('iMult');
+                ops.push('implicitMult');
             }
         }
     }
@@ -234,13 +323,13 @@ export const flattenMultLevel = (ast: any): any => {
 }
 export const unflattenMultLevel = (flattened: FlattenedMultLevel): any => {
     const nodes = flattened.nodes;
-    const ops = flattened.ops;
+    const ops = flattened.opTypes;
     let ast: any = nodes[0];
     for (let i = 0; i < ops.length; i++) {
         const nextNode = nodes[i + 1];
         const op = ops[i];
-        if (isMultDivType(ast.type)) {
-            if (op === 'iMult') {
+        if (isMultDivLevelASTNode(ast)) {
+            if (op === 'implicitMult') {
                 if (ast.right.type === 'implicitMult') {
                     ast.right.operands.push(nextNode);
                 } else {
@@ -257,7 +346,7 @@ export const unflattenMultLevel = (flattened: FlattenedMultLevel): any => {
                 }
             }
         } else if (ast.type === 'implicitMult') {
-            if (op === 'iMult') {
+            if (op === 'implicitMult') {
                 ast.operands.push(nextNode);
             } else {
                 ast = {
@@ -267,7 +356,7 @@ export const unflattenMultLevel = (flattened: FlattenedMultLevel): any => {
                 }
             }
         } else {
-            if (op === 'iMult') {
+            if (op === 'implicitMult') {
                 ast = {
                     type: 'implicitMult',
                     operands: [ast],

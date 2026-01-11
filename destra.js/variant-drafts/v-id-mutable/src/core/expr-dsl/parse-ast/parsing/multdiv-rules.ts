@@ -1,5 +1,5 @@
 import { RootofKeyword } from "../tokens/keywords";
-import { Bang, Bar, BracketClose, BracketOpen, Comma, ComparisonOperator1, ComparisonOperator2, Cross, Divide, Dot, Minus, Multiply, Plus, Power, RangeDots } from "../tokens/op-and-puncs";
+import { Bang, Bar, BracketClose, BracketOpen, Comma, ComparisonOperator1, ComparisonOperator2, Cross, Divide, Dot, Minus, Multiply, Percent, PercentOf, Plus, Power, RangeDots } from "../tokens/op-and-puncs";
 import { SupportExtensionFunc, SupportOmittedCallFunc } from "../tokens/reserved-words/builtin-funcs/categories";
 import { Attribute } from "../tokens/reserved-words/reservedVars";
 import { FormulaParser } from "./parser";
@@ -30,6 +30,8 @@ export function initMultDivRules(this: FormulaParser) {
                 { ALT: () => this.CONSUME(Multiply, { LABEL: "operator" }) },
                 { ALT: () => this.CONSUME(Divide, { LABEL: "operator" }) },
                 { ALT: () => this.CONSUME(Cross, { LABEL: "operator" }) },
+                { ALT: () => this.CONSUME(PercentOf, { LABEL: "operator" }) },
+                { ALT: () => this.CONSUME(Percent, { LABEL: "operator" }) },
             ]);
             this.SUBRULE2(this.multDivLevel, { LABEL: "rhs" });
         });

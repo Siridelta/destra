@@ -1,4 +1,5 @@
 import { FormulaVisitor } from "../base-visitor";
+import { isUpToAddSubLevelASTNode, UpToAddSubLevel } from "./addSub-level";
 import { SubstitutionASTNode } from "./terminals";
 
 
@@ -17,6 +18,29 @@ export type ActionASTNode = {
     type: "action",
     target: SubstitutionASTNode,
     value: any,
+}
+
+export type UpToCommasLevel =
+    | CommasASTNode
+    | UpToActionLevel;
+export type UpToActionLevel =
+    | ActionASTNode
+    | UpToAddSubLevel;
+
+export function isCommasASTNode(node: any): node is CommasASTNode {
+    return node?.type === 'commas';
+}
+export function isActionASTNode(node: any): node is ActionASTNode {
+    return node?.type === 'action';
+}
+
+export function isUpToCommasLevelASTNode(node: any): node is UpToCommasLevel {
+    return isCommasASTNode(node)
+        || isUpToActionLevelASTNode(node);
+}
+export function isUpToActionLevelASTNode(node: any): node is UpToActionLevel {
+    return isActionASTNode(node)
+        || isUpToAddSubLevelASTNode(node);
 }
 
 FormulaVisitor.prototype.commasLevel = function (ctx: any): any {

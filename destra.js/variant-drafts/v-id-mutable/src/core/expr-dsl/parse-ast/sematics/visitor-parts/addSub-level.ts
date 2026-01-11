@@ -1,8 +1,6 @@
-import { createRegExp, exactly } from "magic-regexp";
-import { ctxVarNameExcludePattern, identifierPattern } from "../../../syntax-reference/commonRegExpPatterns";
 import { FormulaVisitor } from "../base-visitor";
-import { flattenMultLevel, isMultDivType, unflattenMultLevel } from "./multDiv-level";
 import { analyzeRsVarDepType, arrayUnion, RsVarDepType, scanUdRsVarRefs } from "../helpers";
+import { isUpToMultDivLevelASTNode, UpToMultDivLevel } from "./multDiv-level";
 
 
 declare module '../base-visitor' {
@@ -64,6 +62,35 @@ export type WithClauseASTNode = {
     rsVarDepType: RsVarDepType | null,
     rsVars: string[],
     forbiddenNames: string[],
+}
+
+export type AddSubLevelASTNode =
+    | AdditionASTNode
+    | SubtractionASTNode;
+export type ContextType2LevelASTNode =
+    | ForClauseASTNode
+    | WithClauseASTNode;
+
+export type UpToAddSubLevel<allowIR extends boolean = false> =
+    | AddSubLevelASTNode
+    | UpToContextType2Level<allowIR>;
+export type UpToContextType2Level<allowIR extends boolean = false> =
+    | ContextType2LevelASTNode
+    | UpToMultDivLevel<allowIR>;
+
+export function isAddSubLevelASTNode(node: any): node is AddSubLevelASTNode {
+    return node?.type === 'addition' || node?.type === 'subtraction';
+}
+export function isContextType2LevelASTNode(node: any): node is ContextType2LevelASTNode {
+    return node?.type === 'forClause' || node?.type === 'withClause';
+}
+export function isUpToAddSubLevelASTNode(node: any): node is UpToAddSubLevel {
+    return isAddSubLevelASTNode(node)
+        || isUpToContextType2LevelASTNode(node);
+}
+export function isUpToContextType2LevelASTNode(node: any): node is UpToContextType2Level {
+    return isContextType2LevelASTNode(node)
+        || isUpToMultDivLevelASTNode(node);
 }
 
 // Needed transform to left-associative AST tree

@@ -1,11 +1,12 @@
 import { IToken } from "chevrotain";
 import { FormulaVisitor } from "../base-visitor";
-import { BuiltinFuncASTNode, SubstitutionASTNode, VarIRNode } from "./terminals";
+import { BuiltinFuncASTNode, ColorHexLiteralASTNode, ConstantASTNode, isTerminalASTNode, NumberASTNode, SubstitutionASTNode, TerminalASTNode, VarIRNode } from "./terminals";
 import { SupportOmittedCallFunc } from "../../tokens/reserved-words/builtin-funcs/categories";
 import { RangeDots } from "../../tokens/op-and-puncs";
 import { CommasASTNode } from "./commas-level";
 import { traceSubstitution } from "../helpers";
 import { Formula, isFuncExpl } from "../../../../formula/base";
+import { PiecewiseExpASTNode } from "./piecewise-exp";
 
 
 declare module '../base-visitor' {
@@ -71,6 +72,34 @@ export type AbsExpASTNode = {
     content: any,
 }
 
+export type AtomicExpASTNode<allowIR extends boolean = false> =
+    | BuiltinFuncCallASTNode
+    | ParenExpASTNode
+    | ListExpASTNode
+    | TupleExpASTNode
+    | PiecewiseExpASTNode
+    | AbsExpASTNode
+    | DefinedFuncCallASTNode
+    | MaybeFuncDefIRNode
+    | TerminalASTNode<allowIR>
+    | (allowIR extends true ?
+        | MaybeOCallFuncIRNode
+        | MaybeFuncDefIRNode
+        : never);
+export function isAtomicExpASTNode(node: any): node is AtomicExpASTNode {
+    return (
+        node?.type === "builtinFuncCall"
+        || node?.type === "parenExp"
+        || node?.type === "listExp"
+        || node?.type === "tupleExp"
+        || node?.type === "piecewiseExp"
+        || node?.type === "absExp"
+        || node?.type === "definedFuncCall"
+        || node?.type === "maybeFuncDefIR"
+        || isTerminalASTNode(node)
+    );
+}
+
 FormulaVisitor.prototype.atomicExp = function (ctx: any) {
     if (ctx.NumberLiteral) {
         return this.toNumberAST(ctx.NumberLiteral[0].image);
@@ -90,7 +119,7 @@ FormulaVisitor.prototype.atomicExp = function (ctx: any) {
 FormulaVisitor.prototype.builtinFuncCall = function (ctx: any) {
     const funcToken = ctx.BuiltinFunc[0] as IToken;
     const args = ctx.argsList ? this.visit(ctx.argsList) : null;
-    
+
     if (args === null) {
         // consider an omitted call function IR node, 
         // sent to IMultAndOCall level for further processing

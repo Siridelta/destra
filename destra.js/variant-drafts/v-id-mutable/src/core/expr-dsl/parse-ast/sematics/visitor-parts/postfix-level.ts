@@ -2,6 +2,8 @@ import { FormulaVisitor } from "../base-visitor";
 import { ComparisonASTNode } from "../helpers";
 import { RangeDots } from "../../tokens/op-and-puncs";
 import { BuiltinFuncASTNode } from "./terminals";
+import { AtomicExpASTNode, isAtomicExpASTNode } from "./atomic-exps";
+import { ContextType1ASTNode, isContextType1ASTNode } from "./context-type1";
 
 
 declare module '../base-visitor' {
@@ -52,6 +54,38 @@ export type ListSliceRangeASTNode = {
     type: "listSliceRange",
     start: any,
     end: any | null,
+}
+
+export type PostfixLevelASTNode =
+    | FactorialASTNode
+    | AttrAccessASTNode
+    | ExtensionFuncCallASTNode
+    | ListFilteringASTNode
+    | ListIndexingASTNode
+    | ListSlicingASTNode
+    | ListSliceRangeASTNode;
+
+export type UpToPostfixLevel<allowIR extends boolean = false> =
+    | AtomicExpASTNode<allowIR>
+    | PostfixLevelASTNode
+    | ContextType1ASTNode;
+
+export function isPostfixLevelASTNode(node: any): node is PostfixLevelASTNode {
+    return (
+        node?.type === "factorial"
+        || node?.type === "attrAccess"
+        || node?.type === "extensionFuncCall"
+        || node?.type === "listFiltering"
+        || node?.type === "listIndexing"
+        || node?.type === "listSlicing"
+    );
+}
+export function isUpToPostfixLevelASTNode(node: any): node is UpToPostfixLevel {
+    return (
+        isAtomicExpASTNode(node)
+        || isPostfixLevelASTNode(node)
+        || isContextType1ASTNode(node)
+    );
 }
 
 // vacancy need to be null (not undefined)

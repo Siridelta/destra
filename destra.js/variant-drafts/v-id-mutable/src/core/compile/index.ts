@@ -1,8 +1,8 @@
 
 import { Graph } from "./types";
-import { registryAndCollisionCheck } from "./steps/step1_registry";
-import { globalRealnameResolution } from "./steps/step2_globalRealname";
-import { ctxRealnameResolution } from "./steps/step3_ctxRealname";
+import { registryAndCollisionCheck } from "./resolve-names/step1_registry";
+import { globalRealnameResolution } from "./resolve-names/step2_globalRealname";
+import { ctxRealnameResolution } from "./resolve-names/step3_ctxRealname";
 
 export { Graph, Folder, type GraphInput, type FolderInput, type GraphSettings, type Ticker } from "./types";
 

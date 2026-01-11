@@ -17,7 +17,6 @@ declare module '../base-visitor' {
 
 export type NumberASTNode = {
     type: "number",
-    sign?: '+' | '-',
     base: {
         integer?: string,
         decimal?: string,
@@ -67,6 +66,31 @@ export type UndefinedVarASTNode = {
 export type VarIRNode = {
     type: "varIR",
     name: string,
+}
+
+export type TerminalASTNode<allowIR extends boolean = false> =
+    | NumberASTNode
+    | ColorHexLiteralASTNode
+    | ConstantASTNode
+    | SubstitutionASTNode
+    | ReservedVarASTNode
+    | ContextVarASTNode
+    | UndefinedVarASTNode
+    | (allowIR extends true ?
+        | VarIRNode
+        : never);
+export function isTerminalASTNode(node: any): node is TerminalASTNode {
+    return (
+        node?.type === "number"
+        || node?.type === "colorHexLiteral"
+        || node?.type === "substitution"
+        || node?.type === "constant"
+        || node?.type === "reservedVar"
+        || node?.type === "contextVar"
+        || node?.type === "undefinedVar"
+        || node?.type === "builtinFunc"
+        || node?.type === "varIR"
+    );
 }
 
 export const numberRegex = createRegExp(

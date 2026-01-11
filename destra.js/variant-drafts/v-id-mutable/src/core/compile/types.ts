@@ -1,6 +1,7 @@
 
 import { CtxFactoryHeadASTNode } from "../expr-dsl/parse-ast";
 import {
+    CtxVarDefASTNode,
     ForClauseASTNode, WithClauseASTNode
 } from "../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { DiffClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/context-type1";
@@ -93,7 +94,7 @@ export type CtxClauseASTNode =
     | ForClauseASTNode 
     | WithClauseASTNode;
 
-export type ASTNode = FormulaASTNode | TopLevelASTNode | CtxFactoryHeadASTNode | CtxClauseASTNode; // Simplified
+export type RootASTNode = FormulaASTNode | TopLevelASTNode | CtxFactoryHeadASTNode | CtxClauseASTNode; // Simplified
 
 export interface BaseScopeNode {
     id: string;
@@ -146,7 +147,7 @@ export interface CompileContext {
     // Step 3 Output
     // scopeTree: ScopeTree;                 // Internal use in Step 3
     ctxVarRealnameMap: Map<CtxVar, string>;  // CtxVar -> Realname
-    astVarRealnameMap: Map<ASTNode, string>; // Internal AST Node (CtxVarDefASTNode, e.g. from sum(n=...) ) -> Realname
+    astVarRealnameMap: Map<CtxVarDefASTNode, string>; // Internal AST Node (CtxVarDefASTNode, e.g. from sum(n=...) ) -> Realname
     funcExplRealnameMap: Map<FuncExpl<any>, Map<number, string>>; // FuncExpl -> Realnames of params, by param index
 }
 

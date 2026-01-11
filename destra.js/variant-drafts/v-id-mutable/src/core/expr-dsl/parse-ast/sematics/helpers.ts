@@ -23,11 +23,6 @@ export type ComparisonASTNode = {
     operators: ComparisonOperator[],
 }
 
-export type PointCoordsIRNode = {
-    type: "pointCoords",
-    coords: any[],
-}
-
 export type CtxClauseASTNode =
     | ForClauseASTNode
     | WithClauseASTNode

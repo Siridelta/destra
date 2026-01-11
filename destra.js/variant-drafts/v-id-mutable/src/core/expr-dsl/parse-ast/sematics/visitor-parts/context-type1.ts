@@ -1,7 +1,7 @@
 import { createRegExp, exactly } from "magic-regexp";
 import { ctxVarNameExcludePattern, identifierPattern } from "../../../syntax-reference/commonRegExpPatterns";
 import { FormulaVisitor } from "../base-visitor";
-import { flattenMultLevel, isMultDivType, unflattenMultLevel } from "./multDiv-level";
+import { flattenMultLevel, unflattenMultLevel } from "./multDiv-level";
 import { CtxVarNullDefASTNode, CtxVarRangeDefASTNode } from "./addSub-level";
 import { analyzeRsVarDepType, arrayUnion, RsVarDepType, scanUdRsVarRefs } from "../helpers";
 
@@ -49,6 +49,20 @@ export type DiffClauseASTNode = {
     forbiddenNames: string[],
 }
 
+export type ContextType1ASTNode =
+    | SumClauseASTNode
+    | ProdClauseASTNode
+    | IntClauseASTNode
+    | DiffClauseASTNode;
+
+export function isContextType1ASTNode(node: any): node is ContextType1ASTNode {
+    return (
+        node?.type === "sumClause"
+        || node?.type === "prodClause"
+        || node?.type === "intClause"
+        || node?.type === "diffClause"
+    );
+}
 
 FormulaVisitor.prototype.context_type1 = function (ctx: any): any {
     const sum = this.visit(ctx.sum);

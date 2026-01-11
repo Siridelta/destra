@@ -1,12 +1,14 @@
 
 import { isCtxClause, traceASTState } from "../../expr-dsl/parse-ast/sematics/helpers";
 import { getASTChildren } from "../../expr-dsl/parse-ast/sematics/traverse-ast";
+import { CtxVarDefASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { reservedVars } from "../../expr-dsl/syntax-reference/reservedWords";
-import { CtxVar, Expression, Formula, isCtxExp, isFuncExpl } from "../../formula/base";
+import { CtxVar, Expression, Formula, FuncExpl, isCtxExp, isFuncExpl } from "../../formula/base";
 import { getState } from "../../state";
 import {
     BaseScopeNode,
     CompileContext,
+    CtxClauseASTNode,
     CtxExpScopeNode,
     CtxNameResolutionState,
     FuncExplScopeNode, InternalClauseScopeNode,
@@ -191,9 +193,9 @@ export const ctxRealnameResolution = (context: CompileContext) => {
     for (const name of context.globalUsedNames)
         rootScope.forbiddenNames.add(name);
     for (const name of reservedVars)
-        rootScope.forbiddenNames.delete(name);    
-        // reserved vars are conditionally allowed, 
-        // We tackle themwith the 'forbiddenNames' fields kept tracked everywhere
+        rootScope.forbiddenNames.delete(name);
+    // reserved vars are conditionally allowed, 
+    // We tackle themwith the 'forbiddenNames' fields kept tracked everywhere
 
     for (const scope of rtSeriesScopeNode) {
         // Aggregate constraints
@@ -208,7 +210,20 @@ export const ctxRealnameResolution = (context: CompileContext) => {
         // Assign names
         if (scope.type === 'Root') continue;
 
-        const varsToResolve: { originalName: string, entity: any, forcedName?: string }[] = [];
+        type VarToResolve = {
+            originalName: string,
+            forcedName?: string,
+        } & ({
+            entityType: 'CtxVar';
+            entity: CtxVar;
+        } | {
+            entityType: 'FuncExpl';
+            entity: { funcExpl: FuncExpl<any>, paramIndex: number };
+        } | {
+            entityType: 'ASTNode';
+            entity: CtxVarDefASTNode;
+        });
+        const varsToResolve: VarToResolve[] = [];
 
         if (scope.type === 'CtxExpScope') {
             for (const cv of scope.context.ctxVars) {
@@ -216,6 +231,7 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                 varsToResolve.push({
                     originalName: cv.name,
                     entity: cv,
+                    entityType: 'CtxVar',
                     forcedName: cvState.ctxVar?.realname
                 });
             }
@@ -231,6 +247,7 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                         funcExpl: scope.context,
                         paramIndex: i
                     },
+                    entityType: 'FuncExpl',
                 });
             }
 
@@ -240,10 +257,18 @@ export const ctxRealnameResolution = (context: CompileContext) => {
             const ctx = scope.context;
             if (ctx.type === 'forClause' || ctx.type === 'withClause') {
                 for (const def of ctx.ctxVarDefs) {
-                    varsToResolve.push({ originalName: def.name, entity: def });
+                    varsToResolve.push({
+                        originalName: def.name,
+                        entity: def,
+                        entityType: 'ASTNode'
+                    });
                 }
             } else {
-                varsToResolve.push({ originalName: ctx.ctxVarDef.name, entity: ctx.ctxVarDef });
+                varsToResolve.push({
+                    originalName: ctx.ctxVarDef.name,
+                    entity: ctx.ctxVarDef,
+                    entityType: 'ASTNode',
+                });
             }
 
             scope.forbiddenNames = scope.forbiddenNames.union(new Set(ctx.forbiddenNames));
@@ -279,9 +304,9 @@ export const ctxRealnameResolution = (context: CompileContext) => {
             scope.definedVars.set(v.originalName, finalName);
             scope.usedNames.add(finalName);
 
-            if (v.entity instanceof CtxVar) {
+            if (v.entityType === 'CtxVar') {
                 context.ctxVarRealnameMap.set(v.entity, finalName);
-            } else if (v.entity.funcExpl) {
+            } else if (v.entityType === 'FuncExpl') {
                 const funcExpl = v.entity.funcExpl;
                 const map = context.funcExplRealnameMap;
                 let realnames = map.get(funcExpl);
@@ -290,7 +315,7 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                     map.set(funcExpl, realnames);
                 }
                 realnames.set(v.entity.paramIndex, finalName);
-            } else if (scope.type === 'InternalClauseScope') {
+            } else {
                 context.astVarRealnameMap.set(v.entity, finalName);
             }
         }

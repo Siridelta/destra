@@ -4,6 +4,7 @@ import { reservedVars } from "../../../syntax-reference/reservedWords";
 import { MaybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
 import { traverse } from "../helpers";
+import { isUpToCommasLevelASTNode, UpToCommasLevel } from "./commas-level";
 
 
 declare module '../base-visitor' {
@@ -58,6 +59,22 @@ export type TopLevelASTNode =
     | ImplicitEquationASTNode
     | RegressionASTNode
     | ExpressionASTNode;
+export type UpToTopLevel = 
+    | TopLevelASTNode
+    | UpToCommasLevel;
+
+export function isTopLevelASTNode(node: any): node is TopLevelASTNode {
+    return node?.type === 'variableDefinition'
+        || node?.type === 'explicitEquation'
+        || node?.type === 'functionDefinition'
+        || node?.type === 'implicitEquation'
+        || node?.type === 'regression'
+        || node?.type === 'expression';
+}
+export function isUpToTopLevelASTNode(node: any): node is UpToTopLevel {
+    return isTopLevelASTNode(node)
+        || isUpToCommasLevelASTNode(node);
+}
 
 // traverse and resolve all varIRs in the AST to udVar, rsVar or ctxVar
 // side-effectively modify the AST
