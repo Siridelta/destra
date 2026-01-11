@@ -1,29 +1,18 @@
-import { ASTNormalizer2 } from ".";
+import { MultDivArranger } from ".";
+import { DivisionASTNode, ImplicitMultASTNode, isUpToImplicitMultLevelASTNode, isUpToMultDivLevelASTNode, isUpToOmittedCallLevelASTNode, MultDivLevelASTNode, MultiplicationASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { wrapWithParentheses } from "../utils";
-import { CrossASTNode, DivisionASTNode, ImplicitMultASTNode, isUpToImplicitMultLevelASTNode, isUpToMultDivLevelASTNode, isUpToOmittedCallLevelASTNode, ModASTNode, MultDivLevelASTNode, MultiplicationASTNode, PercentOfASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { isAmbiguousImplicitMult } from "./omittedCallLevel copy";
 
 declare module '.' {
-    interface ASTNormalizer2 {
-
-        multiplication(node: MultiplicationASTNode): MultiplicationASTNode | ImplicitMultASTNode;
-        division(node: DivisionASTNode): DivisionASTNode | MultiplicationASTNode | ImplicitMultASTNode;
-        cross(node: CrossASTNode): CrossASTNode;
-        percentOf(node: PercentOfASTNode): PercentOfASTNode;
-        mod(node: ModASTNode): ModASTNode;
-        multDivLevel<T extends MultDivLevelASTNode>(node: T): MultDivLevelASTNode | ImplicitMultASTNode;
+    interface MultDivArranger {
+        multDivLevel2<T extends MultDivLevelASTNode>(node: T): MultDivLevelASTNode | ImplicitMultASTNode;
+        implicitMult2(node: ImplicitMultASTNode): ImplicitMultASTNode | MultiplicationASTNode;
 
     }
 }
 
 
-
-ASTNormalizer2.prototype.multiplication = function (node: MultiplicationASTNode): MultiplicationASTNode | ImplicitMultASTNode { return this.multDivLevel(node) as MultiplicationASTNode | ImplicitMultASTNode; }
-ASTNormalizer2.prototype.division = function (node: DivisionASTNode): DivisionASTNode | MultiplicationASTNode | ImplicitMultASTNode { return this.multDivLevel(node) as DivisionASTNode | MultiplicationASTNode | ImplicitMultASTNode; }
-ASTNormalizer2.prototype.cross = function (node: CrossASTNode): CrossASTNode { return this.multDivLevel(node) as CrossASTNode; }
-ASTNormalizer2.prototype.percentOf = function (node: PercentOfASTNode): PercentOfASTNode { return this.multDivLevel(node) as PercentOfASTNode; }
-ASTNormalizer2.prototype.mod = function (node: ModASTNode): ModASTNode { throw new Error('Internal Error: ModASTNode should had been expanded to mod(..., ...)'); }
-ASTNormalizer2.prototype.multDivLevel = function <T extends MultDivLevelASTNode>(node: T): MultDivLevelASTNode | ImplicitMultASTNode {
+MultDivArranger.prototype.multDivLevel2 = function <T extends MultDivLevelASTNode>(node: T): MultDivLevelASTNode | ImplicitMultASTNode {
     let _node: MultDivLevelASTNode | ImplicitMultASTNode = { ...node };
     _node.left = this.visit(_node.left);
     _node.right = this.visit(_node.right);

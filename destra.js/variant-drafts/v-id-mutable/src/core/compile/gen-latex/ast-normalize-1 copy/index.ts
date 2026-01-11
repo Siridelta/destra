@@ -1,12 +1,12 @@
 import { getASTChildPaths, getChildByPath, setChildByPath } from "../../../expr-dsl/parse-ast/sematics/traverse-ast";
-import { ASTVisitor } from "../../../expr-dsl/visit-ast/ast-visitor";
+import { ASTVisitor } from "../../../expr-dsl/visit-ast/visitor";
 import { Formula } from "../../../formula/base";
 import { CompileContext } from "../../types";
 
 /**
- * Normalize batch 2: chunked process mult/div/IM chunks
+ * Normalize batch 1: add parentheses to prevent ambiguities
  */
-export class ASTNormalizer2 extends ASTVisitor<any, void> {
+export class ASTNormalizer1 extends ASTVisitor<any, void> {
     public compileContext: CompileContext;
     public targetFormula: Formula;
 
@@ -42,4 +42,5 @@ export class ASTNormalizer2 extends ASTVisitor<any, void> {
     }
 }
 
+import './commasLevel';
 import './multDivLevel';

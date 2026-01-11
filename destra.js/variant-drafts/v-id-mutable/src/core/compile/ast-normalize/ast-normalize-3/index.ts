@@ -1,10 +1,12 @@
 import { getASTChildPaths, getChildByPath, setChildByPath } from "../../../expr-dsl/parse-ast/sematics/traverse-ast";
-import { ASTVisitor } from "../../../expr-dsl/visit-ast/ast-visitor";
+import { ASTVisitor } from "../../../expr-dsl/visit-ast/visitor";
 
 /**
- * Normalize batch 1: add parentheses to prevent ambiguities
+ * Normalize batch 3: finally add all necessary parentheses to prevent ambiguities in desmos
+ * 
+ * also perform number expansions which is delayed to this batch
  */
-export class ASTNormalizer1 extends ASTVisitor<any, void> {
+export class ASTNormalizer3 extends ASTVisitor<any, void> {
 
     // 增加 default 支持，为所有不匹配的分支重定向到 default 分支
     public visit(node: any, context: void): any {

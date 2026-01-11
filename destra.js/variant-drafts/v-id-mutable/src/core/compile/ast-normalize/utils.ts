@@ -14,3 +14,17 @@ export function removeChildParentheses(node: any, childKey: string): any {
     }
     return node;
 }
+
+export function throughParen(node: any, callback: (node: any) => any): void {
+    while (node.type === 'parenExp') {
+        node = node.content;
+    }
+    callback(node);
+}
+
+export function throughParenGet(node: any): any {
+    while (node.type === 'parenExp') {
+        node = node.content;
+    }
+    return node;
+}

@@ -1,40 +1,20 @@
-import { ASTNormalizer2 } from ".";
-import { wrapWithParentheses } from "../utils";
-import { BuiltinFuncCallASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
-import { ImplicitMultASTNode, isUpToImplicitMultLevelASTNode, isUpToMultDivLevelASTNode, MultiplicationASTNode, OmittedCallASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
+import { MultDivArranger } from ".";
+import { ImplicitMultASTNode, MultiplicationASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { possibleAmbiguousImages, toCharflowImage } from "../../../expr-dsl/syntax-reference/mathquill-charflow";
 
+
 declare module '.' {
-    interface ASTNormalizer2 {
-
-        omittedCall(node: OmittedCallASTNode): OmittedCallASTNode | BuiltinFuncCallASTNode;
-
-        implicitMult(node: ImplicitMultASTNode): ImplicitMultASTNode | MultiplicationASTNode;
-
+    interface MultDivArranger {
+        chunkTop(node: PossibleChunkTopNode): PossibleChunkTopNode;
+        charflowCheckAndBreak(node: ImplicitMultASTNode): ImplicitMultASTNode | (MultiplicationASTNode & { noSimplify: boolean });
+        contactCheckAndBreak(node: ImplicitMultASTNode): ImplicitMultASTNode | (MultiplicationASTNode & { noSimplify: boolean });
     }
 }
 
-ASTNormalizer2.prototype.omittedCall = function (node: OmittedCallASTNode): OmittedCallASTNode | BuiltinFuncCallASTNode {
-    let _node: OmittedCallASTNode | BuiltinFuncCallASTNode = { ...node };
-    _node.func = this.visit(_node.func);
-    _node.arg = this.visit(_node.arg);
 
-    if (!isUpToImplicitMultLevelASTNode(_node.arg)) {
-        _node.arg = wrapWithParentheses(_node.arg);
-    }
-    if (_node.arg.type === 'parenExp') {
-        _node = {
-            type: 'builtinFuncCall',
-            func: _node.func,
-            args: [_node.arg.content],
-        }
-    }
-    return _node;
-}
 
-export function isAmbiguousImplicitMult(left: any, right: any): boolean {
+function isAmbiguousImplicitMult(left: any, right: any): boolean {
     // case: right is parenExp. need to prevent ambiguity to function call & extension func call
-    // todo: should also check inside postfixExps
     if (right.type === 'parenExp') {
         if (
             left.type === 'substitution'
@@ -61,50 +41,11 @@ export function isAmbiguousImplicitMult(left: any, right: any): boolean {
     return false;
 }
 
-ASTNormalizer2.prototype.implicitMult = function (node: ImplicitMultASTNode): ImplicitMultASTNode | MultiplicationASTNode {
-    node = { ...node };
-    node.operands = node.operands.map(operand => {
-        if (!isUpToMultDivLevelASTNode(operand)) {
-            operand = wrapWithParentheses(operand);
-        }
-        return operand;
-    });
 
-    // check no nested implicit mult, and flatten if possible
-    for (let i = 0; i < node.operands.length; i++) {
-        const operand = node.operands[i];
-        if (operand.type === 'implicitMult') {
-            node.operands.splice(i, 1);
-            node.operands.splice(i, 0, ...operand.operands);
-            i--;
-        }
-    }
-
-    if (node.operands.length === 1) {
-        return this.visit(node.operands[0]);
-    }
-
-    for (let i = 0; i < node.operands.length - 1; i++) {
-        const left = node.operands[i];
-        const right = node.operands[i + 1];
-        if (isAmbiguousImplicitMult(left, right)) {
-            return this.visit({
-                type: 'multiplication',
-                left: {
-                    type: 'implicitMult',
-                    operands: node.operands.slice(0, i + 1),
-                },
-                right: {
-                    type: 'implicitMult',
-                    operands: node.operands.slice(i + 1),
-                },
-                noSimplify: true,
-            });
-        }
-    }
-
+MultDivArranger.prototype.charflowCheckAndBreak = function (node: ImplicitMultASTNode): ImplicitMultASTNode | (MultiplicationASTNode & { noSimplify: boolean }){
+    
     // predict charflow and check possible ambiguity
-    //
+    
     // if ambiguous, return index that requires adding mult dot after
     // else return null
     const testCharflow = (imageTokens: string[]): number | null => {
@@ -180,23 +121,48 @@ ASTNormalizer2.prototype.implicitMult = function (node: ImplicitMultASTNode): Im
             i = j;
         else {
             // Potential inefficiency: the left part will be analyzed again in the revisit
-            return this.visit({
+            let newRight: any = {
+                type: 'implicitMult',
+                operands: node.operands.slice(i + index + 1),
+            }
+            newRight = this.charflowCheckAndBreak(newRight);
+            return {
                 type: 'multiplication',
                 left: {
                     type: 'implicitMult',
                     operands: node.operands.slice(0, i + index + 1),
                 },
-                right: {
-                    type: 'implicitMult',
-                    operands: node.operands.slice(i + index + 1),
-                },
+                right: newRight,
                 noSimplify: true,
-            });
+            }
         }
     }
-
-    // visit at last
-    node.operands = node.operands.map(operand => this.visit(operand));
     return node;
 }
 
+
+
+MultDivArranger.prototype.contactCheckAndBreak = function (node: ImplicitMultASTNode): ImplicitMultASTNode | (MultiplicationASTNode & { noSimplify: boolean }) {
+
+    for (let i = 0; i < node.operands.length - 1; i++) {
+        const left = node.operands[i];
+        const right = node.operands[i + 1];
+        if (isAmbiguousImplicitMult(left, right)) {
+            let newRight: any = {
+                type: 'implicitMult',
+                operands: node.operands.slice(i + 1),
+            }
+            newRight = this.contactCheckAndBreak(newRight);
+            return {
+                type: 'multiplication',
+                left: {
+                    type: 'implicitMult',
+                    operands: node.operands.slice(0, i + 1),
+                },
+                right: newRight,
+                noSimplify: true,
+            }
+        }
+    }
+    return node;
+}
