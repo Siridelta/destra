@@ -5,6 +5,7 @@
 export const reservedVars = [
     "x", "y", "z", "t", "u", "v", "r", "theta", "phi", "rho",
 ] as const;
+export const attrs = ["x", "y", "z"] as const;
 export const builtInConsts = [
     // 常量
     "e", "pi", "tau", "i", "infty", "infinity",
@@ -45,6 +46,13 @@ export const builtInFuncs5 = [
 export const reservedWords = [
     ...reservedVars,
     ...builtInConsts,
+    ...builtInFuncs1,
+    ...builtInFuncs2,
+    ...builtInFuncs3,
+    ...builtInFuncs4,
+    ...builtInFuncs5,
+] as const;
+export const builtInFuncs = [
     ...builtInFuncs1,
     ...builtInFuncs2,
     ...builtInFuncs3,

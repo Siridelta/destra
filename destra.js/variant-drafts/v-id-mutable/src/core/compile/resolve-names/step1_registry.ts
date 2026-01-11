@@ -20,8 +20,8 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
 
         // Step 3 Output
         ctxVarRealnameMap: new Map(),
-        astVarRealnameMap: new Map(),
-        funcExplRealnameMap: new Map(),
+        internalCtxVarRealnameMap: new Map(),
+        funcExplCtxVarRealnameMap: new Map(),
     };
 
     const visited = new Set<Formula>();

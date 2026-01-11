@@ -147,8 +147,8 @@ export interface CompileContext {
     // Step 3 Output
     // scopeTree: ScopeTree;                 // Internal use in Step 3
     ctxVarRealnameMap: Map<CtxVar, string>;  // CtxVar -> Realname
-    astVarRealnameMap: Map<CtxVarDefASTNode, string>; // Internal AST Node (CtxVarDefASTNode, e.g. from sum(n=...) ) -> Realname
-    funcExplRealnameMap: Map<FuncExpl<any>, Map<number, string>>; // FuncExpl -> Realnames of params, by param index
+    internalCtxVarRealnameMap: Map<CtxVarDefASTNode, string>; // Internal AST Node (CtxVarDefASTNode, e.g. from sum(n=...) ) -> Realname
+    funcExplCtxVarRealnameMap: Map<FuncExpl<any>, Map<number, string>>; // FuncExpl -> Realnames of params, by param index
 }
 
 // ============================================================================

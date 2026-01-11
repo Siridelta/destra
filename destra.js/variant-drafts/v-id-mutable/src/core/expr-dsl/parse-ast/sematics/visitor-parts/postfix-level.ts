@@ -1,5 +1,5 @@
 import { FormulaVisitor } from "../base-visitor";
-import { ComparisonASTNode } from "../helpers";
+import { ComparisonASTNode, isFuncExplSubst } from "../helpers";
 import { RangeDots } from "../../tokens/op-and-puncs";
 import { BuiltinFuncASTNode } from "./terminals";
 import { AtomicExpASTNode, isAtomicExpASTNode } from "./atomic-exps";
@@ -143,6 +143,13 @@ FormulaVisitor.prototype.postfixLevel = function (ctx: any) {
 
     const operand = this.visit(ctx.atomicExp);
     const postfixAST = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : null;
+
+    // intercept bare FuncExpl Substitution HERE
+    if (isFuncExplSubst(operand, this)) {
+        throw new Error(
+            `Invalid syntax: FuncExpl Substitution can only used as a function call.`
+        );
+    }
 
     if (postfixAST) {
         if (addToPostfixAST(operand, postfixAST)) {

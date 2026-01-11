@@ -23,8 +23,12 @@ export class ASTExpander extends ASTVisitor<any, void> {
         }
     }
 
-    // 为恒等函数
-    public default<T>(node: T, context: void): T {
+    public default<T extends object>(node: T, context: void): T {
+        for (const [k, v] of Object.entries(node) as [keyof T, any][]) {
+            if (typeof v === 'object' && Object.keys(v).includes('type')) {
+                node[k] = this.visit(v, context);
+            }
+        }
         return node;
     }
 }

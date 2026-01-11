@@ -1,4 +1,4 @@
-import { CtxVar, Formula, RegressionParameter, Substitutable } from "../../../formula/base";
+import { CtxVar, Formula, isFuncExpl, RegressionParameter, Substitutable } from "../../../formula/base";
 import { ASTState, getState } from "../../../state";
 import { FormulaVisitor } from "./base-visitor";
 import { traverse } from "./traverse-ast";
@@ -180,6 +180,11 @@ export function traceSubstitution(ast: SubstitutionASTNode, obj: FormulaVisitor 
     throw new Error(`Internal error: Invalid object type ${typeof obj}.`);
 }
 
+export function isFuncExplSubst(subst: SubstitutionASTNode, obj: FormulaVisitor | Formula): boolean {
+    const substValue = traceSubstitution(subst, obj);
+    return substValue instanceof Formula && isFuncExpl(substValue);
+}
+
 // trace AST
 export function traceASTState<T extends Formula>(formula: T):
     T extends CtxVar ? undefined : ASTState {
@@ -212,6 +217,4 @@ export function traceCtxVarAST(v: CtxVar): CtxVarDefASTNode {
     }
     throw new Error(`Internal error: Context variable ${v.name} not found in ctxFactoryHead.`);
 }
-
-export { traverse };
 

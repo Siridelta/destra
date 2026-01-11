@@ -3,7 +3,7 @@ import { analyzeRsVarDepType, getCtxNodeCtxVars, isCtxClause, isParenExp, isTupl
 import { reservedVars } from "../../../syntax-reference/reservedWords";
 import { MaybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
-import { traverse } from "../helpers";
+import { traverse } from "../traverse-ast";
 import { isUpToCommasLevelASTNode, UpToCommasLevel } from "./commas-level";
 
 

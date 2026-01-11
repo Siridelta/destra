@@ -308,7 +308,7 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                 context.ctxVarRealnameMap.set(v.entity, finalName);
             } else if (v.entityType === 'FuncExpl') {
                 const funcExpl = v.entity.funcExpl;
-                const map = context.funcExplRealnameMap;
+                const map = context.funcExplCtxVarRealnameMap;
                 let realnames = map.get(funcExpl);
                 if (!realnames) {
                     realnames = new Map();
@@ -316,7 +316,7 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                 }
                 realnames.set(v.entity.paramIndex, finalName);
             } else {
-                context.astVarRealnameMap.set(v.entity, finalName);
+                context.internalCtxVarRealnameMap.set(v.entity, finalName);
             }
         }
     }

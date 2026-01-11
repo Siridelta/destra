@@ -1,6 +1,7 @@
 import { FormulaVisitor } from "../base-visitor";
 import { CtxVarExprDefASTNode, CtxVarRangeDefASTNode, CtxVarNullDefASTNode } from "./addSub-level";
-import { analyzeRsVarDepType, scanUdRsVarRefs, traverse } from "../helpers";
+import { analyzeRsVarDepType, scanUdRsVarRefs } from "../helpers";
+import { traverse } from "../traverse-ast";
 import { resolveVarIRs } from "./top-level";
 import { RsVarDepType } from "../helpers";
 
