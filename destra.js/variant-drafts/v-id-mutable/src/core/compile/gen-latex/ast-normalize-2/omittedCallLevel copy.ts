@@ -1,10 +1,11 @@
-import { ASTNormalizer1, wrapWithParentheses } from ".";
+import { ASTNormalizer2 } from ".";
+import { wrapWithParentheses } from "../utils";
 import { BuiltinFuncCallASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
 import { ImplicitMultASTNode, isUpToImplicitMultLevelASTNode, isUpToMultDivLevelASTNode, MultiplicationASTNode, OmittedCallASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { possibleAmbiguousImages, toCharflowImage } from "../../../expr-dsl/syntax-reference/mathquill-charflow";
 
 declare module '.' {
-    interface ASTNormalizer1 {
+    interface ASTNormalizer2 {
 
         omittedCall(node: OmittedCallASTNode): OmittedCallASTNode | BuiltinFuncCallASTNode;
 
@@ -13,7 +14,7 @@ declare module '.' {
     }
 }
 
-ASTNormalizer1.prototype.omittedCall = function (node: OmittedCallASTNode): OmittedCallASTNode | BuiltinFuncCallASTNode {
+ASTNormalizer2.prototype.omittedCall = function (node: OmittedCallASTNode): OmittedCallASTNode | BuiltinFuncCallASTNode {
     let _node: OmittedCallASTNode | BuiltinFuncCallASTNode = { ...node };
     _node.func = this.visit(_node.func);
     _node.arg = this.visit(_node.arg);
@@ -33,6 +34,7 @@ ASTNormalizer1.prototype.omittedCall = function (node: OmittedCallASTNode): Omit
 
 export function isAmbiguousImplicitMult(left: any, right: any): boolean {
     // case: right is parenExp. need to prevent ambiguity to function call & extension func call
+    // todo: should also check inside postfixExps
     if (right.type === 'parenExp') {
         if (
             left.type === 'substitution'
@@ -59,7 +61,7 @@ export function isAmbiguousImplicitMult(left: any, right: any): boolean {
     return false;
 }
 
-ASTNormalizer1.prototype.implicitMult = function (node: ImplicitMultASTNode): ImplicitMultASTNode | MultiplicationASTNode {
+ASTNormalizer2.prototype.implicitMult = function (node: ImplicitMultASTNode): ImplicitMultASTNode | MultiplicationASTNode {
     node = { ...node };
     node.operands = node.operands.map(operand => {
         if (!isUpToMultDivLevelASTNode(operand)) {

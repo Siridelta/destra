@@ -1,10 +1,20 @@
 import { getASTChildPaths, getChildByPath, setChildByPath } from "../../../expr-dsl/parse-ast/sematics/traverse-ast";
 import { ASTVisitor } from "../../../expr-dsl/visit-ast/ast-visitor";
+import { Formula } from "../../../formula/base";
+import { CompileContext } from "../../types";
 
 /**
- * Normalize batch 1: add parentheses to prevent ambiguities
+ * Normalize batch 2: chunked process mult/div/IM chunks
  */
-export class ASTNormalizer1 extends ASTVisitor<any, void> {
+export class ASTNormalizer2 extends ASTVisitor<any, void> {
+    public compileContext: CompileContext;
+    public targetFormula: Formula;
+
+    constructor(compileContext: CompileContext, targetFormula: Formula) {
+        super();
+        this.compileContext = compileContext;
+        this.targetFormula = targetFormula;
+    }
 
     // 增加 default 支持，为所有不匹配的分支重定向到 default 分支
     public visit(node: any, context: void): any {
@@ -32,7 +42,4 @@ export class ASTNormalizer1 extends ASTVisitor<any, void> {
     }
 }
 
-import './commasLevel';
 import './multDivLevel';
-import './prefixLevel';
-

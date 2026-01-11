@@ -1,10 +1,10 @@
-import { ASTNormalizer1 } from ".";
+import { ASTNormalizer2 } from ".";
 import { BuiltinFuncCallASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
 import { CrossASTNode, DivisionASTNode, ImplicitMultASTNode, isUpToImplicitMultLevelASTNode, ModASTNode, MultDivLevelASTNode, MultiplicationASTNode, OmittedCallASTNode, PercentOfASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { removeChildParentheses, wrapWithParentheses } from "../utils";
 
 declare module '.' {
-    interface ASTNormalizer1 {
+    interface ASTNormalizer2 {
 
         multiplication(node: MultiplicationASTNode): MultiplicationASTNode | ImplicitMultASTNode;
         division(node: DivisionASTNode): DivisionASTNode | MultiplicationASTNode | ImplicitMultASTNode;
@@ -23,12 +23,12 @@ declare module '.' {
 // In this batch we only add basic overflow protection (to mult/div level, not lower)
 // and remove all parentheses inside mult-Div-IM levels,
 // and pass top tags to idenfity chunked-processing entrypoints in the next batch.
-ASTNormalizer1.prototype.multiplication = function (node: MultiplicationASTNode): MultiplicationASTNode | ImplicitMultASTNode { return this.multDivLevel(node) as MultiplicationASTNode | ImplicitMultASTNode; }
-ASTNormalizer1.prototype.division = function (node: DivisionASTNode): DivisionASTNode | MultiplicationASTNode | ImplicitMultASTNode { return this.multDivLevel(node) as DivisionASTNode | MultiplicationASTNode | ImplicitMultASTNode; }
-ASTNormalizer1.prototype.cross = function (node: CrossASTNode): CrossASTNode { return this.multDivLevel(node) as CrossASTNode; }
-ASTNormalizer1.prototype.percentOf = function (node: PercentOfASTNode): PercentOfASTNode { return this.multDivLevel(node) as PercentOfASTNode; }
-ASTNormalizer1.prototype.mod = function (node: ModASTNode): ModASTNode { throw new Error('Internal Error: ModASTNode should had been expanded to mod(..., ...)'); }
-ASTNormalizer1.prototype.multDivLevel = function <T extends MultDivLevelASTNode>(node: T): MultDivLevelASTNode | ImplicitMultASTNode {
+ASTNormalizer2.prototype.multiplication = function (node: MultiplicationASTNode): MultiplicationASTNode | ImplicitMultASTNode { return this.multDivLevel(node) as MultiplicationASTNode | ImplicitMultASTNode; }
+ASTNormalizer2.prototype.division = function (node: DivisionASTNode): DivisionASTNode | MultiplicationASTNode | ImplicitMultASTNode { return this.multDivLevel(node) as DivisionASTNode | MultiplicationASTNode | ImplicitMultASTNode; }
+ASTNormalizer2.prototype.cross = function (node: CrossASTNode): CrossASTNode { return this.multDivLevel(node) as CrossASTNode; }
+ASTNormalizer2.prototype.percentOf = function (node: PercentOfASTNode): PercentOfASTNode { return this.multDivLevel(node) as PercentOfASTNode; }
+ASTNormalizer2.prototype.mod = function (node: ModASTNode): ModASTNode { throw new Error('Internal Error: ModASTNode should had been expanded to mod(..., ...)'); }
+ASTNormalizer2.prototype.multDivLevel = function <T extends MultDivLevelASTNode>(node: T): MultDivLevelASTNode | ImplicitMultASTNode {
     let _node: MultDivLevelASTNode | ImplicitMultASTNode = { ...node };
     _node.left = this.visit(_node.left);
     _node.right = this.visit(_node.right);
@@ -63,7 +63,7 @@ ASTNormalizer1.prototype.multDivLevel = function <T extends MultDivLevelASTNode>
     return _node;
 }
 
-ASTNormalizer1.prototype.omittedCall = function (node: OmittedCallASTNode): OmittedCallASTNode | BuiltinFuncCallASTNode {
+ASTNormalizer2.prototype.omittedCall = function (node: OmittedCallASTNode): OmittedCallASTNode | BuiltinFuncCallASTNode {
     let _node: OmittedCallASTNode | BuiltinFuncCallASTNode = { ...node };
     _node.func = this.visit(_node.func);
     _node.arg = this.visit(_node.arg);
@@ -109,7 +109,7 @@ export function isAmbiguousImplicitMult(left: any, right: any): boolean {
     return false;
 }
 
-ASTNormalizer1.prototype.implicitMult = function (node: ImplicitMultASTNode): ImplicitMultASTNode | MultiplicationASTNode {
+ASTNormalizer2.prototype.implicitMult = function (node: ImplicitMultASTNode): ImplicitMultASTNode | MultiplicationASTNode {
     node = { ...node };
 
     // Some edge case that there is only 1 item

@@ -1,5 +1,9 @@
-import { ASTNormalizer1, wrapWithParentheses } from ".";
-import { isUpToPowerLevelASTNode, isUpToPrefixLevelASTNode, isUpToRootofLevelASTNode, PowerASTNode, PrefixLevelASTNode, RootofASTNode, UnaryMinusASTNode, UnaryPlusASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
+import { ASTNormalizer1 } from ".";
+import { wrapWithParentheses } from "../utils";
+import { isUpToMultDivLevelASTNode, isUpToPowerLevelASTNode, isUpToPrefixLevelASTNode, isUpToRootofLevelASTNode, PowerASTNode, PrefixLevelASTNode, RootofASTNode, UnaryMinusASTNode, UnaryPlusASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
+import { AttrAccessASTNode, ExtensionFuncCallASTNode, FactorialASTNode, isUpToPostfixLevelASTNode, ListFilteringASTNode, ListIndexingASTNode, ListSliceRangeASTNode, ListSlicingASTNode, PostfixLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/postfix-level";
+import { getASTChildPaths, getChildByPath, setChildByPath } from "../../../expr-dsl/parse-ast/sematics/traverse-ast";
+import { ContextType1ASTNode, DiffClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/context-type1";
 
 declare module '.' {
     interface ASTNormalizer1 {
@@ -11,7 +15,20 @@ declare module '.' {
         rootof(node: RootofASTNode): RootofASTNode;
 
         power(node: PowerASTNode): PowerASTNode;
-        
+
+        factorial(node: FactorialASTNode): FactorialASTNode;
+        attrAccess(node: AttrAccessASTNode): AttrAccessASTNode;
+        extensionFuncCall(node: ExtensionFuncCallASTNode): ExtensionFuncCallASTNode;
+        listFiltering(node: ListFilteringASTNode): ListFilteringASTNode;
+        listIndexing(node: ListIndexingASTNode): ListIndexingASTNode;
+        listSlicing(node: ListSlicingASTNode): ListSlicingASTNode;
+        postfixLevel<T extends PostfixLevelASTNode>(node: T): T;
+
+        sumClause(node: SumClauseASTNode): SumClauseASTNode;
+        prodClause(node: ProdClauseASTNode): ProdClauseASTNode;
+        intClause(node: IntClauseASTNode): IntClauseASTNode;
+        diffClause(node: DiffClauseASTNode): DiffClauseASTNode;
+        contextType1<T extends ContextType1ASTNode>(node: T): T;
     }
 }
 
@@ -42,4 +59,37 @@ ASTNormalizer1.prototype.power = function (node: PowerASTNode): PowerASTNode {
     return node;
 }
 
-AST
+ASTNormalizer1.prototype.factorial = function (node: FactorialASTNode): FactorialASTNode { return this.postfixLevel(node); }
+ASTNormalizer1.prototype.attrAccess = function (node: AttrAccessASTNode): AttrAccessASTNode { return this.postfixLevel(node); }
+ASTNormalizer1.prototype.extensionFuncCall = function (node: ExtensionFuncCallASTNode): ExtensionFuncCallASTNode { return this.postfixLevel(node); }
+ASTNormalizer1.prototype.listFiltering = function (node: ListFilteringASTNode): ListFilteringASTNode { return this.postfixLevel(node); }
+ASTNormalizer1.prototype.listIndexing = function (node: ListIndexingASTNode): ListIndexingASTNode { return this.postfixLevel(node); }
+ASTNormalizer1.prototype.listSlicing = function (node: ListSlicingASTNode): ListSlicingASTNode { return this.postfixLevel(node); }
+ASTNormalizer1.prototype.postfixLevel = function <T extends PostfixLevelASTNode>(node: T): T {
+    node = { ...node };
+    let child = node.type === 'extensionFuncCall' ? node.receiver : node.operand;
+    child = this.visit(child);
+    if (!isUpToPostfixLevelASTNode(child)) {
+        child = wrapWithParentheses(child);
+    }
+    if (node.type === 'extensionFuncCall') {
+        node.receiver = child;
+    } else {
+        node.operand = child;
+    }
+    return node;
+}
+
+ASTNormalizer1.prototype.sumClause = function (node: SumClauseASTNode): SumClauseASTNode { return this.contextType1(node); }
+ASTNormalizer1.prototype.prodClause = function (node: ProdClauseASTNode): ProdClauseASTNode { return this.contextType1(node); }
+ASTNormalizer1.prototype.intClause = function (node: IntClauseASTNode): IntClauseASTNode { return this.contextType1(node); }
+ASTNormalizer1.prototype.diffClause = function (node: DiffClauseASTNode): DiffClauseASTNode { return this.contextType1(node); }
+ASTNormalizer1.prototype.contextType1 = function <T extends ContextType1ASTNode>(node: T): T {
+    node = { ...node };
+    node.content = this.visit(node.content);
+    if (!isUpToMultDivLevelASTNode(node.content)) {
+        node.content = wrapWithParentheses(node.content);
+    }
+    return node;
+}
+

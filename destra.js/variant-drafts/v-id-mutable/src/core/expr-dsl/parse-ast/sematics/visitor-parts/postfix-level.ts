@@ -62,8 +62,7 @@ export type PostfixLevelASTNode =
     | ExtensionFuncCallASTNode
     | ListFilteringASTNode
     | ListIndexingASTNode
-    | ListSlicingASTNode
-    | ListSliceRangeASTNode;
+    | ListSlicingASTNode;
 
 export type UpToPostfixLevel<allowIR extends boolean = false> =
     | AtomicExpASTNode<allowIR>

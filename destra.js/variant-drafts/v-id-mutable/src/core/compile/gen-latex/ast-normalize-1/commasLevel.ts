@@ -1,4 +1,5 @@
-import { ASTNormalizer1, wrapWithParentheses } from ".";
+import { ASTNormalizer1 } from ".";
+import { wrapWithParentheses } from "../utils";
 import { AdditionASTNode, AddSubLevelASTNode, ContextType2LevelASTNode, ForClauseASTNode, isAddSubLevelASTNode, isContextType2LevelASTNode, isUpToAddSubLevelASTNode, isUpToContextType2LevelASTNode, SubtractionASTNode, WithClauseASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { CommasASTNode, isActionASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/commas-level";
 import { isUpToMultDivLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";

@@ -1,0 +1,16 @@
+import { ParenExpASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
+
+
+export function wrapWithParentheses(node: any): ParenExpASTNode {
+    return {
+        type: 'parenExp',
+        content: node,
+    } satisfies ParenExpASTNode;
+}
+
+export function removeChildParentheses(node: any, childKey: string): any {
+    while (node[childKey].type === 'parenExp') {
+        node[childKey] = node[childKey].content;
+    }
+    return node;
+}
