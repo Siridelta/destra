@@ -1,7 +1,8 @@
 import { BuiltinFuncCallASTNode, ParenExpASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
 import { DivisionASTNode, ModASTNode, PowerASTNode, RootofASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
-import { BuiltinFuncASTNode, NumberASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
+import { BuiltinFuncASTNode, ColorHexLiteralASTNode, NumberASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
 import { ASTVisitorWithDefault } from "../../expr-dsl/visit-ast/visitor-withdefault";
+import { N_NumberASTNode } from "./add-parens/atomic-exp";
 import { throughParenGet } from "./utils";
 
 /**
@@ -17,6 +18,8 @@ export interface ASTExpander {
     rootof(node: RootofASTNode): RootofAST_ExpandResult;
     mod(node: ModASTNode): ModAST_ExpandResult;
     parenExp(node: ParenExpASTNode): ParenExpASTNode | BuiltinFuncCallASTNode;
+
+    colorHexLiteral(node: ColorHexLiteralASTNode): ColorHexLiteral_ExpandResult;
 }
 
 
@@ -75,4 +78,44 @@ ASTExpander.prototype.parenExp = function (node: ParenExpASTNode): ParenExpASTNo
         return this.visit(node.content);
     node.content = this.visit(node.content);
     return node;
+}
+
+
+
+type ColorHexLiteral_ExpandResult = 
+    BuiltinFuncCallASTNode & {
+        func: BuiltinFuncASTNode & {
+            name: 'rgb'
+        }
+        args: [N_NumberASTNode, N_NumberASTNode, N_NumberASTNode]
+    };
+ASTExpander.prototype.colorHexLiteral = function (node: ColorHexLiteralASTNode): ColorHexLiteral_ExpandResult {
+    const hex = node.value;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return {
+        type: 'builtinFuncCall',
+        func: {
+            type: 'builtinFunc',
+            name: 'rgb',
+        },
+        args: [
+            {
+                type: 'number',
+                base: { integer: r.toString() },
+                exponent: undefined,
+            },
+            {
+                type: 'number',
+                base: { integer: g.toString() },
+                exponent: undefined,
+            },
+            {
+                type: 'number',
+                base: { integer: b.toString() },
+                exponent: undefined,
+            },
+        ],
+    }
 }

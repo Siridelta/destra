@@ -1,6 +1,7 @@
 
 import { Expl, Formula, CtxExp, CtxVar, RegressionParameter, Regression } from "../../formula/base";
 import { normalizeName2 } from "../../formula/realname";
+import { DestraStyle } from "../../formula/style";
 import { getState } from "../../state";
 import { CompileContext, Folder, Graph } from "../types";
 
@@ -8,10 +9,11 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
     const context: CompileContext = {
         // Step 1 Output
         idMap: new Map(),
-        // 3 tables: formula -> folder, formula -> root, formula -> implicit root
+        // 4 tables: formula -> folder, formula -> root, formula -> implicit root, formula -> background
         formulaToFolder: new Map(),
         rootFormulas: new Set(),
         implicitRootFormulas: new Set(),
+        backgroundFormulas: new Set(),
         ctxVarForceRealnameSet: new Set(),
 
         // Step 2 Output
@@ -22,6 +24,7 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
         ctxVarRealnameMap: new Map(),
         internalCtxVarRealnameMap: new Map(),
         funcExplCtxVarRealnameMap: new Map(),
+        topoSort: [],
     };
 
     const visited = new Set<Formula>();
@@ -58,7 +61,11 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
 
     // After traversal, any formula left in 'unknownOwnership' is an implicit root formula
     for (const f of unknownOwnership) {
-        context.implicitRootFormulas.add(f);
+        if (f instanceof Expl) {
+            context.implicitRootFormulas.add(f);
+        } else {
+            context.backgroundFormulas.add(f);
+        }
     }
 
     // Step 1.5: Structural Validity Check (Final Acceptance)
@@ -106,7 +113,7 @@ const traverse = (
     formula: Formula,
     context: CompileContext,
     visited: Set<Formula>,
-    unknownOwnership: Set<Formula>
+    unknownOwnership: Set<Formula>,
 ) => {
     if (visited.has(formula)) return;
     visited.add(formula);
@@ -171,4 +178,21 @@ const traverse = (
             traverse(ctxExp.body, context, visited, unknownOwnership);
         }
     }
+};
+
+// Scan the style tree and collect all formulas that are used as style values
+export const getStyleValueFormulas = (formula: Formula) => {
+    const styleValueFormulas = new Set<Formula>();
+    const styleTree = formula.styleData;
+    const traverse = (field: any) => {
+        if (field instanceof Formula) {
+            styleValueFormulas.add(field);
+        } else if (typeof field === 'object' && field !== null) {
+            for (const key in field) {
+                traverse(field[key]);
+            }
+        }
+    };
+    traverse(styleTree);
+    return styleValueFormulas;
 };

@@ -137,7 +137,8 @@ export interface CompileContext {
     idMap: Map<string, Expl>;            // ID -> Formula (Expl)
     formulaToFolder: Map<Formula, Folder>;  // Formula -> Folder
     rootFormulas: Set<Formula>;             // Explicit root formulas
-    implicitRootFormulas: Set<Formula>;     // Implicit root formulas (dependencies)
+    implicitRootFormulas: Set<Formula>;     // Implicit root formulas (dependencies)      (All unknown ownership Expls goes here)
+    backgroundFormulas: Set<Formula>;        // Formulas that are completely inaccessible (All unknown ownership Exprs goes here)
     ctxVarForceRealnameSet: Set<string>;    // Collected forced realnames for CtxVars
 
     // Step 2 Output
@@ -149,6 +150,7 @@ export interface CompileContext {
     ctxVarRealnameMap: Map<CtxVar, string>;  // CtxVar -> Realname
     internalCtxVarRealnameMap: Map<CtxVarDefASTNode, string>; // Internal AST Node (CtxVarDefASTNode, e.g. from sum(n=...) ) -> Realname
     funcExplCtxVarRealnameMap: Map<FuncExpl<any>, Map<number, string>>; // FuncExpl -> Realnames of params, by param index
+    topoSort: Formula[];                     // Topological sort of formulas
 }
 
 // ============================================================================

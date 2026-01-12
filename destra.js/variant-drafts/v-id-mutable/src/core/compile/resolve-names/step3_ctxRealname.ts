@@ -3,12 +3,11 @@ import { isCtxClause, traceASTState } from "../../expr-dsl/parse-ast/sematics/he
 import { getASTChildren } from "../../expr-dsl/parse-ast/sematics/traverse-ast";
 import { CtxVarDefASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { reservedVars } from "../../expr-dsl/syntax-reference/reservedWords";
-import { CtxVar, Expression, Formula, FuncExpl, isCtxExp, isFuncExpl } from "../../formula/base";
+import { CtxVar, Formula, FuncExpl, isCtxExp, isFuncExpl } from "../../formula/base";
 import { getState } from "../../state";
 import {
     BaseScopeNode,
     CompileContext,
-    CtxClauseASTNode,
     CtxExpScopeNode,
     CtxNameResolutionState,
     FuncExplScopeNode, InternalClauseScopeNode,
@@ -119,6 +118,7 @@ export const ctxRealnameResolution = (context: CompileContext) => {
             }
         }
     }
+    context.topoSort = [...rtSeriesFormula].reverse();
 
     // 3. Scope Propagation & DAG Construction
 
