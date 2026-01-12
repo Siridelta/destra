@@ -1,8 +1,9 @@
-import { ParenExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
-import { DivisionASTNode, ImplicitMultASTNode, MultiplicationASTNode, PercentOfASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
+import { BuiltinFuncCallASTNode, ParenExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
+import { CrossASTNode, DivisionASTNode, ImplicitMultASTNode, MultiplicationASTNode, OmittedCallASTNode, PercentOfASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { ASTVisitorWithDefault } from "../../../expr-dsl/visit-ast/visitor-withdefault";
 import { Formula } from "../../../formula/base";
 import { CompileContext } from "../../types";
+import { wrapWithParentheses } from "../utils";
 
 /**
  * Normalize batch 2: chunked process mult/div/IM chunks
@@ -55,6 +56,11 @@ export interface MultDivArranger {
     division(node: DivisionASTNode, context: MultDivArrangerContext): DivisionASTNode;
     percentOf(node: PercentOfASTNode, context: MultDivArrangerContext): PercentOfASTNode;
     multDivLevel<T extends I1>(node: T, context: MultDivArrangerContext): T;
+
+    // always wrap cross
+    cross(node: CrossASTNode, context: MultDivArrangerContext): ParenExpASTNode;
+    // temporarily always turn omitted call into builtin func call
+    omittedCall(node: OmittedCallASTNode, context: MultDivArrangerContext): BuiltinFuncCallASTNode;
 
     implicitMult(node: ImplicitMultASTNode, context: MultDivArrangerContext): ImplicitMultASTNode;
 
@@ -125,6 +131,22 @@ MultDivArranger.prototype.parenExp = function (node: ParenExpASTNode, context: M
     return node;
 }
 
+MultDivArranger.prototype.cross = function (node: CrossASTNode, context: MultDivArrangerContext): ParenExpASTNode {
+    node.left = this.visit(node.left, context);
+    node.right = this.visit(node.right, context);
+    return wrapWithParentheses(node);
+}
+
+MultDivArranger.prototype.omittedCall = function (node: OmittedCallASTNode, context: MultDivArrangerContext): BuiltinFuncCallASTNode {
+    node.func = this.visit(node.func, context);
+    node.arg = this.visit(node.arg, context);
+    return {
+        type: 'builtinFuncCall',
+        func: node.func,
+        args: [node.arg],
+    };
+}
+
 // --- Chunked processing ---
 
 MultDivArranger.prototype.backTrack = function (node: MultDivChunkNode | ParenExpASTNode): MultDivChunkNode | ParenExpASTNode {
@@ -141,7 +163,7 @@ MultDivArranger.prototype.chunkTop = function (node: MultDivChunkNode): MultDivC
     const fractioned = this.determineFraction(collapsed);
     const collapsed2 = this.collapse_MultOnly(fractioned);
 
-    
+
 
     return node;
 }

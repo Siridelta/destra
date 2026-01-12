@@ -30,10 +30,10 @@ export const builtInFuncs3 = [
     "asinh2", "acosh2", "atanh2", "acoth2", "asech2", "acsch2",
 ] as const;
 export const builtInFuncs4 = [
-    "gcd", "lcm", "mod", "ceil", "floor", "round", "sign", "nPr", "nCr",
+    "gcd", "lcm", "mod", "ceil", "floor", "round", "sign", "snPr", "nCr",
     "real", "imag", "arg", "conj",
     "midpoint", "distance", "polygon", "length",
-    "join", "sort", "shuffle", "unique",
+    "join", "sort", "shuffle", "unique", "repeat",
     "rgb", "hsv", "okhsv", "oklab", "oklch",
 ] as const;
 export const builtInFuncs5 = [
