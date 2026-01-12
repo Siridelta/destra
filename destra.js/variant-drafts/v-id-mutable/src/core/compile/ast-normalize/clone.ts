@@ -1,14 +1,23 @@
 import { hasType } from "../../expr-dsl/visit-ast/utils";
+import { ASTVisitor } from "../../expr-dsl/visit-ast/visitor";
 import { ASTVisitorWithDefault } from "../../expr-dsl/visit-ast/visitor-withdefault";
 
 /**
  * Clone AST
  */
-export class ASTCloner extends ASTVisitorWithDefault<any, void> {
+export class ASTCloner extends ASTVisitor<any, void> {
 
-    public visit<T extends { type: string } | any[]>(node: T): T {
-        node = { ...node };
-        return super.visit(node);
+    public visit(node: any): any {
+        if (Array.isArray(node)) {
+            return node.map(item => this.visit(item));
+        }
+        if (typeof node === 'object' && node !== null) {
+            const result = { ...node };
+            for (const [k, v] of Object.entries(node) as [keyof typeof node, any][]) {
+                result[k] = this.visit(v);
+            }
+            return result;
+        }
     }
-    
+
 }

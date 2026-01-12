@@ -2,7 +2,7 @@ import { getASTChildPaths, getChildByPath, setChildByPath } from "../../expr-dsl
 import { DivisionASTNode, ImplicitMultASTNode, MultiplicationASTNode, PercentOfASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { ASTVisitor } from "../../expr-dsl/visit-ast/visitor";
 import { ASTVisitorWithDefault } from "../../expr-dsl/visit-ast/visitor-withdefault";
-import { throughParen } from "./utils";
+import { throughParenCall } from "./utils";
 
 /**
  * Mark chunks in mult/div/IMs
@@ -58,8 +58,8 @@ MultDivChunkMarker.prototype.multDivLevel = function <T extends I1>(node: T): T 
                 delete node.multDivChunkTop;
             }
         }
-        throughParen(_node.left, deleteTag);
-        throughParen(_node.right, deleteTag);
+        throughParenCall(_node.left, deleteTag);
+        throughParenCall(_node.right, deleteTag);
     }
 
     return _node;

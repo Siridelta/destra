@@ -39,6 +39,16 @@ export function setChildByPath(ast: any, path: ASTPath, child: any): any {
     return ast;
 }
 
+export function setChildByPathImmutable(ast: any, path: ASTPath, child: any): any {
+    if (path.length === 0)
+        throw new Error('Internal error: Path is empty in setChildByPath');
+    if (path.length === 1) {
+        return { ...ast, [path[0]]: child };
+    } else {
+        return { ...ast, [path[0]]: setChildByPathImmutable(ast[path[0]], path.slice(1), child) };
+    }
+}
+
 export function getASTChildPaths(ast: any, allowIR: boolean = false): ASTPath[] {
     if (!ast)
         throw new Error('Internal error: AST is undefined in getASTChildren');

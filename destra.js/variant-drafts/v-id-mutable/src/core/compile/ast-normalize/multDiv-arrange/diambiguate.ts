@@ -5,7 +5,6 @@ import { possibleAmbiguousImages, toCharflowImage } from "../../../expr-dsl/synt
 
 declare module '.' {
     interface MultDivArranger {
-        chunkTop(node: PossibleChunkTopNode): PossibleChunkTopNode;
         charflowCheckAndBreak(node: ImplicitMultASTNode): ImplicitMultASTNode | (MultiplicationASTNode & { noSimplify: boolean });
         contactCheckAndBreak(node: ImplicitMultASTNode): ImplicitMultASTNode | (MultiplicationASTNode & { noSimplify: boolean });
     }

@@ -15,7 +15,7 @@ export function removeChildParentheses(node: any, childKey: string): any {
     return node;
 }
 
-export function throughParen(node: any, callback: (node: any) => any): void {
+export function throughParenCall(node: any, callback: (node: any) => any): void {
     while (node.type === 'parenExp') {
         node = node.content;
     }
@@ -27,4 +27,11 @@ export function throughParenGet(node: any): any {
         node = node.content;
     }
     return node;
+}
+
+export function throughParenSet(node: ParenExpASTNode, value: any): void {
+    while (node.content.type === 'parenExp') {
+        node = node.content;
+    }
+    node.content = value;
 }
