@@ -1,20 +1,22 @@
 import { MultDivArranger } from ".";
-import { ImplicitMultASTNode, isPrefixLevelASTNode, MultiplicationASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
+import { DivisionASTNode, isPrefixLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { isPostfixLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/postfix-level";
 import { possibleAmbiguousImages, toCharflowImage } from "../../../expr-dsl/syntax-reference/mathquill-charflow";
-import { MultChainIR } from "./collapse";
+import { Leaf, PercentIR } from "./collapse";
 
 
 declare module '.' {
     interface MultDivArranger {
-        charflowCheckAndBreak(items: MultChainIR['operands']): MultChainIR['operands'][];
-        contactCheckAndBreak(items: MultChainIR['operands']): MultChainIR['operands'][];
+        charflowCheckAndBreak(items: I[]): I[][];
+        contactCheckAndBreak(items: I[]): I[][];
     }
 }
 
-function isAmbiguousContact(left: MultChainIR['operands'][number], right: MultChainIR['operands'][number]): boolean {
+type I = PercentIR | Leaf | DivisionASTNode;
+
+function isAmbiguousContact(left: I, right: I): boolean {
     // case: right is parenExp. need to prevent ambiguity to function call & extension func call
-    if (right.type === 'parenExp' || right.type === 'parenIR') {
+    if (right.type === 'parenExp') {
         if (
             left.type === 'substitution'
             || left.type === 'undefinedVar'
@@ -50,8 +52,8 @@ function isAmbiguousContact(left: MultChainIR['operands'][number], right: MultCh
 }
 
 
-MultDivArranger.prototype.contactCheckAndBreak = function (items: MultChainIR['operands']): MultChainIR['operands'][] {
-    const fragments: MultChainIR['operands'][] = [];
+MultDivArranger.prototype.contactCheckAndBreak = function (items: I[]): I[][] {
+    const fragments: I[][] = [];
     for (let i = 0; i < items.length - 1; i++) {
         const left = items[i];
         const right = items[i + 1];
@@ -64,7 +66,7 @@ MultDivArranger.prototype.contactCheckAndBreak = function (items: MultChainIR['o
 }
 
 
-MultDivArranger.prototype.charflowCheckAndBreak = function (items: MultChainIR['operands']): MultChainIR['operands'][] {
+MultDivArranger.prototype.charflowCheckAndBreak = function (items: I[]): I[][] {
 
     // predict charflow and check possible ambiguity
 
@@ -110,7 +112,7 @@ MultDivArranger.prototype.charflowCheckAndBreak = function (items: MultChainIR['
             && canEndCharflow(node.type === 'extensionFuncCall' ? node.receiver : node.operand)
         )
 
-    const fragments: MultChainIR['operands'][] = [];
+    const fragments: I[][] = [];
 
     let i0 = 0; 
     let i = 0, j = 0;  // j is an exclusive end index
@@ -173,6 +175,7 @@ MultDivArranger.prototype.charflowCheckAndBreak = function (items: MultChainIR['
         else {
             fragments.push(items.slice(i0, i + index + 1));
             i0 = i + index + 1;
+            i = i + index;
         }
     }
     fragments.push(items.slice(i0));

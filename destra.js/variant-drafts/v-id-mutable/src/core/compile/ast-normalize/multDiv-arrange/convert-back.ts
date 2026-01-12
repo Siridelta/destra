@@ -1,181 +1,94 @@
 import { MultDivArranger } from ".";
-import { ImplicitMultASTNode, isPrefixLevelASTNode, MultiplicationASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
-import { isPostfixLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/postfix-level";
-import { possibleAmbiguousImages, toCharflowImage } from "../../../expr-dsl/syntax-reference/mathquill-charflow";
-import { MultChainIR } from "./collapse";
+import { ParenExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
+import { DivisionASTNode, ImplicitMultASTNode, MultiplicationASTNode, PercentOfASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
+import { throughParenGet } from "../utils";
+import { DivisionIR, Leaf, MultChainIR, ParenIR, PercentIR } from "./collapse";
 
 
 declare module '.' {
     interface MultDivArranger {
-        charflowCheckAndBreak(items: MultChainIR['operands']): MultChainIR['operands'][];
-        contactCheckAndBreak(items: MultChainIR['operands']): MultChainIR['operands'][];
+        convertBack<T extends MultChainIR['operands'][number]>(items: T):
+            T extends MultChainIR ? ImplicitMultASTNode | MultiplicationASTNode | PercentOfASTNode :
+            T extends DivisionIR ? DivisionASTNode :
+            T extends PercentIR ? PercentIR :
+            T extends ParenIR ? ParenExpASTNode :
+            T extends Leaf ? Leaf :
+            never;
     }
 }
 
-function isAmbiguousContact(left: MultChainIR['operands'][number], right: MultChainIR['operands'][number]): boolean {
-    // case: right is parenExp. need to prevent ambiguity to function call & extension func call
-    if (right.type === 'parenExp' || right.type === 'parenIR') {
-        if (
-            left.type === 'substitution'
-            || left.type === 'undefinedVar'
-            || left.type === 'contextVar'
-            || (
-                left.type === 'extensionFuncCall'
-                && left.withArgsList === false
-            )
-        ) {
-            return true;
+function _convertBack(this: MultDivArranger, node: MultChainIR): ImplicitMultASTNode | MultiplicationASTNode | PercentOfASTNode;
+function _convertBack(this: MultDivArranger, node: DivisionIR): DivisionASTNode;
+function _convertBack(this: MultDivArranger, node: PercentIR): PercentIR;
+function _convertBack(this: MultDivArranger, node: ParenIR): ParenExpASTNode;
+function _convertBack(this: MultDivArranger, node: Leaf): Leaf;
+function _convertBack(this: MultDivArranger, node: MultChainIR['operands'][number]):
+    ImplicitMultASTNode | MultiplicationASTNode | PercentOfASTNode | DivisionASTNode | PercentIR | ParenExpASTNode | Leaf {
+
+    if (node.type === 'divisionIR') {
+        return {
+            type: 'division',
+            left: throughParenGet(this.convertBack(node.left)),
+            right: throughParenGet(this.convertBack(node.right)),
+        };
+    } else if (node.type === 'percentIR') {
+        return node;
+    } else if (node.type === 'parenIR') {
+        return {
+            type: 'parenExp',
+            content: this.convertBack(node.content),
+        };
+    } else if (node.type !== 'multChainIR') {
+        return node;
+    }
+
+    // Assert there is no multChainIR in the operands
+    // cuz we've flattened it in the collapse2 step
+    const operands = (node.operands as (DivisionIR | PercentIR | Leaf | ParenIR)[]).map(operand => this.convertBack(operand));
+    const fragments = this.contactCheckAndBreak(operands);
+    let currNode: ImplicitMultASTNode | MultiplicationASTNode | PercentOfASTNode | DivisionASTNode | PercentOfASTNode | Leaf | null = null;
+    let nextType: 'percentOf' | 'multiplication' | null = null;
+    let nextRhsChain: (DivisionASTNode | Leaf)[] = [];
+
+    const buildNode = (type: 'percentOf' | 'multiplication') => {
+        if (nextRhsChain.length === 0) {
+            return null;
         }
-    }
-    // case: right is listExp. seems always ambiguous
-    if (right.type === 'listExp') {
-        return true;
-    }
-    // case: right is prefixExp. seems always ambiguous
-    if (isPrefixLevelASTNode(right)) {
-        return true;
-    }
-    // case: for scientific notation, although not ambiguous, it looks nicer to break
-    if (
-        (right.type === 'number' && right.exponent !== undefined)
-        || (left.type === 'number' && left.exponent !== undefined)
-    ) {
-        return true;
-    }
-    // case: well do not put two numbers next to each other
-    if (left.type === 'number' && right.type === 'number') {
-        return true;
-    }
-    return false;
-}
-
-
-MultDivArranger.prototype.contactCheckAndBreak = function (items: MultChainIR['operands']): MultChainIR['operands'][] {
-    const fragments: MultChainIR['operands'][] = [];
-    for (let i = 0; i < items.length - 1; i++) {
-        const left = items[i];
-        const right = items[i + 1];
-        if (isAmbiguousContact(left, right)) {
-            const newFragment = items.slice(0, i + 1);
-            fragments.push(...this.charflowCheckAndBreak(newFragment));
+        let right: DivisionASTNode | Leaf | ImplicitMultASTNode;
+        if (nextRhsChain.length === 1) {
+            right = nextRhsChain[0];
+        } else {
+            right = {
+                type: 'implicitMult',
+                operands: nextRhsChain,
+            } satisfies ImplicitMultASTNode;
         }
-    }
-    return fragments;
-}
-
-
-MultDivArranger.prototype.charflowCheckAndBreak = function (items: MultChainIR['operands']): MultChainIR['operands'][] {
-
-    // predict charflow and check possible ambiguity
-
-    // if ambiguous, return index that requires adding mult dot after
-    // else return null
-    const testCharflow = (imageTokens: string[]): number | null => {
-        let testFlow = imageTokens.join('');
-        for (let i = 0; i < imageTokens.length; i++) {
-            for (const checkImage of possibleAmbiguousImages) {
-                if (
-                    testFlow.startsWith(checkImage)
-                    && checkImage.length > imageTokens[i].length
-                ) {
-                    return i;
-                }
-            }
-            testFlow = testFlow.slice(imageTokens[i].length);
+        nextRhsChain = [];
+        if (currNode === null) {
+            currNode = right;
+            nextType = type;
+        } else {
+            currNode = {
+                type: nextType!,
+                left: currNode,
+                right: right,
+            } satisfies MultiplicationASTNode | PercentOfASTNode;
+            nextType = type;
         }
-        return null;
+        return currNode;
     }
-    const canStartCharflow = (node: any): boolean =>
-        node.type === 'undefinedVar'
-        || node.type === 'reservedVar'
-        || node.type === 'contextVar'
-        || node.type === 'substitution'
-        || (
-            node.type === 'extensionFuncCall'
-            && node.withArgsList === false
-        )
-        || (
-            isPrefixLevelASTNode(node)
-            && canStartCharflow(node.operand)
-        )
-    const canContinueCharflow = (node: any): boolean =>
-        node.type === 'undefinedVar'
-        || node.type === 'reservedVar'
-        || node.type === 'contextVar'
-        || node.type === 'substitution';
-    const canEndCharflow = (node: any): boolean =>
-        node.type === 'builtinFuncCall'
-        || (
-            isPostfixLevelASTNode(node)
-            && canEndCharflow(node.type === 'extensionFuncCall' ? node.receiver : node.operand)
-        )
 
-    const fragments: MultChainIR['operands'][] = [];
-
-    let i0 = 0; 
-    let i = 0, j = 0;  // j is an exclusive end index
-    while (i < items.length) {
-
-        // --- Sketch charflow range (start index -> end index) ---
-        if (!canStartCharflow(items[i])) {
-            i++;
-            continue;
-        }
-        j = i;
-        let imageTokens: string[] = [];
-        while (
-            j < items.length
-            && (
-                j === i
-                || canContinueCharflow(items[j])
-                || canEndCharflow(items[j])
-            )
-        ) {
-            let currNode: any = items[j];
-            let destraImage: string | null = null;
-            while (true) {
-                if (isPrefixLevelASTNode(currNode)) {
-                    currNode = currNode.operand;
-                    continue;
-                } else if (isPostfixLevelASTNode(currNode)) {
-                    currNode = currNode.type === 'extensionFuncCall'
-                        ? (j === i ? currNode.func : currNode.receiver) 
-                        : currNode.operand;
-                    continue;
-                }
-                break;
-            }
-            if (currNode.type === 'undefinedVar' || currNode.type === 'contextVar' || currNode.type === 'reservedVar') {
-                destraImage = currNode.name;
-            } else if (currNode.type === 'substitution') {
-                const target = this.targetFormula.template.values[currNode.index];
-                if (typeof target === 'number') {
-                    destraImage = target.toString();
-                } else {
-                    destraImage = this.compileContext.globalRealnameMap.get(target) ?? null;
-                    if (!destraImage) throw new Error(`Internal Error: Global realname not found for ${target}`);
-                }
-            } else if (currNode.type === 'builtinFunc') {
-                destraImage = currNode.name;
+    for (const fragment of fragments) {
+        for (const node of fragment) {
+            if (node.type === 'percentIR') {
+                const r = buildNode('percentOf');
+                if (r === null) throw new Error('Failed to build node for percentIR');
             } else {
-                throw new Error(`Internal Error: Unknown node type ${currNode.type}`);
+                nextRhsChain.push(node);
             }
-
-            const { image, turncate } = toCharflowImage(destraImage!);
-            imageTokens.push(image);
-            j++;                    // move only if succeed to convert to charflow image
-            if (turncate || canEndCharflow(currNode)) break;
         }
-        // Possible index needed to append a mult dot
-        const index = testCharflow(imageTokens);
-        if (index === null)
-            i = j;
-        else {
-            fragments.push(items.slice(i0, i + index + 1));
-            i0 = i + index + 1;
-        }
+        buildNode('multiplication');
     }
-    fragments.push(items.slice(i0));
-    return fragments;
+    if (currNode === null) throw new Error('Failed to build node for multChainIR');
+    return currNode;
 }
-

@@ -163,9 +163,12 @@ MultDivArranger.prototype.chunkTop = function (node: MultDivChunkNode): MultDivC
     const fractioned = this.determineFraction(collapsed);
     const collapsed2 = this.collapse_MultOnly(fractioned);
 
+    const convertedBack = this.convertBack(collapsed2);
 
-
-    return node;
+    return convertedBack;
 }
 
 import './collapse';
+import './determine-fraction';
+import './disambiguate';
+import './convert-back';
