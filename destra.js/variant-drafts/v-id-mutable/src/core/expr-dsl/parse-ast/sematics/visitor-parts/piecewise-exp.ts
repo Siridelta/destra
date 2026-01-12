@@ -52,6 +52,14 @@ FormulaVisitor.prototype.piecewise_content = function (ctx: any) {
         }
     }
 
+    // If there is a default value branch, there must be at least one normal conditional branch
+    if (defaultValue && branches.length === 1) {
+        throw new Error(
+            `Invalid piecewise expression syntax: default value branch must have at least one normal conditional branch. `
+            + `Expected at least one normal conditional branch, got 0.`
+        );
+    }
+
     // Piecewise special check: Check the usage of for and with clauses.
     // unless in the lase branch (conditional branch or default branch),
     // you cannot use for/with clauses with multiple context variables 

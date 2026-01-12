@@ -33,14 +33,14 @@ type RootofAST_ExpandResult =
 ASTExpander.prototype.rootof = function (node: RootofASTNode): RootofAST_ExpandResult {
     return {
         type: 'power',
-        base: node.index,
+        base: node.operand,
         exponent: {
             type: 'division',
             left: {
                 type: 'number',
                 base: { integer: '1', decimal: undefined },
             },
-            right: node.operand,
+            right: node.index,
         },
     }
 }
