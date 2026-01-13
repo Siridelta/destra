@@ -4,6 +4,7 @@ import { analyzeRsVarDepType, scanUdRsVarRefs } from "../helpers";
 import { traverse } from "../traverse-ast";
 import { resolveVarIRs } from "./top-level";
 import { RsVarDepType } from "../helpers";
+import { nextAstId } from "../..";
 
 declare module '../base-visitor' {
     interface ExprDSLCSTVisitor {
@@ -88,6 +89,7 @@ ExprDSLCSTVisitor.prototype.ctxFactoryExprDefHead = function (ctx: any): CtxFact
         name: name,
         subtype: 'expr',
         expr: values[i],
+        _astId: nextAstId(),
     }));
 
     ctxVarDefs.forEach(def => {
@@ -121,6 +123,7 @@ ExprDSLCSTVisitor.prototype.ctxFactoryRangeDefHead = function (ctx: any): CtxFac
         subtype: 'range',
         lower: lower,
         upper: upper,
+        _astId: nextAstId(),
     };
 
     [lower, upper].forEach(expr => {
@@ -148,6 +151,7 @@ ExprDSLCSTVisitor.prototype.ctxFactoryNullDefHead = function (ctx: any): CtxFact
         type: "ctxVarDef",
         name: name,
         subtype: 'null',
+        _astId: nextAstId(),
     }));
 
     checkNoDuplicateCtxVarNames(ctxVarNames);
