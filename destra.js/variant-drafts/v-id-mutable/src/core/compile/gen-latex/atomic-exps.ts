@@ -71,7 +71,7 @@ LatexCompiler.prototype.listExp = function (node: ListExpASTNode, context: Latex
     return `\\left[${node.items.map(i => this.visit(i, context)).join(',')}\\right]`;
 }
 LatexCompiler.prototype.listRange = function (node: ListRangeASTNode, context: LatexCompilerVisitContext): string {
-    return `${node.start}...${node.end}`;
+    return `${this.visit(node.start, context)}...${this.visit(node.end, context)}`;
 }
 
 LatexCompiler.prototype.absExp = function (node: AbsExpASTNode, context: LatexCompilerVisitContext): string {

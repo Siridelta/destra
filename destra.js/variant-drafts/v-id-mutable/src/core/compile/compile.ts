@@ -157,7 +157,9 @@ Graph.prototype.export = function (config?: exportConfig) {
 
             folderId: folderId,
 
-            sliderBounds: result.slider ? {
+            slider: result.slider ? {
+                hardMin: result.slider.min ? true : undefined,
+                hardMax: result.slider.max ? true : undefined,
                 min: result.slider.min,
                 max: result.slider.max,
                 step: result.slider.step,

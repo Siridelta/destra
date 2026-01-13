@@ -231,6 +231,10 @@ ExprDSLCSTVisitor.prototype.listExp = function (ctx: any) {
         const item1 = i - 1 >= 0 ? items[i - 1] : null;
         const item2 = items[i];
         const item3 = i + 1 < items.length ? items[i + 1] : null;
+        if (item2?.type === 'listRange') {
+            hasRange = true;
+            continue;
+        }
         if (item2?.tokenType === RangeDots) {
             if (hasRange)
                 throw new Error(

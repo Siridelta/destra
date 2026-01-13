@@ -66,8 +66,11 @@ export function traceWithSubst<R>(
     let depAst = ast.root;
     if (depAst.type !== 'formula')
         throw new Error(`Internal error: Unexpected Substitution Formula AST root type. ${f}`);
+    if (!('content' in depAst.content)) {
+        throw new Error(`Internal error: Unexpected Substitution Formula AST top level type. ${f}`);
+    }
     return traceWithSubst(
-        depAst.content,
+        depAst.content.content,
         callback,
         {
             onNonFormula: onNonFormula,

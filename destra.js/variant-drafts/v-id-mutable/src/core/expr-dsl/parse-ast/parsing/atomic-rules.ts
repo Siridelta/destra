@@ -115,11 +115,20 @@ export function initAtomicRules(this: FormulaParser) {
     });
 
     this.listItem = this.RULE("listItem", () => {
-        this.SUBRULE(this.addSubLevel, { LABEL: "term" });
-        this.OPTION(() => {
-            this.CONSUME(RangeDots, { LABEL: "term" });
-            this.SUBRULE2(this.addSubLevel, { LABEL: "term" });
-        });
+        this.OR([
+            {
+                ALT: () => {
+                    this.SUBRULE(this.addSubLevel, { LABEL: "term" });
+                    this.OPTION(() => {
+                        this.CONSUME(RangeDots, { LABEL: "term" });
+                        this.SUBRULE2(this.addSubLevel, { LABEL: "term" });
+                    });
+                }
+            },
+            {
+                ALT: () => this.CONSUME2(RangeDots, { LABEL: "term" })
+            }
+        ])
     });
 
     this.piecewiseExp = this.RULE("piecewiseExp", () => {
@@ -132,6 +141,6 @@ export function initAtomicRules(this: FormulaParser) {
         this.CONSUME(Bar);
         this.SUBRULE(this.addSubLevel);
         this.CONSUME2(Bar);
-    }); 
+    });
 
 }
