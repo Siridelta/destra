@@ -44,7 +44,7 @@ export type RegressionASTNode = {
     lhs: any,
     rhs: any,
     op: string,
-    coefs: string[],
+    params: string[],
 }
 export type ExpressionASTNode = {
     type: "expression",
@@ -405,7 +405,7 @@ ExprDSLCSTVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
             lhs,
             rhs,
             op: tildeOp.image,
-            coefs: udVarRefs,
+            params: udVarRefs,
         }
     }
 

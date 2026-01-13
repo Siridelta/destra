@@ -1,4 +1,4 @@
-import { CtxVar, Formula, isFuncExpl, RegressionParameter, Substitutable } from "../../../formula/base";
+import { CtxVar, Formula, isFuncExpl, RegrParam, Substitutable } from "../../../formula/base";
 import { ASTState, getState } from "../../../state";
 import { ExprDSLCSTVisitor } from "./base-visitor";
 import { traverse } from "./traverse-ast";
@@ -82,7 +82,7 @@ function _scanUdRsVarRefs(node: any, obj: ExprDSLCSTVisitor | Formula) {
         }
         if (node?.type === 'substitution') {
             const subst = traceSubstitution(node, obj);
-            if (subst instanceof Formula && !(subst instanceof CtxVar) && !(subst instanceof RegressionParameter)) {
+            if (subst instanceof Formula && !(subst instanceof CtxVar) && !(subst instanceof RegrParam)) {
                 const { rsVars } = traceASTState(subst);
                 rsVars.forEach(v => rsVarRefs.add(v));
             }

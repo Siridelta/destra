@@ -24,38 +24,3 @@ export class Label {
 export const label = (strings: TemplateStringsArray, ...values: VarExpl[]): Label => {
     return new Label(strings, values);
 };
-
-/**
- * 获取编译后的标签文本
- * 将 VarExpl 替换为 ${realname} 格式
- */
-export const getLabelCompiled = (label: Label): string => {
-    const state = getState(label);
-    state.compile ??= {};
-    if (state.compile.compiled) {
-        return state.compile.compiled;
-    }
-
-    const { template, values } = label;
-    let source = template[0]!;
-    for (let i = 0; i < values.length; i += 1) {
-        const val = values[i];
-        
-        // Placeholder Logic for now.
-        // TODO: Should read `compiledName` from state, or trigger compilation if not ready.
-        // const name = getState(val).compiledName;
-        
-        const name = undefined; // 模拟未编译状态
-
-        if (!name) {
-            // 占位符，表示变量尚未编译，无法确定最终变量名
-            source += `\${<pending>}`;
-        } else {
-            source += `\${${name}}`;
-        }
-        source += template[i + 1]!;
-    }
-    
-    state.compile.compiled = source;
-    return source;
-}

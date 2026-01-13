@@ -1,4 +1,4 @@
-import { CompileResult } from "..";
+import { CompileResult } from "../compile";
 import { expr } from "../../..";
 import { CtxClauseASTNode, getCtxNodeCtxVars as getCtxNodeVarNames } from "../../expr-dsl/parse-ast";
 import { CtxVarDefASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";

@@ -7,8 +7,9 @@ import { specialSymbolsAliases, specialSymbolsPaged } from "../../expr-dsl/synta
 import { realnamePattern } from "../../formula/realname";
 import { l } from "./latex";
 import { traceSubstitution } from "../../expr-dsl/parse-ast";
-import { Expl, Formula } from "../../formula/base";
+import { CtxVar, Dt, Expl, Formula } from "../../formula/base";
 import { CtxVarDefASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
+import { getState } from "../../state";
 
 declare module '.' {
     interface LatexCompiler {
@@ -87,6 +88,16 @@ LatexCompiler.prototype.substitution = function (node: SubstitutionASTNode): str
     const f = traceSubstitution(node, this.targetFormula);
     if (!(f instanceof Formula)) {
         throw new Error(`Internal error: Substitution value is not a formula. ${f}`);
+    }
+    if (f instanceof Dt) {
+        return l.opName('dt');
+    }
+    if (f instanceof CtxVar) {
+        const realname = this.compileContext.ctxVarRealnameMap.get(f);
+        if (!realname) {
+            throw new Error(`Internal error: CtxVar has no realname. ${f}`);
+        }
+        return nameForLatex(realname);
     }
     if (f instanceof Expl) {   // Expl: refer by its realname
         const realname = this.compileContext.globalRealnameMap.get(f);

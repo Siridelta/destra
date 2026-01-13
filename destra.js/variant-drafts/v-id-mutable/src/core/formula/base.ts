@@ -43,6 +43,7 @@ export enum FormulaType {
     ImplicitEquation = "implicit-equation",
     Regression = "regression",
     RegressionParameter = "regression-parameter",
+    Dt = "dt",
 }
 
 // ============================================================================
@@ -249,9 +250,11 @@ export class ImplicitEquation extends Expr {
 export class Regression extends Expr {
     public readonly isEmbeddable = false as const;
     public readonly type = FormulaType.Regression;
+    public readonly regrParams: Record<string, RegrParam>;
 
-    public constructor(template: TemplatePayload) {
+    public constructor(template: TemplatePayload, regrParams: Record<string, RegrParam>) {
         super(template);
+        this.regrParams = Object.freeze({...regrParams});
     }
 }
 
@@ -274,11 +277,14 @@ export class VarExpl extends Expl {
 /**
  * RegressionParameter：回归参数，没有内容，是一个占位符，需要嵌入唯一的 Regression 对象
  */
-export class RegressionParameter extends Expl {
+export class RegrParam extends Expl {
     public readonly type = FormulaType.RegressionParameter;
 
-    public constructor() {
+    public constructor(name?: string) {
         super({ strings: Object.freeze([""]), values: Object.freeze([]) });
+        if (name) {
+            this.id(name);
+        }
     }
 }
 
@@ -601,13 +607,26 @@ export const isCtxExp = (formula: Formula): formula is CtxExp => {
 }
 
 // ============================================================================
+// 其他
+// ============================================================================
+
+export class Dt extends Formula {
+    public readonly type = FormulaType.Dt;
+    public readonly isEmbeddable = true as const;
+
+    public constructor() {
+        super({ strings: Object.freeze([""]), values: Object.freeze([]) });
+    }
+}
+
+// ============================================================================
 // 并集类型
 // ============================================================================
 
 /**
  * Embeddable：可嵌入的表达式类型（可用于其他表达式中）
  */
-export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplTFuncBase> | CtxVar | RegressionParameter;
+export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplTFuncBase> | CtxVar | RegrParam;
 
 /**
  * Substitutable：可代入模板字符串插值的值类型（原始值或可嵌入的表达式）

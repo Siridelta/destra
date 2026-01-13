@@ -5,7 +5,7 @@
  * 以及提供 `For`, `With`, `Sum`, `Int`, `Func` 等上下文语句工厂函数。
  */
 
-import { Substitutable, Expr, Expl, Formula, CtxExpBody, FuncExpl, RegressionParameter } from "./formula/base";
+import { Substitutable, Expr, Expl, Formula, CtxExpBody, FuncExpl, RegrParam } from "./formula/base";
 import {
     FormulaType,
     createTemplatePayload,
@@ -26,11 +26,12 @@ import {
 } from "./formula/base";
 import { getState } from "./state";
 import { FormulaASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/formula";
-import { analyzeRsVarDepType, arrayUnion, parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula, RsVarDepType } from "./expr-dsl/parse-ast";
+import { analyzeRsVarDepType, arrayUnion, parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula, RsVarDepType, scanUdRsVarRefs } from "./expr-dsl/parse-ast";
 import { analyzeTypeAndCheck } from "./expr-dsl/analyzeFormulaType";
 import { CtxFactoryHeadASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/ctx-header";
 
 import { evalAndSetCtxValidityState } from "./formula/validity";
+import { RegressionASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/top-level";
 
 declare module "./state" {
     interface ASTState {
@@ -105,7 +106,9 @@ export const expr: ExprFactory = Object.assign((strings: TemplateStringsArray, .
             result = new ImplicitEquation(template);
             break;
         case FormulaType.Regression:
-            result = new Regression(template);
+            const regrParams = (ast.content as RegressionASTNode).params;
+            const regrParamsMap = Object.fromEntries(regrParams.map(p => [p, new RegrParam(p)]));
+            result = new Regression(template, regrParamsMap);
             break;
     }
 
@@ -153,12 +156,12 @@ let explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl =
 };
 
 interface RegrFactory {
-    (id?: string): RegressionParameter;
+    (id?: string): RegrParam;
     type: 'regr'
 }
 
-export const regr: RegrFactory = Object.assign((id?: string): RegressionParameter => {
-    const result = new RegressionParameter();
+export const regr: RegrFactory = Object.assign((id?: string): RegrParam => {
+    const result = new RegrParam();
     if (id) {
         result.id(id);
     }

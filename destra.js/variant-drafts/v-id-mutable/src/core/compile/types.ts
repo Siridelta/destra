@@ -4,7 +4,8 @@ import {
     CtxVarDefASTNode
 } from "../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { UndefinedVarASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
-import { CtxExp, CtxVar, Expl, Formula, FuncExpl } from "../formula/base";
+import { CtxExp, CtxVar, Dt, Expl, Expression, Formula, FuncExpl, RegrParam, VarExpl } from "../formula/base";
+import { Label } from "../formula/label";
 import { ActionStyleValue, NumericStyleValue } from "../formula/style";
 
 // ============================================================================
@@ -38,43 +39,84 @@ export class Folder {
 }
 
 export interface GraphSettings {
+    complex?: boolean;
+    degreeMode?: boolean;
+    polarMode?: boolean;
+    showGrid?: boolean
+    showXAxis?: boolean;
+    showYAxis?: boolean;
+    squareAxes?: boolean;
+    userLockedViewport?: boolean;
     viewport?: {
-        xmin: number | Formula;
-        xmax: number | Formula;
-        ymin: number | Formula;
-        ymax: number | Formula;
+        xmin: NumericStyleValue;
+        xmax: NumericStyleValue;
+        ymin: NumericStyleValue;
+        ymax: NumericStyleValue;
     };
+    // Note: Without script approaches a user can only have the two always the same value
     xAxisArrowMode?: "NONE" | "POSITIVE" | "BOTH";
     yAxisArrowMode?: "NONE" | "POSITIVE" | "BOTH";
-    showGrid?: boolean;
-    // ... other Desmos settings
+    xAxisLabel?: string;
+    yAxisLabel?: string;
+    xAxisMinorSubdivisions?: number;
+    yAxisMinorSubdivisions?: number;
+    // Note: Without script approaches a user can only have the two always the same value
+    xAxisNumbers?: boolean;
+    yAxisNumbers?: boolean;
+    xAxisScale?: 'logarithmic';
+    yAxisScale?: 'logarithmic';
+    xAxisStep?: number;
+    yAxisStep?: number;
+
+    randomSeed?: string;
 }
 
 export type RootItem = Formula | Folder;
 
 export interface Ticker {
     minStep?: NumericStyleValue;
-    handler?: ActionStyleValue;
+    handler?: ActionStyleValue | TickerAction;
     playing?: boolean;
     open?: boolean;
     secret?: boolean;
+}
+
+export class TickerAction {
+    public readonly action: ActionStyleValue;
+    public constructor(action: (dt: Dt) => ActionStyleValue) {
+        this.action = action(new Dt());
+    }
+}
+
+export interface DestraSettings {
+    implicitRootPosition: "TOP" | "BOTTOM";
+    implicitRootFolder?: {
+        title: string;
+        id?: string;
+    };
 }
 
 export interface GraphInput {
     root: RootItem[];
     ticker?: Ticker;
     settings?: GraphSettings;
+    destraSettings?: DestraSettings;
 }
 
 export class Graph {
     public readonly root: RootItem[];
     public readonly ticker?: Ticker;
     public readonly settings?: GraphSettings;
+    public readonly destraSettings: DestraSettings;
 
     constructor(input: GraphInput) {
         this.root = input.root;
         this.ticker = input.ticker;
         this.settings = input.settings;
+        this.destraSettings = {
+            implicitRootPosition: "TOP",
+            ...input.destraSettings
+        };
     }
 }
 
@@ -133,6 +175,8 @@ export interface CompileContext {
     rootFormulas: Set<Formula>;             // Explicit root formulas
     implicitRootFormulas: Set<Formula>;     // Implicit root formulas (dependencies)      (All unknown ownership Expls goes here)
     backgroundFormulas: Set<Formula>;        // Formulas that are completely inaccessible (All unknown ownership Exprs goes here)
+    regrParams: Set<RegrParam>;              // Regression Parameters
+    labels: Set<Label>;
     ctxVarForceRealnameSet: Set<string>;    // Collected forced realnames for CtxVars
 
     // Step 2 Output

@@ -1,9 +1,9 @@
 
-import { Expl, Formula, CtxExp, CtxVar, RegressionParameter, Regression } from "../../formula/base";
+import { CtxExp, CtxVar, Dt, Expl, Expression, Formula, Regression, RegrParam } from "../../formula/base";
+import { Label } from "../../formula/label";
 import { normalizeName2 } from "../../formula/realname";
-import { DestraStyle } from "../../formula/style";
 import { getState } from "../../state";
-import { CompileContext, Folder, Graph } from "../types";
+import { CompileContext, Folder, Graph, TickerAction } from "../types";
 
 export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
     const context: CompileContext = {
@@ -14,6 +14,8 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
         rootFormulas: new Set(),
         implicitRootFormulas: new Set(),
         backgroundFormulas: new Set(),
+        regrParams: new Set(),
+        labels: new Set(),
         ctxVarForceRealnameSet: new Set(),
 
         // Step 2 Output
@@ -37,6 +39,10 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
     for (const item of graph.root) {
         if (item instanceof Folder) {
             for (const child of item.children) {
+                if (child instanceof RegrParam) {
+                    context.regrParams.add(child);
+                    continue;
+                }
                 if (context.formulaToFolder.has(child)) {
                     throw new Error(`Formula is in multiple folders or appearing multiple times.`);
                 }
@@ -59,8 +65,28 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
             traverse(item, context, visited, unknownOwnership);
         }
     }
+    const notFromRoot: Set<any> = new Set();
+    if (graph.ticker?.handler) {
+        if (graph.ticker.handler instanceof Formula) {
+            notFromRoot.add(graph.ticker.handler);
+        } else if (graph.ticker.handler instanceof TickerAction) {
+            notFromRoot.add(graph.ticker.handler.action);
+        }
+    }
+    if (graph.settings?.viewport?.xmin) notFromRoot.add(graph.settings.viewport.xmin);
+    if (graph.settings?.viewport?.xmax) notFromRoot.add(graph.settings.viewport.xmax);
+    if (graph.settings?.viewport?.ymin) notFromRoot.add(graph.settings.viewport.ymin);
+    if (graph.settings?.viewport?.ymax) notFromRoot.add(graph.settings.viewport.ymax);
+    for (const f of notFromRoot) {
+        if (!(f instanceof Formula)) continue;
+        if (!context.rootFormulas.has(f) && !context.formulaToFolder.has(f)) {
+            unknownOwnership.add(f);
+        }
+        traverse(f, context, visited, unknownOwnership);
+    }
 
-    // After traversal, any formula left in 'unknownOwnership' is an implicit root formula
+    // After traversal, any Expl left in 'unknownOwnership' is an implicit root formula
+    // Any Expression left in 'unknownOwnership' is a background formula
     for (const f of unknownOwnership) {
         if (f instanceof Expl) {
             context.implicitRootFormulas.add(f);
@@ -87,13 +113,14 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
     }
 
     // Step 1.6: Regression Parameter Check
-    const allRegrs = new Set<RegressionParameter>();
-    const regrToRegression = new Map<RegressionParameter, Regression>();
+    const allRegrs = context.regrParams;
+    const regrToRegression = new Map<RegrParam, Regression>();
     for (const f of Array.from(visited)) {
-        if (f instanceof RegressionParameter) {
-            allRegrs.add(f);
-        } else if (f instanceof Regression) {
-            const regrs = f.deps.filter(dep => dep instanceof RegressionParameter);
+        if (f instanceof Regression) {
+            const regrs = [
+                ...f.deps.filter(dep => dep instanceof RegrParam),
+                ...Object.values(f.regrParams),
+            ];
             for (const regr of regrs) {
                 if (regrToRegression.has(regr)) {
                     throw new Error(`Regression Parameter ${regr.id()} is defined in multiple Regressions.`);
@@ -107,6 +134,40 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
         throw new Error(`Regression Parameter ${Array.from(undefinedRegrs).map(regr => regr.id()).join(', ')} is not defined in any Regression.`);
     }
 
+    // Step 1.7: Dt Check
+    const tickerTree: Set<Formula> = new Set();
+    const collectTickerTree = (formula: Formula) => {
+        if (tickerTree.has(formula)) return;
+        tickerTree.add(formula);
+        for (const dep of formula.deps) {
+            if (dep instanceof Expression) {
+                collectTickerTree(dep);
+            }
+        }
+    };
+    if (graph.ticker?.handler instanceof Formula) {
+        collectTickerTree(graph.ticker.handler);
+    } else if (graph.ticker?.handler instanceof TickerAction) {
+        collectTickerTree(graph.ticker.handler.action);
+    }
+    const checkDtRelated = (f: Formula) => {
+        if (f instanceof Dt)
+            throw new Error(`Dt cannot be used outside of ticker action.`);
+        if (!tickerTree.has(f))
+            for (const dep of f.deps)
+                if (dep instanceof Dt)
+                    throw new Error(`Dt cannot be used outside of ticker action.`);
+    }
+    for (const f of context.rootFormulas)
+        checkDtRelated(f);
+    for (const f of context.formulaToFolder.keys())
+        checkDtRelated(f);
+    for (const f of context.implicitRootFormulas)
+        checkDtRelated(f);
+    for (const f of context.backgroundFormulas)
+        checkDtRelated(f);
+
+
     return context;
 };
 
@@ -116,6 +177,7 @@ const traverse = (
     visited: Set<Formula>,
     unknownOwnership: Set<Formula>,
 ) => {
+    if (formula instanceof Dt) return;
     if (visited.has(formula)) return;
     visited.add(formula);
 
@@ -165,6 +227,13 @@ const traverse = (
             traverse(dep, context, visited, unknownOwnership);
         }
     }
+    // visit Regression produced RegrParams
+    if (formula instanceof Regression) {
+        for (const regrParam of Object.values(formula.regrParams)) {
+            context.regrParams.add(regrParam);
+            traverse(regrParam, context, visited, unknownOwnership);
+        }
+    }
 
     // CtxExp additional:
     // Its deps is only deps of the header.
@@ -178,6 +247,18 @@ const traverse = (
         if (ctxExp.body instanceof Formula) {
             traverse(ctxExp.body, context, visited, unknownOwnership);
         }
+    }
+
+    // Scan the style tree and collect all formulas that are used as style values
+    const styleValueFormulas = getStyleValueFormulas(formula);
+    for (const sv of styleValueFormulas) {
+        if (!context.rootFormulas.has(sv) && !context.formulaToFolder.has(sv)) {
+            unknownOwnership.add(sv);
+        }
+    }
+    const label = formula.styleData.label;
+    if (label instanceof Label) {
+        context.labels.add(label);
     }
 };
 
