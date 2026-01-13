@@ -1,8 +1,9 @@
 
-import { isCtxClause, traceASTState } from "../../expr-dsl/parse-ast/sematics/helpers";
+import { CtxClauseASTNode, isCtxClause, traceASTState } from "../../expr-dsl/parse-ast/sematics/helpers";
 import { getASTChildren } from "../../expr-dsl/parse-ast/sematics/traverse-ast";
 import { CtxVarDefASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { UndefinedVarASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
+import { FunctionDefinitionASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/top-level";
 import { reservedVars } from "../../expr-dsl/syntax-reference/reservedWords";
 import { CtxVar, Formula, FuncExpl, isCtxExp, isFuncExpl } from "../../formula/base";
 import { getState } from "../../state";
@@ -11,7 +12,7 @@ import {
     CompileContext,
     CtxExpScopeNode,
     CtxNameResolutionState,
-    FuncExplScopeNode, InternalClauseScopeNode,
+    InternalClauseScopeNode,
     RootScopeNode,
     ScopeNode,
     UdVarScopeNode
@@ -169,19 +170,6 @@ export const ctxRealnameResolution = (context: CompileContext) => {
             if (f.body instanceof Formula)
                 state.overrideOutputClosestScopes.set(f.body, newScopeSet);
         }
-        // Additional Logic for FuncExpl
-        // Notice that CtxFuncExpl is classified to CtxExpScope, not FuncExplScope
-        else if (isFuncExpl(f)) {
-            const scopeNode = createScopeNode({ type: "FuncExplScope", context: f }) as FuncExplScopeNode;
-            rtSeriesScopeNode.push(scopeNode);
-
-            for (const p of state.closestScopes) {
-                scopeNode.parents.add(p);
-                p.children.add(scopeNode);
-            }
-
-            traverseInitialScopes = new Set([scopeNode]);
-        }
         // Logic for Internal AST
         const formulaState = getState(f);
         if (formulaState?.ast?.root) {
@@ -220,9 +208,6 @@ export const ctxRealnameResolution = (context: CompileContext) => {
             entityType: 'CtxVar';
             entity: CtxVar;
         } | {
-            entityType: 'FuncExpl';
-            entity: { funcExpl: FuncExpl<any>, paramIndex: number };
-        } | {
             entityType: 'CtxVarDefASTNode';
             entity: CtxVarDefASTNode;
         } | {
@@ -244,21 +229,6 @@ export const ctxRealnameResolution = (context: CompileContext) => {
 
             scope.forbiddenNames = scope.forbiddenNames.union(new Set(traceASTState(scope.context).forbiddenNames));
 
-        } else if (scope.type === 'FuncExplScope') {
-            for (let i = 0; i < scope.context.params.length; i++) {
-                const param = scope.context.params[i];
-                varsToResolve.push({
-                    originalName: param,
-                    entity: {
-                        funcExpl: scope.context,
-                        paramIndex: i
-                    },
-                    entityType: 'FuncExpl',
-                });
-            }
-
-            scope.forbiddenNames = scope.forbiddenNames.union(new Set(traceASTState(scope.context).forbiddenNames));
-
         } else if (scope.type === 'InternalClauseScope') {
             const ctx = scope.context;
             if (ctx.type === 'forClause' || ctx.type === 'withClause') {
@@ -269,7 +239,15 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                         entityType: 'CtxVarDefASTNode'
                     });
                 }
-            } else {
+            } else if (ctx.type === 'functionDefinition') {
+                for (const def of ctx.params) {
+                    varsToResolve.push({
+                        originalName: def.name,
+                        entity: def,
+                        entityType: 'CtxVarDefASTNode'
+                    });
+                }
+            }else{
                 varsToResolve.push({
                     originalName: ctx.ctxVarDef.name,
                     entity: ctx.ctxVarDef,
@@ -320,15 +298,6 @@ export const ctxRealnameResolution = (context: CompileContext) => {
 
             if (v.entityType === 'CtxVar') {
                 context.ctxVarRealnameMap.set(v.entity, finalName);
-            } else if (v.entityType === 'FuncExpl') {
-                const funcExpl = v.entity.funcExpl;
-                const map = context.funcExplCtxVarRealnameMap;
-                let realnames = map.get(funcExpl);
-                if (!realnames) {
-                    realnames = new Map();
-                    map.set(funcExpl, realnames);
-                }
-                realnames.set(v.entity.paramIndex, finalName);
             } else if (v.entityType === 'CtxVarDefASTNode') {
                 context.internalCtxVarRealnameMap.set(v.entity._astId, finalName);
             } else if (v.entityType === 'UndefinedVar') {
@@ -348,10 +317,10 @@ function traverseAST(
     const _traverse = (node: any, currentScopes: Set<ScopeNode>) => {
         if (!node) throw new Error('Internal error: AST node is undefined in traverseAST');
 
-        if (isCtxClause(node)) {
+        if (isCtxClause(node) || node.type === 'functionDefinition') {
             const scopeNode = createScopeNode({
                 type: "InternalClauseScope",
-                context: node,
+                context: node as CtxClauseASTNode | FunctionDefinitionASTNode,
                 host: f
             }) as InternalClauseScopeNode;
             rtScopeSeries.push(scopeNode);

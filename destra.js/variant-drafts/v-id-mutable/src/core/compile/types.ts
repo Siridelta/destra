@@ -4,6 +4,7 @@ import {
     CtxVarDefASTNode
 } from "../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { UndefinedVarASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
+import { FunctionDefinitionASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/top-level";
 import { CtxExp, CtxVar, Dt, Expl, Expression, Formula, FuncExpl, RegrParam, VarExpl } from "../formula/base";
 import { Label } from "../formula/label";
 import { ActionStyleValue, NumericStyleValue } from "../formula/style";
@@ -149,14 +150,9 @@ export interface CtxExpScopeNode extends BaseScopeNode {
     context: CtxExp;
 }
 
-export interface FuncExplScopeNode extends BaseScopeNode {
-    type: "FuncExplScope";
-    context: FuncExpl<any>;
-}
-
 export interface InternalClauseScopeNode extends BaseScopeNode {
     type: "InternalClauseScope";
-    context: CtxClauseASTNode;
+    context: CtxClauseASTNode | FunctionDefinitionASTNode;
     host: Formula;
 }
 
@@ -165,7 +161,7 @@ export interface UdVarScopeNode extends BaseScopeNode {
     context: UndefinedVarASTNode;
 }
 
-export type ScopeNode = RootScopeNode | CtxExpScopeNode | FuncExplScopeNode | InternalClauseScopeNode | UdVarScopeNode;
+export type ScopeNode = RootScopeNode | CtxExpScopeNode | InternalClauseScopeNode | UdVarScopeNode;
 
 
 export interface CompileContext {
@@ -187,7 +183,6 @@ export interface CompileContext {
     // scopeTree: ScopeTree;                 // Internal use in Step 3
     ctxVarRealnameMap: Map<CtxVar, string>;  // CtxVar -> Realname
     internalCtxVarRealnameMap: Map<string, string>; // Internal AST Node ID -> Realname
-    funcExplCtxVarRealnameMap: Map<FuncExpl<any>, Map<number, string>>; // FuncExpl -> Realnames of params, by param index
     undefinedVarRealnameMap: Map<UndefinedVarASTNode, string>; // UndefinedVar -> Realname
     topoSort: Formula[];                     // Topological sort of formulas
 }

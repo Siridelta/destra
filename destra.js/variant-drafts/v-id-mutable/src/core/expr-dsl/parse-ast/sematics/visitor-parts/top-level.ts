@@ -34,6 +34,7 @@ export type FunctionDefinitionASTNode = {
     content: any,
     rsVarDepType: RsVarDepType | null,
     rsVars: string[],
+    forbiddenNames: string[],
 }
 export type ImplicitEquationASTNode = {
     type: "implicitEquation",
@@ -106,6 +107,7 @@ export function resolveVarIRs(ast: any) {
                 newType = "reservedVar";
             } else {
                 newType = "undefinedVar";
+                astId = nextAstId();
             }
         }
         if (newType) {
@@ -127,7 +129,7 @@ export function resolveVarIRs(ast: any) {
 }
 
 const isMaybeFuncDefIR = (node: any): node is MaybeFuncDefIRNode => node?.type === "maybeFuncDefIR";
-function resolveNamedFuncDef(IRNode: MaybeFuncDefIRNode, content: any): Omit<FunctionDefinitionASTNode, 'rsVarDepType' | 'rsVars'> {
+function resolveNamedFuncDef(IRNode: MaybeFuncDefIRNode, content: any): Omit<FunctionDefinitionASTNode, 'rsVarDepType' | 'rsVars' | 'forbiddenNames'> {
     const params = IRNode.params;
     // Check params are all varIRs
     for (const param of params) {
@@ -149,7 +151,7 @@ function resolveNamedFuncDef(IRNode: MaybeFuncDefIRNode, content: any): Omit<Fun
         content,
     }
 }
-function resolveAnonymousFuncDef(lhs: any, rhs: any): Omit<FunctionDefinitionASTNode, 'rsVarDepType' | 'rsVars'> {
+function resolveAnonymousFuncDef(lhs: any, rhs: any): Omit<FunctionDefinitionASTNode, 'rsVarDepType' | 'rsVars' | 'forbiddenNames'> {
     if (!isTupleExp(lhs) && !isParenExp(lhs)) {
         throw new Error(
             `Invalid syntax: Anonymous function definition must start with an parameter list. `
@@ -184,7 +186,7 @@ ExprDSLCSTVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     const tildeOp = ctx['~']?.[0];
     const arrowOp = ctx['=>']?.[0];
     const inequalityOps = ctx.TopLevelComparisonOperator;
-    let funcDefAST: Omit<FunctionDefinitionASTNode, 'rsVarDepType' | 'rsVars'> | null = null;
+    let funcDefAST: Omit<FunctionDefinitionASTNode, 'rsVarDepType' | 'rsVars' | 'forbiddenNames'> | null = null;
 
     // Check and resolve maybeFuncDefIR / anonymous func def
     if (isMaybeFuncDefIR(lhs)) {
@@ -341,6 +343,7 @@ ExprDSLCSTVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
             ...funcDefAST,
             rsVarDepType,
             rsVars: rsVarRefs,
+            forbiddenNames: rsVarRefs,
         }
     }
 

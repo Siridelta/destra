@@ -67,12 +67,7 @@ LatexCompiler.prototype._varDef = function (content: any, context: LatexCompiler
 LatexCompiler.prototype._funcDef = function (content: any, astParams: CtxVarNullDefASTNode[], context: LatexCompilerVisitContext): string {
     const name = this.getRealname();
     if (!name) throw new Error("Internal error: Failed to get realname for function definition");
-    const paramsMap = this.compileContext.funcExplCtxVarRealnameMap.get(this.targetFormula as FuncExpl<any>) ?? new Map<number, string>();
-    const params: string[] = [];
-    for (let i = 0; i < paramsMap.size; i++) {
-        params.push(paramsMap.get(i) ?? "");
-    }
-    if (params.length !== astParams.length) throw new Error("Internal error: Failed to get realnames for function parameters");
+    const params = astParams.map(def => this.compileContext.internalCtxVarRealnameMap.get(def._astId));
     
     const childContext = { ...context, ctxScopeStack: [...context.ctxScopeStack, astParams] };
     return `${name}\\left(${params.join(",")}\\right)=${this.visit(content, childContext)}`;

@@ -1,5 +1,6 @@
 import { anyOf, exactly, createRegExp, digit, maybe } from "magic-regexp";
 import { ExprDSLCSTVisitor } from "../base-visitor";
+import { nextAstId } from "../..";
 
 declare module '../base-visitor' {
     interface ExprDSLCSTVisitor {
@@ -10,7 +11,7 @@ declare module '../base-visitor' {
         toBuiltinFuncAST(image: string): BuiltinFuncASTNode;
         toReservedVarAST(image: string): ReservedVarASTNode;
         toContextVarAST(image: string): ContextVarASTNode;
-        toUndefinedVarAST(image: string): UndefinedVarASTNode;
+        toUndefinedVarAST(image: string, _astId: string): UndefinedVarASTNode;
         toVarIR(image: string): VarIRNode;
     }
 }
@@ -60,6 +61,7 @@ export type ContextVarASTNode = {
 export type UndefinedVarASTNode = {
     type: "undefinedVar",
     name: string,
+    _astId: string,
 }
 
 // IR for not sure if it is reserved var or ctx var overriding reserved name
@@ -199,10 +201,11 @@ ExprDSLCSTVisitor.prototype.toContextVarAST = function (image: string): ContextV
     }
 }
 
-ExprDSLCSTVisitor.prototype.toUndefinedVarAST = function (image: string): UndefinedVarASTNode {
+ExprDSLCSTVisitor.prototype.toUndefinedVarAST = function (image: string, _astId: string): UndefinedVarASTNode {
     return {
         type: "undefinedVar",
         name: image,
+        _astId: _astId,
     }
 }
 

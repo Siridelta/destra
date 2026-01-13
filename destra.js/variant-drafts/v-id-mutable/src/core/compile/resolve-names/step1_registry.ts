@@ -25,7 +25,6 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
         // Step 3 Output
         ctxVarRealnameMap: new Map(),
         internalCtxVarRealnameMap: new Map(),
-        funcExplCtxVarRealnameMap: new Map(),
         undefinedVarRealnameMap: new Map(),
         topoSort: [],
     };
