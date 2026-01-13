@@ -1,5 +1,5 @@
 import { createRegExp } from "magic-regexp";
-import { LatexCompiler, LatexCompilerVisitContext } from ".";
+import { LatexCompiler, LatexCompilerVisitContext } from "./base";
 import { AbsExpASTNode, BuiltinFuncCallASTNode, DefinedFuncCallASTNode, ListExpASTNode, ListRangeASTNode, ParenExpASTNode, TupleExpASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
 import { PiecewiseBranchASTNode, PiecewiseExpASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/piecewise-exp";
 import { BuiltinFuncASTNode, ColorHexLiteralASTNode, ConstantASTNode, ContextVarASTNode, NumberASTNode, ReservedVarASTNode, SubstitutionASTNode, UndefinedVarASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
@@ -11,7 +11,7 @@ import { CtxVar, Dt, Expl, Formula } from "../../formula/base";
 import { CtxVarDefASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { getState } from "../../state";
 
-declare module '.' {
+declare module './base' {
     interface LatexCompiler {
 
         piecewiseExp(node: PiecewiseExpASTNode, context: LatexCompilerVisitContext): string;
@@ -79,7 +79,11 @@ LatexCompiler.prototype.absExp = function (node: AbsExpASTNode, context: LatexCo
 }
 
 LatexCompiler.prototype.number = function (node: NumberASTNode): string {
-    return `${node.base.integer}.${node.base.decimal}`;
+    return `${
+        node.base.integer ? node.base.integer : '0'
+    }${
+        node.base.decimal ? '.' + node.base.decimal : ''
+    }`;
 }
 LatexCompiler.prototype.constant = function (node: ConstantASTNode): string {
     return nameForLatex(node.value);
@@ -138,7 +142,7 @@ LatexCompiler.prototype.contextVar = function (node: ContextVarASTNode, context:
     if (!ctxVarDef) {
         throw new Error(`Internal error: Cannot find ctxVarDef for context var reference. ${node.name}`);
     }
-    const realname = this.compileContext.internalCtxVarRealnameMap.get(ctxVarDef);
+    const realname = this.compileContext.internalCtxVarRealnameMap.get(ctxVarDef._astId);
     if (!realname) {
         throw new Error(`Internal error: CtxVarDef has no realname. ${node.name}`);
     }

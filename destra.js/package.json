@@ -10,5 +10,10 @@
   },
   "devDependencies": {
     "vitest": "^4.0.16"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/node": "22.13.0"
+    }
   }
 }

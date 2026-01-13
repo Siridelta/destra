@@ -1,3 +1,4 @@
+import { nextAstId } from "../..";
 import { ExprDSLCSTVisitor } from "../base-visitor";
 import { analyzeRsVarDepType, arrayUnion, RsVarDepType, scanUdRsVarRefs } from "../helpers";
 import { isUpToMultDivLevelASTNode, UpToMultDivLevel } from "./multDiv-level";
@@ -29,6 +30,7 @@ export type CtxVarExprDefASTNode = {
     name: string,
     subtype: 'expr',
     expr: any,
+    _astId: string,
 }
 export type CtxVarRangeDefASTNode = {
     type: "ctxVarDef",
@@ -36,11 +38,13 @@ export type CtxVarRangeDefASTNode = {
     subtype: 'range',
     lower: any,
     upper: any,
+    _astId: string,
 }
 export type CtxVarNullDefASTNode = {
     type: "ctxVarDef",
     name: string,
     subtype: 'null',
+    _astId: string,
 }
 export type CtxVarDefASTNode =
     | CtxVarExprDefASTNode
@@ -205,6 +209,7 @@ ExprDSLCSTVisitor.prototype.fromForKeyword = function (ctx: any): CtxVarExprDefA
             name: ctxVarNames[i],
             subtype: 'expr',
             expr: contents[i],
+            _astId: nextAstId(),
         });
     }
     return ctxVarDefs;
@@ -224,6 +229,7 @@ ExprDSLCSTVisitor.prototype.fromWithKeyword = function (ctx: any): CtxVarExprDef
             name: ctxVarNames[i],
             subtype: 'expr',
             expr: contents[i],
+            _astId: nextAstId(),
         });
     }
     return ctxVarDefs;

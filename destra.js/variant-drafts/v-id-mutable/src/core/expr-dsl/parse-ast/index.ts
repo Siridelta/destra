@@ -10,6 +10,12 @@ import { preprocess } from "./preprocess";
 export { FormulaASTNode, CtxFactoryHeadASTNode, CtxFactoryExprDefHeadASTNode, CtxFactoryNullDefHeadASTNode, CtxFactoryRangeDefHeadASTNode };
 export * from "./sematics/helpers";
 
+let astIdCounter = 0;
+
+export function nextAstId(): string {
+    return `ast_${astIdCounter++}`;
+}
+
 /**
  * 构建可检查的源代码字符串
  * 将模板载荷转换为一个字符串，其中插值部分用 `$index$` 占位符替换

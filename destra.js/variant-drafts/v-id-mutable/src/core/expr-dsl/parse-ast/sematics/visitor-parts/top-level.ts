@@ -1,10 +1,11 @@
 import { ExprDSLCSTVisitor } from "../base-visitor";
-import { analyzeRsVarDepType, getCtxNodeCtxVars, isCtxClause, isParenExp, isTupleExp, isVarIR, RsVarDepType, scanUdRsVarRefs } from "../helpers";
+import { analyzeRsVarDepType, getCtxNodeCtxVars, getCtxNodeVarDefs, isCtxClause, isParenExp, isTupleExp, isVarIR, RsVarDepType, scanUdRsVarRefs } from "../helpers";
 import { reservedVars } from "../../../syntax-reference/reservedWords";
 import { MaybeFuncDefIRNode } from "./atomic-exps";
 import { CtxVarNullDefASTNode } from "./addSub-level";
 import { traverse } from "../traverse-ast";
 import { isUpToCommasLevelASTNode, UpToCommasLevel } from "./commas-level";
+import { nextAstId } from "../..";
 
 
 declare module '../base-visitor' {
@@ -87,13 +88,16 @@ export function resolveVarIRs(ast: any) {
             ctxNodeStack.push(node);
         }
         let newType = null;
+        let astId: string | null = null;
         if (isVarIR(node)) {
             let isCtxVar = false;
             for (let i = ctxNodeStack.length - 1; i >= 0; i--) {
-                const ctxVarNames = getCtxNodeCtxVars(ctxNodeStack[i]);
-                if (ctxVarNames.includes(node.name)) {
-                    isCtxVar = true;
-                    break;
+                for (const varDef of getCtxNodeVarDefs(ctxNodeStack[i])) {
+                    if (varDef.name === node.name) {
+                        isCtxVar = true;
+                        astId = varDef._astId;
+                        break;
+                    }
                 }
             }
             if (isCtxVar) {
@@ -106,6 +110,9 @@ export function resolveVarIRs(ast: any) {
         }
         if (newType) {
             node.type = newType;
+            if (astId) {
+                node._astId = astId;
+            }
         }
     }
     const exit = (node: any) => {
@@ -137,6 +144,7 @@ function resolveNamedFuncDef(IRNode: MaybeFuncDefIRNode, content: any): Omit<Fun
             type: "ctxVarDef",
             name: p.name,
             subtype: 'null',
+            _astId: nextAstId(),
         })),
         content,
     }
@@ -164,6 +172,7 @@ function resolveAnonymousFuncDef(lhs: any, rhs: any): Omit<FunctionDefinitionAST
             type: "ctxVarDef",
             name: p.name,
             subtype: 'null',
+            _astId: nextAstId(),
         })),
         content: rhs,
     }

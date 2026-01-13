@@ -43,6 +43,11 @@ export function setChildByPathImmutable(ast: any, path: ASTPath, child: any): an
     if (path.length === 0)
         throw new Error('Internal error: Path is empty in setChildByPath');
     if (path.length === 1) {
+        if (Array.isArray(ast)) {
+            if (typeof path[0] !== 'number')
+                throw new Error('Internal error: Path index is not a number in setChildByPathImmutable');
+            return [...ast.slice(0, path[0]), child, ...ast.slice(path[0] + 1)];
+        }
         return { ...ast, [path[0]]: child };
     } else {
         return { ...ast, [path[0]]: setChildByPathImmutable(ast[path[0]], path.slice(1), child) };

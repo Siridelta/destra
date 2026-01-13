@@ -1,4 +1,4 @@
-import { LatexCompiler, LatexCompilerVisitContext } from ".";
+import { LatexCompiler, LatexCompilerVisitContext } from "./base";
 import { ComparisonASTNode } from "../../expr-dsl/parse-ast/sematics/helpers";
 import { AdditionASTNode, ForClauseASTNode, SubtractionASTNode, WithClauseASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { DiffClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/context-type1";
@@ -6,7 +6,7 @@ import { CrossASTNode, DivisionASTNode, ImplicitMultASTNode, MultiplicationASTNo
 import { AttrAccessASTNode, ExtensionFuncCallASTNode, FactorialASTNode, ListFilteringASTNode, ListIndexingASTNode, ListSliceRangeASTNode, ListSlicingASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/postfix-level";
 import { l } from "./latex";
 
-declare module '.' {
+declare module './base' {
     interface LatexCompiler {
         addition(node: AdditionASTNode, context: LatexCompilerVisitContext): string;
         subtraction(node: SubtractionASTNode, context: LatexCompilerVisitContext): string;
@@ -53,7 +53,7 @@ LatexCompiler.prototype.subtraction = function (node: SubtractionASTNode, contex
 LatexCompiler.prototype.forClause = function (node: ForClauseASTNode, context: LatexCompilerVisitContext): string {
     let result = `${this.visit(node.content, context)}${l.opName('for')}`;
     result += node.ctxVarDefs.map(def => {
-        const realname = this.compileContext.internalCtxVarRealnameMap.get(def);
+        const realname = this.compileContext.internalCtxVarRealnameMap.get(def._astId);
         return `${realname}=${this.visit(def.expr, context)}`;
     }).join(',');
     return result;
@@ -63,7 +63,7 @@ LatexCompiler.prototype.withClause = function (node: WithClauseASTNode, context:
     const childContext = { ...context, ctxPath: [...context.ctxScopeStack, node.ctxVarDefs] };
     let result = `${this.visit(node.content, childContext)}${l.opName('with')}`;
     result += node.ctxVarDefs.map(def => {
-        const realname = this.compileContext.internalCtxVarRealnameMap.get(def);
+        const realname = this.compileContext.internalCtxVarRealnameMap.get(def._astId);
         // notice that we dont add a new ctx scope  when visiting ctx clause's definition part
         return `${realname}=${this.visit(def.expr, context)}`;
     }).join(',');
@@ -151,7 +151,7 @@ LatexCompiler.prototype.comparison = function (node: ComparisonASTNode, context:
 }
 
 LatexCompiler.prototype.sum = function (node: SumClauseASTNode, context: LatexCompilerVisitContext): string {
-    const realname = this.compileContext.internalCtxVarRealnameMap.get(node.ctxVarDef);
+    const realname = this.compileContext.internalCtxVarRealnameMap.get(node.ctxVarDef._astId);
     const lower = this.visit(node.ctxVarDef.lower, context);
     const upper = this.visit(node.ctxVarDef.upper, context);
     const childContext = { ...context, ctxScopeStack: [...context.ctxScopeStack, [node.ctxVarDef]] };
@@ -160,7 +160,7 @@ LatexCompiler.prototype.sum = function (node: SumClauseASTNode, context: LatexCo
 }
 
 LatexCompiler.prototype.prod = function (node: ProdClauseASTNode, context: LatexCompilerVisitContext): string {
-    const realname = this.compileContext.internalCtxVarRealnameMap.get(node.ctxVarDef);
+    const realname = this.compileContext.internalCtxVarRealnameMap.get(node.ctxVarDef._astId);
     const lower = this.visit(node.ctxVarDef.lower, context);
     const upper = this.visit(node.ctxVarDef.upper, context);
     const childContext = { ...context, ctxScopeStack: [...context.ctxScopeStack, [node.ctxVarDef]] };
@@ -169,7 +169,7 @@ LatexCompiler.prototype.prod = function (node: ProdClauseASTNode, context: Latex
 }
 
 LatexCompiler.prototype.int = function (node: IntClauseASTNode, context: LatexCompilerVisitContext): string {
-    const realname = this.compileContext.internalCtxVarRealnameMap.get(node.ctxVarDef);
+    const realname = this.compileContext.internalCtxVarRealnameMap.get(node.ctxVarDef._astId);
     const lower = this.visit(node.ctxVarDef.lower, context);
     const upper = this.visit(node.ctxVarDef.upper, context);
     const childContext = { ...context, ctxScopeStack: [...context.ctxScopeStack, [node.ctxVarDef]] };
@@ -178,7 +178,7 @@ LatexCompiler.prototype.int = function (node: IntClauseASTNode, context: LatexCo
 }
 
 LatexCompiler.prototype.diff = function (node: DiffClauseASTNode, context: LatexCompilerVisitContext): string {
-    const realname = this.compileContext.internalCtxVarRealnameMap.get(node.ctxVarDef);
+    const realname = this.compileContext.internalCtxVarRealnameMap.get(node.ctxVarDef._astId);
     const childContext = { ...context, ctxScopeStack: [...context.ctxScopeStack, [node.ctxVarDef]] };
     const content = this.visit(node.content, childContext);
     return `\\frac{d}{d${realname}}${content}`;

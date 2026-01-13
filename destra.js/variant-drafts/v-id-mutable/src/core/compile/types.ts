@@ -186,7 +186,7 @@ export interface CompileContext {
     // Step 3 Output
     // scopeTree: ScopeTree;                 // Internal use in Step 3
     ctxVarRealnameMap: Map<CtxVar, string>;  // CtxVar -> Realname
-    internalCtxVarRealnameMap: Map<CtxVarDefASTNode, string>; // Internal AST Node (CtxVarDefASTNode, e.g. from sum(n=...) ) -> Realname
+    internalCtxVarRealnameMap: Map<string, string>; // Internal AST Node ID -> Realname
     funcExplCtxVarRealnameMap: Map<FuncExpl<any>, Map<number, string>>; // FuncExpl -> Realnames of params, by param index
     undefinedVarRealnameMap: Map<UndefinedVarASTNode, string>; // UndefinedVar -> Realname
     topoSort: Formula[];                     // Topological sort of formulas

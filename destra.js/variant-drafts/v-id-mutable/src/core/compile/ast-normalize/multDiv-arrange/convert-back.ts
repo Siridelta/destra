@@ -1,11 +1,11 @@
-import { MultDivArranger } from ".";
+import { MultDivArranger } from "./base";
 import { ParenExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
 import { DivisionASTNode, ImplicitMultASTNode, MultiplicationASTNode, PercentOfASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { throughParenGet } from "../utils";
 import { DivisionIR, Leaf, MultChainIR, ParenIR, PercentIR } from "./collapse";
 
 
-declare module '.' {
+declare module './base' {
     interface MultDivArranger {
         convertBack<T extends MultChainIR['operands'][number]>(items: T):
             T extends MultChainIR ? ImplicitMultASTNode | MultiplicationASTNode | PercentOfASTNode :
@@ -92,3 +92,4 @@ function _convertBack(this: MultDivArranger, node: MultChainIR['operands'][numbe
     if (currNode === null) throw new Error('Failed to build node for multChainIR');
     return currNode;
 }
+MultDivArranger.prototype.convertBack = _convertBack;

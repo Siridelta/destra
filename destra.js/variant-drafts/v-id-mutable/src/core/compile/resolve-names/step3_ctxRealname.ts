@@ -330,7 +330,7 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                 }
                 realnames.set(v.entity.paramIndex, finalName);
             } else if (v.entityType === 'CtxVarDefASTNode') {
-                context.internalCtxVarRealnameMap.set(v.entity, finalName);
+                context.internalCtxVarRealnameMap.set(v.entity._astId, finalName);
             } else if (v.entityType === 'UndefinedVar') {
                 context.undefinedVarRealnameMap.set(v.entity, finalName);
             }

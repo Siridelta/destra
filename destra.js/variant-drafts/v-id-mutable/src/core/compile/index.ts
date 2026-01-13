@@ -1,4 +1,4 @@
-import { Folder, Graph, Ticker } from "./types";
+import { Folder, Graph, type Ticker } from "./types";
 
 import './compile';
 

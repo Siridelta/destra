@@ -1,5 +1,5 @@
-import { LatexCompiler, LatexCompilerVisitContext } from ".";
-import { CompileResult } from "..";
+import { LatexCompiler, LatexCompilerVisitContext } from "./base";
+import { CompileResult } from "../compile";
 import { CtxVarNullDefASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { ActionASTNode, CommasASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/commas-level";
 import { FormulaASTNode, SliderConfigASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/formula";
@@ -7,7 +7,7 @@ import { ExplicitEquationASTNode, ExpressionASTNode, FunctionDefinitionASTNode, 
 import { Expl, FuncExpl } from "../../formula/base";
 import { l } from "./latex";
 
-declare module '.' {
+declare module './base' {
     interface LatexCompiler {
         formula(node: FormulaASTNode, context: LatexCompilerVisitContext): CompileResult;
         

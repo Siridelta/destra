@@ -1,11 +1,11 @@
-import { ASTParenAdder } from ".";
+import { ASTParenAdder } from "./base";
 import { isUpToAddSubLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { ContextType1ASTNode, DiffClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/context-type1";
 import { isUpToMultDivLevelASTNode, isUpToPrefixLevelASTNode, PowerASTNode, PrefixLevelASTNode, RootofASTNode, UnaryMinusASTNode, UnaryPlusASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { AttrAccessASTNode, ExtensionFuncCallASTNode, FactorialASTNode, isUpToPostfixLevelASTNode, ListFilteringASTNode, ListIndexingASTNode, ListSlicingASTNode, PostfixLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/postfix-level";
 import { wrapWithParentheses } from "../utils";
 
-declare module '.' {
+declare module './base' {
     interface ASTParenAdder {
 
         unaryMinus(node: UnaryMinusASTNode): UnaryMinusASTNode;

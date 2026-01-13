@@ -1,8 +1,8 @@
-import { ASTParenAdder } from ".";
+import { ASTParenAdder } from "./base";
 import { ListExpASTNode, TupleExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
 import { PiecewiseExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/piecewise-exp";
 
-declare module '.' {
+declare module './base' {
     interface ASTParenAdder {
 
         // Avoid ambiguity of comma usage with for/with clauses

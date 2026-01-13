@@ -25,7 +25,7 @@ export class ASTNormalizer {
     public normalizeAST(): FormulaASTNode {
         const ast = getState(this.targetFormula).ast!.root;
         const cloned = new ASTCloner().visit(ast);
-        const expanded = new ASTExpander().visit(cloned);
+        const expanded = new ASTExpander(this.targetFormula).visit(cloned);
         const rearranged = new MultDivArranger(this.compileContext, this.targetFormula).visit(expanded);
         const parened = new ASTParenAdder(this.targetFormula).visit(rearranged);
         return parened;

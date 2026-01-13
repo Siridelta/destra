@@ -1,0 +1,22 @@
+{
+  "name": "@ad-destra/vite-plugin-destra",
+  "version": "0.0.1",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "vite": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^6.4.1"
+  },
+  "scripts": {
+    "build": "tsc"
+  }
+}

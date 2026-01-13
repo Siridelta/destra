@@ -27,6 +27,7 @@ export class ASTVisitorWithDefault<R, C> extends ASTVisitor<R, C> {
                 setChildByPath(node, path, this.visit(child, context));
             else
                 node = setChildByPathImmutable(node, path, this.visit(child, context));
+                // setChildByPath(node, path, this.visit(child, context));
         }
         return node;
     }

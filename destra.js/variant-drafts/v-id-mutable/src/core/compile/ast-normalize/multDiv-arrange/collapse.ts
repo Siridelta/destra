@@ -1,9 +1,9 @@
-import { MultDivArranger, MultDivChunkNode } from ".";
+import { MultDivArranger, MultDivChunkNode } from "./base";
 import { DivisionASTNode, ImplicitMultASTNode, MultiplicationASTNode, OmittedCallASTNode, PercentOfASTNode, UpToPrefixLevel } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { throughParenGet } from "../utils";
 
 
-declare module '.' {
+declare module './base' {
     interface MultDivArranger {
         toIR<T extends MultDivChunkNode | Leaf>(node: T): 
             T extends MultiplicationASTNode ? MultChainIR :

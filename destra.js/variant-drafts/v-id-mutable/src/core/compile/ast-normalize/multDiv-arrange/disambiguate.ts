@@ -1,11 +1,11 @@
-import { MultDivArranger } from ".";
+import { MultDivArranger } from "./base";
 import { DivisionASTNode, isPrefixLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { isPostfixLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/postfix-level";
 import { possibleAmbiguousImages, toCharflowImage } from "../../../expr-dsl/syntax-reference/mathquill-charflow";
 import { Leaf, PercentIR } from "./collapse";
 
 
-declare module '.' {
+declare module './base' {
     interface MultDivArranger {
         charflowCheckAndBreak(items: I[]): I[][];
         contactCheckAndBreak(items: I[]): I[][];
@@ -54,14 +54,16 @@ function isAmbiguousContact(left: I, right: I): boolean {
 
 MultDivArranger.prototype.contactCheckAndBreak = function (items: I[]): I[][] {
     const fragments: I[][] = [];
+    let lastIndex = 0;
     for (let i = 0; i < items.length - 1; i++) {
         const left = items[i];
         const right = items[i + 1];
         if (isAmbiguousContact(left, right)) {
-            const newFragment = items.slice(0, i + 1);
-            fragments.push(...this.charflowCheckAndBreak(newFragment));
+            fragments.push(...this.charflowCheckAndBreak(items.slice(lastIndex, i + 1)));
+            lastIndex = i + 1;
         }
     }
+    fragments.push(...this.charflowCheckAndBreak(items.slice(lastIndex)));
     return fragments;
 }
 

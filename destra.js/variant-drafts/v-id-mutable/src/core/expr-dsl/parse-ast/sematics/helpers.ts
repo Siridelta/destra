@@ -45,12 +45,17 @@ export function isCtxClause(node: any): node is CtxClauseASTNode {
 
 // func definition top node is also included
 export function getCtxNodeCtxVars(ctxNode: CtxClauseASTNode | FunctionDefinitionASTNode): string[] {
-    const ctxVars: string[] = [];
+    return getCtxNodeVarDefs(ctxNode).map(d => d.name);
+}
+
+// func definition top node is also included
+export function getCtxNodeVarDefs(ctxNode: CtxClauseASTNode | FunctionDefinitionASTNode): CtxVarDefASTNode[] {
+    const varDefs: CtxVarDefASTNode[] = [];
     if (
         ctxNode?.type === 'forClause'
         || ctxNode?.type === 'withClause'
     ) {
-        ctxVars.push(...ctxNode.ctxVarDefs.map(d => d.name));
+        varDefs.push(...ctxNode.ctxVarDefs);
     }
     if (
         ctxNode?.type === 'sumClause'
@@ -58,12 +63,12 @@ export function getCtxNodeCtxVars(ctxNode: CtxClauseASTNode | FunctionDefinition
         || ctxNode?.type === 'intClause'
         || ctxNode?.type === 'diffClause'
     ) {
-        ctxVars.push(ctxNode.ctxVarDef.name);
+        varDefs.push(ctxNode.ctxVarDef);
     }
     if (ctxNode?.type === 'functionDefinition') {
-        ctxVars.push(...ctxNode.params.map(p => p.name));
+        varDefs.push(...ctxNode.params);
     }
-    return ctxVars;
+    return varDefs;
 }
 
 

@@ -1,4 +1,4 @@
-import { ASTParenAdder } from ".";
+import { ASTParenAdder } from "./base";
 import { AdditionASTNode, AddSubLevelASTNode, ContextType2LevelASTNode, ForClauseASTNode, isAddSubLevelASTNode, isContextType2LevelASTNode, isUpToAddSubLevelASTNode, isUpToContextType2LevelASTNode, SubtractionASTNode, WithClauseASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { CommasASTNode, isActionASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/commas-level";
 import { isUpToMultDivLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
@@ -7,7 +7,7 @@ import { CrossASTNode, DivisionASTNode, MultDivLevelASTNode, MultiplicationASTNo
 import { CtxClauseASTNode, isCtxClause } from "../../../expr-dsl/parse-ast";
 import { CtxExp, Formula } from "../../../formula/base";
 
-declare module '.' {
+declare module './base' {
     interface ASTParenAdder {
 
         disambiguateContextAndCommas(node: any, passive: boolean, ctxNodePredicate: (ctxNode: CtxClauseASTNode) => boolean, ctxExpPredicate: (ctxExp: CtxExp) => boolean): any;

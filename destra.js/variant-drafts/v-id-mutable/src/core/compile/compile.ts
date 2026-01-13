@@ -17,8 +17,15 @@ export { Folder, Graph, type FolderInput, type GraphInput, type GraphSettings, t
 
 declare module './types' {
     interface Graph {
-        export(): any;
+        export(config?: exportConfig): any;
     }
+}
+
+export interface exportConfig {
+    version?: number;
+}
+const defaultExportConfig: exportConfig = {
+    version: 10,
 }
 
 declare module '../state' {
@@ -130,7 +137,8 @@ function actionToLatex(value: ActionStyleValue | TickerAction | undefined, ctx: 
     return compileFormula(value, ctx).latex;
 }
 
-Graph.prototype.export = function () {
+Graph.prototype.export = function (config?: exportConfig) {
+    config = { ...defaultExportConfig, ...config };
     const ctx = resolveGraph(this);
     ctx.topoSort.forEach(f => {
         if (f instanceof CtxVar) return;
@@ -261,6 +269,12 @@ Graph.prototype.export = function () {
     }
 
     // state.graph
+    const viewportField = this.settings?.viewport ? {
+        xmin: Number(numericToLatex(this.settings?.viewport?.xmin, ctx)),
+        xmax: Number(numericToLatex(this.settings?.viewport?.xmax, ctx)),
+        ymin: Number(numericToLatex(this.settings?.viewport?.ymin, ctx)),
+        ymax: Number(numericToLatex(this.settings?.viewport?.ymax, ctx)),
+    } : undefined;
     const graphField = {
         complex: this.settings?.complex,
         polarMode: this.settings?.polarMode,
@@ -269,12 +283,8 @@ Graph.prototype.export = function () {
         showYAxis: this.settings?.showYAxis,
         squareAxes: this.settings?.squareAxes,
         userLockedViewport: this.settings?.userLockedViewport,
-        __v12ViewportLatexStash: this.settings?.viewport? {
-            xmin: numericToLatex(this.settings?.viewport?.xmin, ctx),
-            xmax: numericToLatex(this.settings?.viewport?.xmax, ctx),
-            ymin: numericToLatex(this.settings?.viewport?.ymin, ctx),
-            ymax: numericToLatex(this.settings?.viewport?.ymax, ctx),
-        } : undefined,
+        // __v12ViewportLatexStash: viewportField,
+        viewport: viewportField,
         xAxisArrowMode: this.settings?.xAxisArrowMode,
         yAxisArrowMode: this.settings?.yAxisArrowMode,
         xAxisLabel: this.settings?.xAxisLabel,
@@ -291,6 +301,7 @@ Graph.prototype.export = function () {
     }
 
     return {
+        version: config.version,
         graph: graphField,
         expressions: {
             list: desmosExpressionList,

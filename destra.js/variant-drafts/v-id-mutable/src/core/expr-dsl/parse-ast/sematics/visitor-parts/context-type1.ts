@@ -4,6 +4,7 @@ import { ExprDSLCSTVisitor } from "../base-visitor";
 import { flattenMultLevel, unflattenMultLevel } from "./multDiv-level";
 import { CtxVarNullDefASTNode, CtxVarRangeDefASTNode } from "./addSub-level";
 import { analyzeRsVarDepType, arrayUnion, RsVarDepType, scanUdRsVarRefs } from "../helpers";
+import { nextAstId } from "../..";
 
 
 declare module '../base-visitor' {
@@ -104,6 +105,7 @@ ExprDSLCSTVisitor.prototype.sum = function (ctx: any): SumClauseASTNode {
             subtype: 'range',
             lower: lower,
             upper: upper,
+            _astId: nextAstId(),
         },
         content: content,
         rsVarDepType: analyzeRsVarDepType(rsVars),
@@ -132,6 +134,7 @@ ExprDSLCSTVisitor.prototype.prod = function (ctx: any): ProdClauseASTNode {
             subtype: 'range',
             lower: lower,
             upper: upper,
+            _astId: nextAstId(),
         },
         content: content,
         rsVarDepType: analyzeRsVarDepType(rsVars),
@@ -179,6 +182,7 @@ ExprDSLCSTVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
                 subtype: 'range' as const,
                 lower: lower,
                 upper: upper,
+                _astId: nextAstId(),
             },
             content: content,
             rsVarDepType: analyzeRsVarDepType(rsVars),
@@ -236,6 +240,7 @@ ExprDSLCSTVisitor.prototype.diff = function (ctx: any): DiffClauseASTNode {
             type: "ctxVarDef",
             name: ctxVarName,
             subtype: 'null',
+            _astId: nextAstId(),
         },
         content: content,
         rsVarDepType: analyzeRsVarDepType(rsVarsFromBody),

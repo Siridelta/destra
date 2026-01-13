@@ -20,6 +20,7 @@ export class ASTCloner extends ASTVisitor<any, void> {
             }
             return result;
         }
+        return node;
     }
 
 }

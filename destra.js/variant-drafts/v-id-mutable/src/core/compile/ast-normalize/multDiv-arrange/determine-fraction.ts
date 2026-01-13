@@ -1,11 +1,8 @@
-import { e } from "magic-regexp/dist/shared/magic-regexp.Cp7m-ws-";
-import { MultDivArranger, MultDivChunkNode } from ".";
-import { OmittedCallASTNode, UpToPrefixLevel } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
-import { throughParenGet } from "../utils";
+import { MultDivArranger } from "./base";
 import { DivisionIR, Leaf, MultChainIR, ParenIR, PercentIR } from "./collapse";
 
 
-declare module '.' {
+declare module './base' {
     interface MultDivArranger {
         determineFraction<T extends MultChainIR | DivisionIR>(node: T): T | MultChainIR;
         collapse_MultOnly<T extends MultChainIR | DivisionIR | Leaf | ParenIR | PercentIR>(node: T): T;

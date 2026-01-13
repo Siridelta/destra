@@ -60,13 +60,13 @@ ExprDSLCSTVisitor.prototype.sliderDef = function (ctx: any) {
     const terms = this.batchVisit(ctx.term);
 
     let i = 0;
-    let from = null;
-    let to = null;
+    let min = null;
+    let max = null;
     let step = null;
 
     // check 'from' term
     if (terms[i].type) {
-        from = terms[i];
+        min = terms[i];
         i++;
     }
     i++;
@@ -76,7 +76,7 @@ ExprDSLCSTVisitor.prototype.sliderDef = function (ctx: any) {
         if (i + 1 < terms.length) {  // lookahead, if there's anything following, it's 'step' term
             step = terms[i];
         } else {                     // else it's 'to' term
-            to = terms[i];
+            max = terms[i];
         }
         i++;
     }
@@ -84,13 +84,13 @@ ExprDSLCSTVisitor.prototype.sliderDef = function (ctx: any) {
 
     // check remaining 'to' term
     if (i < terms.length && terms[i].type) {
-        to = terms[i];
+        max = terms[i];
     }
 
     return {
         type: "sliderConfig",
-        from,
-        to,
+        min,
+        max,
         step,
     }
 }
