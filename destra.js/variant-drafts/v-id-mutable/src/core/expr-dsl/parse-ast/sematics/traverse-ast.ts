@@ -27,7 +27,7 @@ export function getChildByPath(ast: any, path: ASTPath): any {
     return node;
 }
 
-export function setChildByPath(ast: any, path: ASTPath, child: any): any {
+export function setChildByPath(ast: any, path: ASTPath, child: any): void {
     if (path.length === 0)
         throw new Error('Internal error: Path is empty in setChildByPath');
     let node = ast;

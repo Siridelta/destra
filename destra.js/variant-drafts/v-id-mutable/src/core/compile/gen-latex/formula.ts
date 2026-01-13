@@ -1,4 +1,4 @@
-import { LatexCompiler } from ".";
+import { LatexCompiler, LatexCompilerVisitContext } from ".";
 import { CompileResult } from "..";
 import { CtxVarNullDefASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { ActionASTNode, CommasASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/commas-level";
@@ -9,95 +9,97 @@ import { l } from "./latex";
 
 declare module '.' {
     interface LatexCompiler {
-        formula(node: FormulaASTNode): CompileResult;
+        formula(node: FormulaASTNode, context: LatexCompilerVisitContext): CompileResult;
         
-        sliderConfig(node: SliderConfigASTNode): { max?: string, min?: string, step?: string };
+        sliderConfig(node: SliderConfigASTNode, context: LatexCompilerVisitContext): { max?: string, min?: string, step?: string };
 
-        variableDefinition(node: VariableDefinitionASTNode): string;
-        functionDefinition(node: FunctionDefinitionASTNode): string;
-        expression(node: ExpressionASTNode): string;
-        explicitEquation(node: ExplicitEquationASTNode): string;
-        implicitEquation(node: ImplicitEquationASTNode): string;
-        regression(node: RegressionASTNode): string;
-        _varDef(content: any): string;
-        _funcDef(content: any, astParams: CtxVarNullDefASTNode[]): string;
+        variableDefinition(node: VariableDefinitionASTNode, context: LatexCompilerVisitContext): string;
+        functionDefinition(node: FunctionDefinitionASTNode, context: LatexCompilerVisitContext): string;
+        expression(node: ExpressionASTNode, context: LatexCompilerVisitContext): string;
+        explicitEquation(node: ExplicitEquationASTNode, context: LatexCompilerVisitContext): string;
+        implicitEquation(node: ImplicitEquationASTNode, context: LatexCompilerVisitContext): string;
+        regression(node: RegressionASTNode, context: LatexCompilerVisitContext): string;
+        _varDef(content: any, context: LatexCompilerVisitContext): string;
+        _funcDef(content: any, astParams: CtxVarNullDefASTNode[], context: LatexCompilerVisitContext): string;
 
-        commas(node: CommasASTNode): string;
-        action(node: ActionASTNode): string;
+        commas(node: CommasASTNode, context: LatexCompilerVisitContext): string;
+        action(node: ActionASTNode, context: LatexCompilerVisitContext): string;
     }
 }
 
-LatexCompiler.prototype.formula = function (node: FormulaASTNode): CompileResult {
+LatexCompiler.prototype.formula = function (node: FormulaASTNode, context: LatexCompilerVisitContext): CompileResult {
     return {
-        latex: this.visit(node.content),
-        slider: node.slider ? this.sliderConfig(node.slider) : null,
+        latex: this.visit(node.content, context),
+        slider: node.slider ? this.sliderConfig(node.slider, context) : null,
     }
 }
 
-LatexCompiler.prototype.sliderConfig = function (node: SliderConfigASTNode): { max?: string, min?: string, step?: string } {
+LatexCompiler.prototype.sliderConfig = function (node: SliderConfigASTNode, context: LatexCompilerVisitContext): { max?: string, min?: string, step?: string } {
     const r: { max?: string, min?: string, step?: string } = {};
-    if (node.max) r.max = this.visit(node.max);
-    if (node.min) r.min = this.visit(node.min);
-    if (node.step) r.step = this.visit(node.step);
+    if (node.max) r.max = this.visit(node.max, context);
+    if (node.min) r.min = this.visit(node.min, context);
+    if (node.step) r.step = this.visit(node.step, context);
     return r;
 }
 
-LatexCompiler.prototype.variableDefinition = function (node: VariableDefinitionASTNode): string {
-    return this._varDef(node.content);
+LatexCompiler.prototype.variableDefinition = function (node: VariableDefinitionASTNode, context: LatexCompilerVisitContext): string {
+    return this._varDef(node.content, context);
 }
 
-LatexCompiler.prototype.functionDefinition = function (node: FunctionDefinitionASTNode): string {
-    return this._funcDef(node.content, node.params);
+LatexCompiler.prototype.functionDefinition = function (node: FunctionDefinitionASTNode, context: LatexCompilerVisitContext): string {
+    return this._funcDef(node.content, node.params, context);
 }
 
-LatexCompiler.prototype.expression = function (node: ExpressionASTNode): string {
+LatexCompiler.prototype.expression = function (node: ExpressionASTNode, context: LatexCompilerVisitContext): string {
     if (this.targetFormula instanceof Expl) {
-        return this._varDef(node.content);
+        return this._varDef(node.content, context);
     } else {
-        return this.visit(node.content);
+        return this.visit(node.content, context);
     }
 }
 
-LatexCompiler.prototype._varDef = function (content: any): string {
+LatexCompiler.prototype._varDef = function (content: any, context: LatexCompilerVisitContext): string {
     const name = this.getRealname();
     if (!name) throw new Error("Internal error: Failed to get realname for variable definition");
-    return `${name}=${this.visit(content)}`;
+    return `${name}=${this.visit(content, context)}`;
 }
 
-LatexCompiler.prototype._funcDef = function (content: any, astParams: CtxVarNullDefASTNode[]): string {
+LatexCompiler.prototype._funcDef = function (content: any, astParams: CtxVarNullDefASTNode[], context: LatexCompilerVisitContext): string {
     const name = this.getRealname();
     if (!name) throw new Error("Internal error: Failed to get realname for function definition");
-    const _params = this.compileContext.funcExplCtxVarRealnameMap.get(this.targetFormula as FuncExpl<any>) ?? new Map<number, string>();
+    const paramsMap = this.compileContext.funcExplCtxVarRealnameMap.get(this.targetFormula as FuncExpl<any>) ?? new Map<number, string>();
     const params: string[] = [];
-    for (let i = 0; i < _params.size; i++) {
-        params.push(_params.get(i) ?? "");
+    for (let i = 0; i < paramsMap.size; i++) {
+        params.push(paramsMap.get(i) ?? "");
     }
     if (params.length !== astParams.length) throw new Error("Internal error: Failed to get realnames for function parameters");
-    return `${name}\\left(${params.join(",")}\\right)=${this.visit(content)}`;
+    
+    const childContext = { ...context, ctxScopeStack: [...context.ctxScopeStack, astParams] };
+    return `${name}\\left(${params.join(",")}\\right)=${this.visit(content, childContext)}`;
 }
 
-LatexCompiler.prototype.explicitEquation = function (node: ExplicitEquationASTNode): string {
+LatexCompiler.prototype.explicitEquation = function (node: ExplicitEquationASTNode, context: LatexCompilerVisitContext): string {
     const op = node.op as keyof typeof l;
-    return `${this.visit(node.lhs)}${l[op]}${this.visit(node.rhs)}`;
+    return `${this.visit(node.lhs, context)}${l[op]}${this.visit(node.rhs, context)}`;
 }
 
-LatexCompiler.prototype.implicitEquation = function (node: ImplicitEquationASTNode): string {
+LatexCompiler.prototype.implicitEquation = function (node: ImplicitEquationASTNode, context: LatexCompilerVisitContext): string {
     let result = '';
     for (let i = 0; i < node.operands.length; i++) {
-        result += this.visit(node.operands[i]);
+        result += this.visit(node.operands[i], context);
         if (i < node.ops.length) result += l[node.ops[i] as keyof typeof l];
     }
     return result;
 }
 
-LatexCompiler.prototype.regression = function (node: RegressionASTNode): string {
-    return `${this.visit(node.lhs)}${l[node.op as keyof typeof l]}${this.visit(node.rhs)}`;
+LatexCompiler.prototype.regression = function (node: RegressionASTNode, context: LatexCompilerVisitContext): string {
+    return `${this.visit(node.lhs, context)}${l[node.op as keyof typeof l]}${this.visit(node.rhs, context)}`;
 }
 
-LatexCompiler.prototype.commas = function (node: CommasASTNode): string {
-    return node.items.map(item => this.visit(item)).join(",");
+LatexCompiler.prototype.commas = function (node: CommasASTNode, context: LatexCompilerVisitContext): string {
+    return node.items.map(item => this.visit(item, context)).join(",");
 }
 
-LatexCompiler.prototype.action = function (node: ActionASTNode): string {
-    return `${this.visit(node.target)}${l['->']}${this.visit(node.value)}`;
+LatexCompiler.prototype.action = function (node: ActionASTNode, context: LatexCompilerVisitContext): string {
+    return `${this.visit(node.target, context)}${l['->']}${this.visit(node.value, context)}`;
 }

@@ -38,7 +38,7 @@ ASTParenAdder.prototype.unaryPlus = function (node: UnaryPlusASTNode): UnaryPlus
 ASTParenAdder.prototype.prefixLevel = function <T extends PrefixLevelASTNode>(node: T): T {
     node = { ...node };
     node.operand = this.visit(node.operand);
-    if (!isUpToPrefixLevelASTNode(node.operand)) {
+    if (!this.checkLevelWithSubst(node.operand, isUpToPrefixLevelASTNode)) {
         node.operand = wrapWithParentheses(node.operand);
     }
     return node;
@@ -56,10 +56,10 @@ ASTParenAdder.prototype.power = function (node: PowerASTNode): PowerASTNode {
     node = { ...node };
     node.base = this.visit(node.base);
     node.exponent = this.visit(node.exponent);
-    if (!isUpToPostfixLevelASTNode(node.base)) {
+    if (!this.checkLevelWithSubst(node.base, isUpToPostfixLevelASTNode)) {
         node.base = wrapWithParentheses(node.base);
     }
-    if (!isUpToAddSubLevelASTNode(node.exponent)) {
+    if (!this.checkLevelWithSubst(node.exponent, isUpToAddSubLevelASTNode)) {
         node.exponent = wrapWithParentheses(node.exponent);
     }
     return node;
@@ -75,7 +75,7 @@ ASTParenAdder.prototype.postfixLevel = function <T extends PostfixLevelASTNode>(
     node = { ...node };
     let child = node.type === 'extensionFuncCall' ? node.receiver : node.operand;
     child = this.visit(child);
-    if (!isUpToPostfixLevelASTNode(child)) {
+    if (!this.checkLevelWithSubst(child, isUpToPostfixLevelASTNode)) {
         child = wrapWithParentheses(child);
     }
     if (node.type === 'extensionFuncCall') {
@@ -93,7 +93,7 @@ ASTParenAdder.prototype.diffClause = function (node: DiffClauseASTNode): DiffCla
 ASTParenAdder.prototype.contextType1 = function <T extends ContextType1ASTNode>(node: T): T {
     node = { ...node };
     node.content = this.visit(node.content);
-    if (!isUpToMultDivLevelASTNode(node.content)) {
+    if (!this.checkLevelWithSubst(node.content, isUpToMultDivLevelASTNode)) {
         node.content = wrapWithParentheses(node.content);
     }
     return node;

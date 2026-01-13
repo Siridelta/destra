@@ -1,12 +1,9 @@
 
-import { CtxFactoryHeadASTNode } from "../expr-dsl/parse-ast";
+import { CtxClauseASTNode } from "../expr-dsl/parse-ast";
 import {
-    CtxVarDefASTNode,
-    ForClauseASTNode, WithClauseASTNode
+    CtxVarDefASTNode
 } from "../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
-import { DiffClauseASTNode, IntClauseASTNode, ProdClauseASTNode, SumClauseASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/context-type1";
-import { FormulaASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/formula";
-import { TopLevelASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/top-level";
+import { UndefinedVarASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
 import { CtxExp, CtxVar, Expl, Formula, FuncExpl } from "../formula/base";
 import { ActionStyleValue, NumericStyleValue } from "../formula/style";
 
@@ -86,15 +83,7 @@ export class Graph {
 // Compilation Context
 // ============================================================================
 
-export type CtxClauseASTNode = 
-    | SumClauseASTNode 
-    | ProdClauseASTNode 
-    | IntClauseASTNode 
-    | DiffClauseASTNode 
-    | ForClauseASTNode 
-    | WithClauseASTNode;
-
-export type RootASTNode = FormulaASTNode | TopLevelASTNode | CtxFactoryHeadASTNode | CtxClauseASTNode; // Simplified
+// export type RootASTNode = FormulaASTNode | TopLevelASTNode | CtxFactoryHeadASTNode | CtxClauseASTNode; // Simplified
 
 export interface BaseScopeNode {
     id: string;
@@ -129,7 +118,12 @@ export interface InternalClauseScopeNode extends BaseScopeNode {
     host: Formula;
 }
 
-export type ScopeNode = RootScopeNode | CtxExpScopeNode | FuncExplScopeNode | InternalClauseScopeNode;
+export interface UdVarScopeNode extends BaseScopeNode {
+    type: "UndefinedVar";
+    context: UndefinedVarASTNode;
+}
+
+export type ScopeNode = RootScopeNode | CtxExpScopeNode | FuncExplScopeNode | InternalClauseScopeNode | UdVarScopeNode;
 
 
 export interface CompileContext {
@@ -150,6 +144,7 @@ export interface CompileContext {
     ctxVarRealnameMap: Map<CtxVar, string>;  // CtxVar -> Realname
     internalCtxVarRealnameMap: Map<CtxVarDefASTNode, string>; // Internal AST Node (CtxVarDefASTNode, e.g. from sum(n=...) ) -> Realname
     funcExplCtxVarRealnameMap: Map<FuncExpl<any>, Map<number, string>>; // FuncExpl -> Realnames of params, by param index
+    undefinedVarRealnameMap: Map<UndefinedVarASTNode, string>; // UndefinedVar -> Realname
     topoSort: Formula[];                     // Topological sort of formulas
 }
 

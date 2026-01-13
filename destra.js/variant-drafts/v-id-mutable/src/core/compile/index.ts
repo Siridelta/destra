@@ -42,38 +42,37 @@ export interface CompileResult {
 export const resolveGraph = (graph: Graph) => {
     // Step 1: ID Registry & Collision Check
     const ctx = registryAndCollisionCheck(graph);
-    
+
     // Step 2: Global Realname Resolution
     globalRealnameResolution(ctx);
-    
+
     // Step 3: Context Variable Realname Resolution
     ctxRealnameResolution(ctx);
-    
+
     return ctx;
 };
 
 Graph.prototype.export = function () {
     const ctx = resolveGraph(this);
+    const compileResults: Map<Formula, CompileResult> = new Map();
     ctx.topoSort.forEach(f => {
-        if (f instanceof Formula) {
-            compileFormula(f, ctx);
-        }
+        compileResults.set(f, compileFormula(f, ctx));
     });
 };
 
-function compileFormula(f: Formula, ctx: CompileContext) {
-    
+function compileFormula(f: Formula, ctx: CompileContext): CompileResult {
+
     getState(f).compile ??= {};
 
-    const normalizedAST = normalizeAST(f, ctx);
+    const compileResult = new LatexCompiler(
+        ctx, f,
+        (f_dep) => compileFormula(f_dep, ctx),
+        (f_ast) => normalizeAST(f_ast, ctx),
+    ).compile();
 
-    const { latex, slider } = new LatexCompiler(ctx, f, (f_dep) => {
-        return compileFormula(f_dep, ctx);
-    }).visit(normalizedAST);
+    getState(f).compile!.latex = compileResult.latex;
 
-    getState(f).compile!.latex = latex;
-    
-    return latex;
+    return compileResult;
 }
 
 function normalizeAST(f: Formula, ctx: CompileContext, force: boolean = false) {
@@ -86,9 +85,9 @@ function normalizeAST(f: Formula, ctx: CompileContext, force: boolean = false) {
 
     const ast = getState(f).ast!.root;
     const cloned = new ASTCloner().visit(ast);
-    const expanded = new ASTExpander().visit(cloned);
+    const expanded = new ASTExpander(f).visit(cloned);
     const rearranged = new MultDivArranger(ctx, f).visit(expanded);
-    const parened = new ASTParenAdder().visit(rearranged);
+    const parened = new ASTParenAdder(f).visit(rearranged);
     getState(f).compile!.normalizedAST = parened;
 
     return parened;

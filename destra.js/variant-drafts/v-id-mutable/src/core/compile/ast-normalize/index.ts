@@ -27,7 +27,7 @@ export class ASTNormalizer {
         const cloned = new ASTCloner().visit(ast);
         const expanded = new ASTExpander().visit(cloned);
         const rearranged = new MultDivArranger(this.compileContext, this.targetFormula).visit(expanded);
-        const parened = new ASTParenAdder().visit(rearranged);
+        const parened = new ASTParenAdder(this.targetFormula).visit(rearranged);
         return parened;
     }
 }

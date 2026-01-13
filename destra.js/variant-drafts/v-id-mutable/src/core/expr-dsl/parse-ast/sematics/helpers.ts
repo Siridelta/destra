@@ -29,18 +29,10 @@ export type CtxClauseASTNode =
     | SumClauseASTNode
     | ProdClauseASTNode
     | IntClauseASTNode
-    | DiffClauseASTNode
-    | FunctionDefinitionASTNode;
+    | DiffClauseASTNode;
 
 // func definition top node is also included
-export function isCtxClause(node: any): node is
-    | ForClauseASTNode
-    | WithClauseASTNode
-    | SumClauseASTNode
-    | ProdClauseASTNode
-    | IntClauseASTNode
-    | DiffClauseASTNode
-    | FunctionDefinitionASTNode {
+export function isCtxClause(node: any): node is CtxClauseASTNode {
     return (
         node?.type === "forClause"
         || node?.type === "withClause"
@@ -48,12 +40,11 @@ export function isCtxClause(node: any): node is
         || node?.type === "prodClause"
         || node?.type === "intClause"
         || node?.type === "diffClause"
-        || node?.type === "functionDefinition"
     );
 }
 
 // func definition top node is also included
-export function getCtxNodeCtxVars(ctxNode: CtxClauseASTNode): string[] {
+export function getCtxNodeCtxVars(ctxNode: CtxClauseASTNode | FunctionDefinitionASTNode): string[] {
     const ctxVars: string[] = [];
     if (
         ctxNode?.type === 'forClause'

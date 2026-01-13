@@ -1,13 +1,9 @@
 import { ASTParenAdder } from ".";
-import { ContextType2LevelASTNode, isContextType2LevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
 import { ListExpASTNode, TupleExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
 import { PiecewiseExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/piecewise-exp";
-import { NumberASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
-import { wrapWithParentheses } from "../utils";
 
 declare module '.' {
     interface ASTParenAdder {
-        number(node: NumberASTNode): NumberAST_ExpandResult;
 
         // Avoid ambiguity of comma usage with for/with clauses
         tupleExp(node: TupleExpASTNode): TupleExpASTNode;
@@ -17,79 +13,20 @@ declare module '.' {
 }
 
 
-export type N_NumberASTNode = {
-    type: "number",
-    base: {
-        integer?: string,
-        decimal?: string,
-    },
-    exponent: undefined;
-}
-
-type NumberAST_ExpandResult =
-    | N_NumberASTNode
-    | {
-        type: 'multiplication',
-        left: N_NumberASTNode
-        right: {
-            type: 'power',
-            base: {
-                type: 'number',
-                base: { integer: '10', decimal: undefined }
-            },
-            exponent:
-            | {
-                type: 'number',
-                base: { integer: string, decimal: undefined }
-            }
-            | {
-                type: 'unaryMinus',
-                operand: {
-                    type: 'number',
-                    base: { integer: string, decimal: undefined }
-                }
-            }
-        }
-    };
-ASTParenAdder.prototype.number = function (node: NumberASTNode): NumberAST_ExpandResult {
-    if (node.exponent === undefined) return node as N_NumberASTNode;
-
-    return {
-        type: 'multiplication',
-        left: {
-            type: 'number',
-            base: node.base,
-            exponent: undefined,
-        },
-        right: {
-            type: 'power',
-            base: {
-                type: 'number',
-                base: { integer: '10', decimal: undefined },
-            },
-            exponent: node.exponent.sign === '-'
-                ? {
-                    type: 'unaryMinus',
-                    operand: {
-                        type: 'number',
-                        base: { integer: node.exponent.integer, decimal: undefined },
-                    },
-                }
-                : {
-                    type: 'number',
-                    base: { integer: node.exponent.integer, decimal: undefined },
-                },
-        },
-    }
-}
-
 ASTParenAdder.prototype.tupleExp = function (node: TupleExpASTNode): TupleExpASTNode {
     node = { ...node };
-    node.items = node.items.map(item => {
+    node.items = node.items.map((item, i) => {
         item = this.visit(item);
-        if (isContextType2LevelASTNode(item) && item.ctxVarDefs.length > 1) {
-            item = wrapWithParentheses(item);
-        }
+        item = this.disambiguateContextAndCommas(
+            item,
+            false,
+            ctxNode =>
+                (ctxNode.type === 'forClause' || ctxNode.type === 'withClause')
+                && !(i === node.items.length - 1),
+            ctxExp =>
+                (ctxExp.ctxKind === 'for' || ctxExp.ctxKind === 'with')
+                && !(i === node.items.length - 1)
+        );
         return item;
     });
     return node;
@@ -101,19 +38,18 @@ ASTParenAdder.prototype.listExp = function (node: ListExpASTNode): ListExpASTNod
     node = { ...node };
     node.items = node.items.map((item, i) => {
         item = this.visit(item);
-        if (
-            isContextType2LevelASTNode(item)
-            && !(
-                node.items.length === 1
-                && item.type === 'forClause'
-            )
-            && !(
-                i === node.items.length - 1
-                && item.ctxVarDefs.length === 1
-            )
-        ) {
-            item = wrapWithParentheses(item);
-        }
+        item = this.disambiguateContextAndCommas(
+            item,
+            false,
+            ctxNode =>
+                (ctxNode.type === 'forClause' || ctxNode.type === 'withClause')
+                && !(i === node.items.length - 1)
+                && !(node.items.length === 1 && ctxNode.type === 'forClause'),
+            ctxExp =>
+                (ctxExp.ctxKind === 'for' || ctxExp.ctxKind === 'with')
+                && !(i === node.items.length - 1)
+                && !(node.items.length === 1 && ctxExp.ctxKind === 'for')
+        );
         return item;
     });
     return node;
@@ -121,21 +57,35 @@ ASTParenAdder.prototype.listExp = function (node: ListExpASTNode): ListExpASTNod
 
 ASTParenAdder.prototype.piecewiseExp = function (node: PiecewiseExpASTNode): PiecewiseExpASTNode {
     node = { ...node };
-    node.branches = node.branches.map(branch => {
+    node.branches = node.branches.map((branch, i) => {
         branch = this.visit(branch);
-        if (branch.type !== 'piecewiseBranch')
-            return branch;    // default value branch, passes unconditionally
-        if (branch.value)
-            if (isContextType2LevelASTNode(branch.value))
-                branch.value = wrapWithParentheses(branch.value);
+
         if (branch.condition)
             branch.condition.operands = branch.condition.operands.map(operand =>
-                isContextType2LevelASTNode(operand)
-                    ? wrapWithParentheses(operand)
-                    : operand
+                this.disambiguateContextAndCommas(
+                    operand,
+                    false,
+                    ctxNode => (ctxNode.type === 'forClause' || ctxNode.type === 'withClause'),
+                    ctxExp => (ctxExp.ctxKind === 'for' || ctxExp.ctxKind === 'with'),
+                )
             );
+
+        if (branch.value)
+            branch.value = this.disambiguateContextAndCommas(
+                branch.value,
+                false,
+                ctxNode =>
+                    (ctxNode.type === 'forClause' || ctxNode.type === 'withClause')
+                    && !(i === node.branches.length - 1 && ctxNode.ctxVarDefs.length === 1 && node.default === null),
+                ctxExp =>
+                    (ctxExp.ctxKind === 'for' || ctxExp.ctxKind === 'with')
+                    && !(i === node.branches.length - 1 && ctxExp.ctxVars.length === 1 && node.default === null)
+            )
 
         return branch;
     });
+
+    // default value branch is not ambiguous, so not considered
+
     return node;
 }

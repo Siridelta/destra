@@ -82,7 +82,7 @@ export function isUpToTopLevelASTNode(node: any): node is UpToTopLevel {
 export function resolveVarIRs(ast: any) {
     const ctxNodeStack: any[] = [];
     const enter = (node: any) => {
-        const _isCtxClause = isCtxClause(node);
+        const _isCtxClause = isCtxClause(node) || node.type === 'functionDefinition';
         if (_isCtxClause) {
             ctxNodeStack.push(node);
         }

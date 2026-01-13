@@ -2,6 +2,7 @@
 import { isCtxClause, traceASTState } from "../../expr-dsl/parse-ast/sematics/helpers";
 import { getASTChildren } from "../../expr-dsl/parse-ast/sematics/traverse-ast";
 import { CtxVarDefASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/addSub-level";
+import { UndefinedVarASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
 import { reservedVars } from "../../expr-dsl/syntax-reference/reservedWords";
 import { CtxVar, Formula, FuncExpl, isCtxExp, isFuncExpl } from "../../formula/base";
 import { getState } from "../../state";
@@ -12,7 +13,8 @@ import {
     CtxNameResolutionState,
     FuncExplScopeNode, InternalClauseScopeNode,
     RootScopeNode,
-    ScopeNode
+    ScopeNode,
+    UdVarScopeNode
 } from "../types";
 import { makeSuffixed } from "./step2_globalRealname";
 
@@ -163,11 +165,12 @@ export const ctxRealnameResolution = (context: CompileContext) => {
             }
 
             const newScopeSet = new Set([scopeNode]);
-            traverseInitialScopes = new Set([scopeNode]);
+            // traverseInitialScopes = new Set([scopeNode]);
             if (f.body instanceof Formula)
                 state.overrideOutputClosestScopes.set(f.body, newScopeSet);
         }
         // Additional Logic for FuncExpl
+        // Notice that CtxFuncExpl is classified to CtxExpScope, not FuncExplScope
         else if (isFuncExpl(f)) {
             const scopeNode = createScopeNode({ type: "FuncExplScope", context: f }) as FuncExplScopeNode;
             rtSeriesScopeNode.push(scopeNode);
@@ -220,8 +223,11 @@ export const ctxRealnameResolution = (context: CompileContext) => {
             entityType: 'FuncExpl';
             entity: { funcExpl: FuncExpl<any>, paramIndex: number };
         } | {
-            entityType: 'ASTNode';
+            entityType: 'CtxVarDefASTNode';
             entity: CtxVarDefASTNode;
+        } | {
+            entityType: 'UndefinedVar';
+            entity: UndefinedVarASTNode;
         });
         const varsToResolve: VarToResolve[] = [];
 
@@ -260,20 +266,28 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                     varsToResolve.push({
                         originalName: def.name,
                         entity: def,
-                        entityType: 'ASTNode'
+                        entityType: 'CtxVarDefASTNode'
                     });
                 }
             } else {
                 varsToResolve.push({
                     originalName: ctx.ctxVarDef.name,
                     entity: ctx.ctxVarDef,
-                    entityType: 'ASTNode',
+                    entityType: 'CtxVarDefASTNode',
                 });
             }
 
             scope.forbiddenNames = scope.forbiddenNames.union(new Set(ctx.forbiddenNames));
 
+        } else if (scope.type === 'UndefinedVar') {
+            varsToResolve.push({
+                originalName: scope.context.name,
+                entity: scope.context,
+                entityType: 'UndefinedVar',
+            });
         }
+
+
 
         for (const v of varsToResolve) {
             let finalName = v.originalName;
@@ -315,8 +329,10 @@ export const ctxRealnameResolution = (context: CompileContext) => {
                     map.set(funcExpl, realnames);
                 }
                 realnames.set(v.entity.paramIndex, finalName);
-            } else {
+            } else if (v.entityType === 'CtxVarDefASTNode') {
                 context.internalCtxVarRealnameMap.set(v.entity, finalName);
+            } else if (v.entityType === 'UndefinedVar') {
+                context.undefinedVarRealnameMap.set(v.entity, finalName);
             }
         }
     }
@@ -327,18 +343,18 @@ function traverseAST(
     currentScopes: Set<ScopeNode>,
     f: Formula,
     fState: CtxNameResolutionState,
-    scopeList: ScopeNode[]
+    rtScopeSeries: ScopeNode[]
 ) {
     const _traverse = (node: any, currentScopes: Set<ScopeNode>) => {
         if (!node) throw new Error('Internal error: AST node is undefined in traverseAST');
 
-        if (isCtxClause(node) && node.type !== 'functionDefinition') {
+        if (isCtxClause(node)) {
             const scopeNode = createScopeNode({
                 type: "InternalClauseScope",
                 context: node,
                 host: f
             }) as InternalClauseScopeNode;
-            scopeList.push(scopeNode);
+            rtScopeSeries.push(scopeNode);
 
             for (const p of currentScopes) {
                 scopeNode.parents.add(p);
@@ -380,6 +396,19 @@ function traverseAST(
                     // Propagate!
                     fState.overrideOutputClosestScopes.set(val, new Set(currentScopes));
                 }
+            }
+        }
+
+        // undefined var is included to evaluate its realname
+        if (node.type === 'undefinedVar') {
+            const scopeNode = createScopeNode({
+                type: "UndefinedVar",
+                context: node
+            }) as UdVarScopeNode;
+            rtScopeSeries.push(scopeNode);
+            for (const p of currentScopes) {
+                scopeNode.parents.add(p);
+                p.children.add(scopeNode);
             }
         }
 

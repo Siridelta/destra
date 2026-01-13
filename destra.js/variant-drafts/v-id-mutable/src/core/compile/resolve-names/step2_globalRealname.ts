@@ -32,7 +32,7 @@ const transformId = (id: string): string => {
     // Sort greek letters by length desc to match longest prefix
     for (const greek of sortedGreek) {
         if (key.toLowerCase().startsWith(greek)) {
-            head = `\\${greek}`;
+            head = greek;
             body = key.slice(greek.length);
             break;
         }

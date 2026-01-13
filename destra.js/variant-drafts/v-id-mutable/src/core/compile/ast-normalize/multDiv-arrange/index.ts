@@ -1,9 +1,9 @@
 import { BuiltinFuncCallASTNode, ParenExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
-import { CrossASTNode, DivisionASTNode, ImplicitMultASTNode, MultiplicationASTNode, OmittedCallASTNode, PercentOfASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
+import { CrossASTNode, DivisionASTNode, ImplicitMultASTNode, isUpToMultDivLevelASTNode, MultiplicationASTNode, OmittedCallASTNode, PercentOfASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { ASTVisitorWithDefault } from "../../../expr-dsl/visit-ast/visitor-withdefault";
 import { Formula } from "../../../formula/base";
 import { CompileContext } from "../../types";
-import { wrapWithParentheses } from "../utils";
+import { checkLevelWithSubst, wrapWithParentheses } from "../utils";
 
 /**
  * Normalize batch 2: chunked process mult/div/IM chunks
@@ -26,23 +26,23 @@ export class MultDivArranger extends ASTVisitorWithDefault<any, MultDivArrangerC
 
     public visit(
         node: any,
-        parentContext: MultDivArrangerContext = { chunkTops: new Set<MultDivChunkNode | ParenExpASTNode>(), backTracking: false }
+        context: MultDivArrangerContext = { chunkTops: new Set<MultDivChunkNode | ParenExpASTNode>(), backTracking: false }
     ): any {
-        if (!parentContext.backTracking) {
+        if (!context.backTracking) {
 
-            const context = { ...parentContext, chunkTops: new Set<MultDivChunkNode | ParenExpASTNode>(parentContext.chunkTops) };
-            node = super.visit(node, context);
+            const childContext = { ...context, chunkTops: new Set<MultDivChunkNode | ParenExpASTNode>(context.chunkTops) };
+            node = super.visit(node, childContext);
 
-            if (context.chunkTops.has(node)) {
-                parentContext.chunkTops.add(node);
+            if (childContext.chunkTops.has(node)) {
+                context.chunkTops.add(node);
             } else {
-                node = this.default(node, { ...context, backTracking: true });
+                node = this.default(node, { ...childContext, backTracking: true });
             }
 
             return node;
 
         } else {
-            if (parentContext.chunkTops.has(node)) {
+            if (context.chunkTops.has(node)) {
                 return this.backTrack(node);
             }
         }
@@ -65,7 +65,7 @@ export interface MultDivArranger {
     implicitMult(node: ImplicitMultASTNode, context: MultDivArrangerContext): ImplicitMultASTNode;
 
     parenExp(node: ParenExpASTNode, context: MultDivArrangerContext): ParenExpASTNode;
-    
+
     backTrack(node: MultDivChunkNode | ParenExpASTNode): MultDivChunkNode | ParenExpASTNode;
     chunkTop(node: MultDivChunkNode): MultDivChunkNode;
 }
@@ -92,7 +92,7 @@ MultDivArranger.prototype.multDivLevel = function <T extends I1>(node: T, contex
 
     if (
         (
-            isMultDivChunkNode(node.left) 
+            isMultDivChunkNode(node.left)
             || (node.left.type === 'parenExp' && node.type === 'division')
         )
         && context.chunkTops.has(node.left)
@@ -101,7 +101,7 @@ MultDivArranger.prototype.multDivLevel = function <T extends I1>(node: T, contex
 
     if (
         (
-            isMultDivChunkNode(node.right) 
+            isMultDivChunkNode(node.right)
             || (node.right.type === 'parenExp' && node.type === 'division')
         )
         && context.chunkTops.has(node.right)
@@ -111,6 +111,8 @@ MultDivArranger.prototype.multDivLevel = function <T extends I1>(node: T, contex
     return node;
 }
 
+// notice that the paren-adding of implicit mult children has been advanced to this batch
+// cuz paren-adding may cause ambiguity, and should cause reforming to explicit mult in this step
 MultDivArranger.prototype.implicitMult = function (node: ImplicitMultASTNode, context: MultDivArrangerContext): ImplicitMultASTNode {
 
     node.operands = node.operands.map(operand => {
@@ -118,6 +120,14 @@ MultDivArranger.prototype.implicitMult = function (node: ImplicitMultASTNode, co
 
         if (isMultDivChunkNode(operand) && context.chunkTops.has(operand))
             context.chunkTops.add(node);
+
+        if (!checkLevelWithSubst(
+            operand,
+            isUpToMultDivLevelASTNode,
+            { hostFormula: this.targetFormula }
+        )) {
+            operand = wrapWithParentheses(operand);
+        }
 
         return operand;
     });

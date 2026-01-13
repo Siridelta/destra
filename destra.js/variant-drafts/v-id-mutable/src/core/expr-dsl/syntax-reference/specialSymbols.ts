@@ -78,10 +78,11 @@ export const specialSymbolsPaged = {
         },
     },
     "others": {
-        aliases: ["infty"],
+        aliases: ["infty", "infinity"],
         chars: ["∞"],
         map: {
             infty: '∞',
+            infinity: '∞',
         },
     },
 } as const satisfies Record<string, SpecialSymbolsMapPage>;
