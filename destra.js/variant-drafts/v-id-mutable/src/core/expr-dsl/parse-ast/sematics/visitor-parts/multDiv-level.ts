@@ -1,4 +1,4 @@
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { BuiltinFuncASTNode } from "./terminals";
 import { MaybeOCallFuncIRNode } from "./atomic-exps";
 import { getASTChildren } from "../traverse-ast";
@@ -6,7 +6,7 @@ import { isUpToPostfixLevelASTNode, UpToPostfixLevel } from "./postfix-level";
 
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         multDivLevel(ctx: any): any;
         iMultAndOCallLevel(ctx: any): any;
         prefixLevel(ctx: any): any;
@@ -154,7 +154,7 @@ export const multDivOpToType = (op: string) =>
             op === 'cross' ? 'cross' :
                 op === '%of' ? 'percentOf' :
                     op === '%' ? 'mod' : null;
-FormulaVisitor.prototype.multDivLevel = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.multDivLevel = function (ctx: any) {
     // Transform to left-associative AST tree
 
     const lhs = this.visit(ctx.lhs);
@@ -203,7 +203,7 @@ function traverseCheckOCallIR(node: any, isTop: boolean = true): boolean {
     return true;
 }
 
-FormulaVisitor.prototype.iMultAndOCallLevel = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.iMultAndOCallLevel = function (ctx: any) {
     const nodes = this.batchVisit(ctx.prefixLevel);
 
     // in imult-like chain, nodes may contains:
@@ -373,7 +373,7 @@ export const unflattenMultLevel = (flattened: FlattenedMultLevel): any => {
     return ast;
 }
 
-FormulaVisitor.prototype.prefixLevel = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.prefixLevel = function (ctx: any) {
     const operator = ctx.operator?.[0]?.image ?? null;
     const content = this.visit(ctx.rootofLevel);
 
@@ -386,7 +386,7 @@ FormulaVisitor.prototype.prefixLevel = function (ctx: any) {
     return content;
 }
 
-FormulaVisitor.prototype.rootofLevel = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.rootofLevel = function (ctx: any) {
     // right-associative, no need for transform
     const lhs = this.visit(ctx.powerLevel);
     const rhs = ctx.rootofLevel ? this.visit(ctx.rootofLevel) : null;
@@ -401,7 +401,7 @@ FormulaVisitor.prototype.rootofLevel = function (ctx: any) {
     return lhs;
 }
 
-FormulaVisitor.prototype.powerLevel = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.powerLevel = function (ctx: any) {
     // right-associative, no need for transform
     const lhs = ctx.postfixLevel ? this.visit(ctx.postfixLevel) 
                 : ctx.context_type1 ? this.visit(ctx.context_type1) : null;

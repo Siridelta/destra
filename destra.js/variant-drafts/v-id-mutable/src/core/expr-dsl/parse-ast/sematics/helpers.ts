@@ -1,6 +1,6 @@
 import { CtxVar, Formula, isFuncExpl, RegressionParameter, Substitutable } from "../../../formula/base";
 import { ASTState, getState } from "../../../state";
-import { FormulaVisitor } from "./base-visitor";
+import { ExprDSLCSTVisitor } from "./base-visitor";
 import { traverse } from "./traverse-ast";
 import { CtxVarDefASTNode, ForClauseASTNode, WithClauseASTNode } from "./visitor-parts/addSub-level";
 import { ParenExpASTNode, TupleExpASTNode } from "./visitor-parts/atomic-exps";
@@ -79,7 +79,7 @@ export function getCtxNodeCtxVars(ctxNode: CtxClauseASTNode): string[] {
 // --- Undefined & Reserved Variable Scanning & Analyzing ---
 
 // current implementation is not efficient, will always check to bottom without reusing results
-function _scanUdRsVarRefs(node: any, obj: FormulaVisitor | Formula) {
+function _scanUdRsVarRefs(node: any, obj: ExprDSLCSTVisitor | Formula) {
     const udVarRefs: Set<string> = new Set();
     const rsVarRefs: Set<string> = new Set();
     const enter = (node: any) => {
@@ -101,7 +101,7 @@ function _scanUdRsVarRefs(node: any, obj: FormulaVisitor | Formula) {
     return { udVarRefs, rsVarRefs };
 }
 
-export function scanUdRsVarRefs(node: any, obj: FormulaVisitor | Formula) {
+export function scanUdRsVarRefs(node: any, obj: ExprDSLCSTVisitor | Formula) {
     const { udVarRefs, rsVarRefs } = _scanUdRsVarRefs(node, obj);
     return {
         udVarRefs: Array.from(udVarRefs),
@@ -170,8 +170,8 @@ export function isVarIR(node: any): node is VarIRNode {
 
 // --- Deep Trace Helpers ---
 
-export function traceSubstitution(ast: SubstitutionASTNode, obj: FormulaVisitor | Formula): Substitutable {
-    if (obj instanceof FormulaVisitor) {
+export function traceSubstitution(ast: SubstitutionASTNode, obj: ExprDSLCSTVisitor | Formula): Substitutable {
+    if (obj instanceof ExprDSLCSTVisitor) {
         return obj.values[ast.index];
     }
     if (obj instanceof Formula) {
@@ -180,7 +180,7 @@ export function traceSubstitution(ast: SubstitutionASTNode, obj: FormulaVisitor 
     throw new Error(`Internal error: Invalid object type ${typeof obj}.`);
 }
 
-export function isFuncExplSubst(subst: SubstitutionASTNode, obj: FormulaVisitor | Formula): boolean {
+export function isFuncExplSubst(subst: SubstitutionASTNode, obj: ExprDSLCSTVisitor | Formula): boolean {
     const substValue = traceSubstitution(subst, obj);
     return substValue instanceof Formula && isFuncExpl(substValue);
 }

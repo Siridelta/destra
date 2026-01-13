@@ -1,10 +1,10 @@
 import { IToken } from "chevrotain";
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { ComparisonASTNode } from "../helpers";
 
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         piecewiseExp(ctx: any): any;
         piecewise_content(ctx: any): any;
         piecewise_branch(ctx: any): any;
@@ -27,11 +27,11 @@ export type PiecewiseBranchASTNode = {
     value: any | null,
 }
 
-FormulaVisitor.prototype.piecewiseExp = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.piecewiseExp = function (ctx: any) {
     return this.visit(ctx.piecewise_content);
 }
 
-FormulaVisitor.prototype.piecewise_content = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.piecewise_content = function (ctx: any) {
     const branches = ctx.piecewise_branch ? this.batchVisit(ctx.piecewise_branch) : [];
     let defaultValue: any | null = null;
 
@@ -95,7 +95,7 @@ FormulaVisitor.prototype.piecewise_content = function (ctx: any) {
     }
 }
 
-FormulaVisitor.prototype.piecewise_branch = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.piecewise_branch = function (ctx: any) {
     const condition = this.visit(ctx.piecewise_compLevel);
     const value = ctx.piecewise_actionLevel ? this.visit(ctx.piecewise_actionLevel) : null;
 
@@ -115,7 +115,7 @@ FormulaVisitor.prototype.piecewise_branch = function (ctx: any) {
     }
 }
 
-FormulaVisitor.prototype.piecewise_compLevel = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.piecewise_compLevel = function (ctx: any) {
     const operands = this.batchVisit(ctx.piecewise_actionLevel);
     const ops1 = ctx.ComparisonOperator1 as IToken[] ?? null;
     const ops2 = ctx.ComparisonOperator2 as IToken[] ?? null;
@@ -136,7 +136,7 @@ FormulaVisitor.prototype.piecewise_compLevel = function (ctx: any) {
     }
 }
 
-FormulaVisitor.prototype.piecewise_actionLevel = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.piecewise_actionLevel = function (ctx: any) {
     const items = this.batchVisit(ctx.addSubLevel);
     if (items.length < 1 || items.length > 2) {
         throw new Error("Internal error: items not found in piecewise_actionLevel.");

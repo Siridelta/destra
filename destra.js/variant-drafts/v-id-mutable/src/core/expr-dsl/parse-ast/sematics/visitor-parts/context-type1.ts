@@ -1,13 +1,13 @@
 import { createRegExp, exactly } from "magic-regexp";
 import { ctxVarNameExcludePattern, identifierPattern } from "../../../syntax-reference/commonRegExpPatterns";
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { flattenMultLevel, unflattenMultLevel } from "./multDiv-level";
 import { CtxVarNullDefASTNode, CtxVarRangeDefASTNode } from "./addSub-level";
 import { analyzeRsVarDepType, arrayUnion, RsVarDepType, scanUdRsVarRefs } from "../helpers";
 
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         context_type1(ctx: any): any;
         sum(ctx: any): any;
         prod(ctx: any): any;
@@ -64,7 +64,7 @@ export function isContextType1ASTNode(node: any): node is ContextType1ASTNode {
     );
 }
 
-FormulaVisitor.prototype.context_type1 = function (ctx: any): any {
+ExprDSLCSTVisitor.prototype.context_type1 = function (ctx: any): any {
     const sum = this.visit(ctx.sum);
     const prod = this.visit(ctx.prod);
     const int = this.visit(ctx.int);
@@ -84,7 +84,7 @@ FormulaVisitor.prototype.context_type1 = function (ctx: any): any {
     throw new Error("Internal error: context_type1 should not be empty.");
 }
 
-FormulaVisitor.prototype.sum = function (ctx: any): SumClauseASTNode {
+ExprDSLCSTVisitor.prototype.sum = function (ctx: any): SumClauseASTNode {
     const ctxVarName = this.visit(ctx.ctxVar);
     const lower = this.visit(ctx.lower);
     const upper = this.visit(ctx.upper);
@@ -112,7 +112,7 @@ FormulaVisitor.prototype.sum = function (ctx: any): SumClauseASTNode {
     }
 }
 
-FormulaVisitor.prototype.prod = function (ctx: any): ProdClauseASTNode {
+ExprDSLCSTVisitor.prototype.prod = function (ctx: any): ProdClauseASTNode {
     const ctxVarName = this.visit(ctx.ctxVar);
     const lower = this.visit(ctx.lower);
     const upper = this.visit(ctx.upper);
@@ -146,7 +146,7 @@ const dxPattern = createRegExp(
         .notBefore(ctxVarNameExcludePattern),
     identifierPattern.groupedAs("name"),
 )
-FormulaVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
+ExprDSLCSTVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
     const lower = this.visit(ctx.lower);
     const upper = this.visit(ctx.upper);
     const content = this.visit(ctx.content);
@@ -225,7 +225,7 @@ FormulaVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
     );
 }
 
-FormulaVisitor.prototype.diff = function (ctx: any): DiffClauseASTNode {
+ExprDSLCSTVisitor.prototype.diff = function (ctx: any): DiffClauseASTNode {
     const ctxVarName = this.visit(ctx.ctxVar);
     const content = this.visit(ctx.content);
 

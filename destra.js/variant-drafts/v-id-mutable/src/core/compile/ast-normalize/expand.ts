@@ -1,6 +1,8 @@
+import { ComparisonASTNode, ComparisonOperator } from "../../expr-dsl/parse-ast/sematics/helpers";
 import { BuiltinFuncCallASTNode, ParenExpASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
 import { DivisionASTNode, ModASTNode, PowerASTNode, RootofASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
 import { BuiltinFuncASTNode, ColorHexLiteralASTNode, NumberASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
+import { ImplicitEquationASTNode } from "../../expr-dsl/parse-ast/sematics/visitor-parts/top-level";
 import { ASTVisitorWithDefault } from "../../expr-dsl/visit-ast/visitor-withdefault";
 import { N_NumberASTNode } from "./add-parens/atomic-exp";
 import { throughParenGet } from "./utils";
@@ -20,6 +22,10 @@ export interface ASTExpander {
     parenExp(node: ParenExpASTNode): ParenExpASTNode | BuiltinFuncCallASTNode;
 
     colorHexLiteral(node: ColorHexLiteralASTNode): ColorHexLiteral_ExpandResult;
+
+    // resolve '=='
+    implicitEquation(node: ImplicitEquationASTNode): ImplicitEquationASTNode;
+    comparison(node: ComparisonASTNode): ComparisonASTNode;
 }
 
 
@@ -118,4 +124,12 @@ ASTExpander.prototype.colorHexLiteral = function (node: ColorHexLiteralASTNode):
             },
         ],
     }
+}
+
+ASTExpander.prototype.implicitEquation = function (node: ImplicitEquationASTNode): ImplicitEquationASTNode {
+    return {...node, ops: node.ops.map(op => op === '==' ? '=' : op)};
+}
+
+ASTExpander.prototype.comparison = function (node: ComparisonASTNode): ComparisonASTNode {
+    return {...node, operators: node.operators.map(op => op === ComparisonOperator.Equal2 ? ComparisonOperator.Equal : op)};
 }

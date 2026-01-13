@@ -1,10 +1,10 @@
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { analyzeRsVarDepType, arrayUnion, RsVarDepType, scanUdRsVarRefs } from "../helpers";
 import { isUpToMultDivLevelASTNode, UpToMultDivLevel } from "./multDiv-level";
 
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         addSubLevel(ctx: any): any;
         context_type2_level(ctx: any): any;
         fromForKeyword(ctx: any): any;
@@ -94,7 +94,7 @@ export function isUpToContextType2LevelASTNode(node: any): node is UpToContextTy
 }
 
 // Needed transform to left-associative AST tree
-FormulaVisitor.prototype.addSubLevel = function (ctx: any): any {
+ExprDSLCSTVisitor.prototype.addSubLevel = function (ctx: any): any {
     const lhs = this.visit(ctx.lhs);
     const operator = ctx.operator?.[0]?.image || null;
     const rhs = ctx.rhs ? this.visit(ctx.rhs) : null;
@@ -138,7 +138,7 @@ function findDuplicateVarNames(names: string[]): string[] {
     return Array.from(duplicateNames);
 }
 
-FormulaVisitor.prototype.context_type2_level = function (ctx: any): any {
+ExprDSLCSTVisitor.prototype.context_type2_level = function (ctx: any): any {
     const content = this.visit(ctx.content);
     const forCtxVarDefs = ctx.fromForKeyword ? this.visit(ctx.fromForKeyword) as CtxVarExprDefASTNode[] : null;
     const withCtxVarDefs = ctx.fromWithKeyword ? this.visit(ctx.fromWithKeyword) as CtxVarExprDefASTNode[] : null;
@@ -191,7 +191,7 @@ FormulaVisitor.prototype.context_type2_level = function (ctx: any): any {
     return content;
 }
 
-FormulaVisitor.prototype.fromForKeyword = function (ctx: any): CtxVarExprDefASTNode[] {
+ExprDSLCSTVisitor.prototype.fromForKeyword = function (ctx: any): CtxVarExprDefASTNode[] {
     const ctxVarNames = this.batchVisit(ctx.ctxVar);
     const contents = this.batchVisit(ctx.content);
 
@@ -210,7 +210,7 @@ FormulaVisitor.prototype.fromForKeyword = function (ctx: any): CtxVarExprDefASTN
     return ctxVarDefs;
 }
 
-FormulaVisitor.prototype.fromWithKeyword = function (ctx: any): CtxVarExprDefASTNode[] {
+ExprDSLCSTVisitor.prototype.fromWithKeyword = function (ctx: any): CtxVarExprDefASTNode[] {
     const ctxVarNames = this.batchVisit(ctx.ctxVar);
     const contents = this.batchVisit(ctx.content);
 
@@ -229,7 +229,7 @@ FormulaVisitor.prototype.fromWithKeyword = function (ctx: any): CtxVarExprDefAST
     return ctxVarDefs;
 }
 
-FormulaVisitor.prototype.ctxVarInDef = function (ctx: any): string {
+ExprDSLCSTVisitor.prototype.ctxVarInDef = function (ctx: any): string {
     const ctxVarName = ctx.ctxVarName[0];
     return ctxVarName.image;
 }

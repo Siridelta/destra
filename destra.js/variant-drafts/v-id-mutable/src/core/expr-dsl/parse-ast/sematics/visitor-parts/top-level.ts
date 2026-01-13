@@ -1,4 +1,4 @@
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { analyzeRsVarDepType, getCtxNodeCtxVars, isCtxClause, isParenExp, isTupleExp, isVarIR, RsVarDepType, scanUdRsVarRefs } from "../helpers";
 import { reservedVars } from "../../../syntax-reference/reservedWords";
 import { MaybeFuncDefIRNode } from "./atomic-exps";
@@ -8,7 +8,7 @@ import { isUpToCommasLevelASTNode, UpToCommasLevel } from "./commas-level";
 
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         topLevel(ctx: any): any;
     }
 }
@@ -169,7 +169,7 @@ function resolveAnonymousFuncDef(lhs: any, rhs: any): Omit<FunctionDefinitionAST
     }
 }
 
-FormulaVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
+ExprDSLCSTVisitor.prototype.topLevel = function (ctx: any): TopLevelASTNode {
     let [lhs, rhs, ...remains] = this.batchVisit(ctx.commasLevel);
     const equalOp = ctx['=']?.[0];
     const tildeOp = ctx['~']?.[0];

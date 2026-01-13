@@ -1,9 +1,9 @@
 import { formulaParser } from "../parsing/parser";
 import { Substitutable } from "../../../formula/base";
 
-export const BaseFormulaVisitor = formulaParser.getBaseCstVisitorConstructor();
+export const BaseCSTVisitor = formulaParser.getBaseCstVisitorConstructor();
 
-export class FormulaVisitor extends BaseFormulaVisitor {
+export class ExprDSLCSTVisitor extends BaseCSTVisitor {
     public readonly values: readonly Substitutable[];
 
     constructor(values: readonly Substitutable[] = []) {

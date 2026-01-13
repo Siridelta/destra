@@ -1,4 +1,4 @@
-import { FormulaVisitor } from "./base-visitor";
+import { ExprDSLCSTVisitor } from "./base-visitor";
 
 import './visitor-parts/formula';
 import './visitor-parts/ctx-header';
@@ -12,4 +12,4 @@ import './visitor-parts/postfix-level';
 import './visitor-parts/atomic-exps';
 import './visitor-parts/terminals';
 
-export { FormulaVisitor };
+export { ExprDSLCSTVisitor as FormulaVisitor };

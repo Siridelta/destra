@@ -26,6 +26,15 @@ declare module '../state' {
     }
 }
 
+export interface CompileResult {
+    latex: string;
+    slider: {
+        max?: string;
+        min?: string;
+        step?: string;
+    } | null;
+}
+
 /**
  * Resolve the graph: perform ID checks, global name resolution, and context variable resolution.
  * This covers Step 1 to Step 3 of the compilation process.
@@ -58,7 +67,7 @@ function compileFormula(f: Formula, ctx: CompileContext) {
 
     const normalizedAST = normalizeAST(f, ctx);
 
-    const latex: string = new LatexCompiler(ctx, f, (f_dep) => {
+    const { latex, slider } = new LatexCompiler(ctx, f, (f_dep) => {
         return compileFormula(f_dep, ctx);
     }).visit(normalizedAST);
 
@@ -68,7 +77,7 @@ function compileFormula(f: Formula, ctx: CompileContext) {
 }
 
 function normalizeAST(f: Formula, ctx: CompileContext, force: boolean = false) {
-    
+
     getState(f).compile ??= {};
     const maybeNormalizedAST = getState(f).compile!.normalizedAST;
     if (!force && maybeNormalizedAST) {

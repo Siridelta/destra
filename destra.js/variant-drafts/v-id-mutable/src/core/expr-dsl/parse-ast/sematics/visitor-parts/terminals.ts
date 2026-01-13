@@ -1,8 +1,8 @@
 import { anyOf, exactly, createRegExp, digit, maybe } from "magic-regexp";
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         toNumberAST(image: string): NumberASTNode;
         toColorHexLiteralAST(image: string): ColorHexLiteralASTNode;
         toSubstitutionAST(image: string): SubstitutionASTNode;
@@ -120,7 +120,7 @@ export const numberRegex = createRegExp(
     )),
 )
 
-FormulaVisitor.prototype.toNumberAST = function (image: string): NumberASTNode {
+ExprDSLCSTVisitor.prototype.toNumberAST = function (image: string): NumberASTNode {
     const match = image.match(numberRegex);
     if (!match) {
         throw new Error(`Internal error: Reveiced invalid number literal: ${image}`);
@@ -141,14 +141,14 @@ FormulaVisitor.prototype.toNumberAST = function (image: string): NumberASTNode {
     }
 }
 
-FormulaVisitor.prototype.toBuiltinFuncAST = function (image: string): BuiltinFuncASTNode {
+ExprDSLCSTVisitor.prototype.toBuiltinFuncAST = function (image: string): BuiltinFuncASTNode {
     return {
         type: "builtinFunc",
         name: image,
     }
 }
 
-FormulaVisitor.prototype.toConstantAST = function (image: string): ConstantASTNode {
+ExprDSLCSTVisitor.prototype.toConstantAST = function (image: string): ConstantASTNode {
     return {
         type: "constant",
         value: image,
@@ -156,7 +156,7 @@ FormulaVisitor.prototype.toConstantAST = function (image: string): ConstantASTNo
 }
 
 export const colorHexLiteralRegex = /#(?<hex>([0-9A-F]{6}|[0-9a-f]{6}))/
-FormulaVisitor.prototype.toColorHexLiteralAST = function (image: string): ColorHexLiteralASTNode {
+ExprDSLCSTVisitor.prototype.toColorHexLiteralAST = function (image: string): ColorHexLiteralASTNode {
     const match = image.match(colorHexLiteralRegex);
     if (!match) {
         throw new Error(`Internal error: Reveiced invalid color hex literal: ${image}`);
@@ -173,7 +173,7 @@ export const substitutionRegex = createRegExp(
     digit.times.atLeast(1).groupedAs("index"),
     "$",
 )
-FormulaVisitor.prototype.toSubstitutionAST = function (image: string): SubstitutionASTNode {
+ExprDSLCSTVisitor.prototype.toSubstitutionAST = function (image: string): SubstitutionASTNode {
     const match = image.match(substitutionRegex);
     if (!match) {
         throw new Error(`Internal error: Reveiced invalid substitution literal: ${image}`);
@@ -185,28 +185,28 @@ FormulaVisitor.prototype.toSubstitutionAST = function (image: string): Substitut
     }
 }
 
-FormulaVisitor.prototype.toReservedVarAST = function (image: string): ReservedVarASTNode {
+ExprDSLCSTVisitor.prototype.toReservedVarAST = function (image: string): ReservedVarASTNode {
     return {
         type: "reservedVar",
         name: image,
     }
 }
 
-FormulaVisitor.prototype.toContextVarAST = function (image: string): ContextVarASTNode {
+ExprDSLCSTVisitor.prototype.toContextVarAST = function (image: string): ContextVarASTNode {
     return {
         type: "contextVar",
         name: image,
     }
 }
 
-FormulaVisitor.prototype.toUndefinedVarAST = function (image: string): UndefinedVarASTNode {
+ExprDSLCSTVisitor.prototype.toUndefinedVarAST = function (image: string): UndefinedVarASTNode {
     return {
         type: "undefinedVar",
         name: image,
     }
 }
 
-FormulaVisitor.prototype.toVarIR = function (image: string): VarIRNode {
+ExprDSLCSTVisitor.prototype.toVarIR = function (image: string): VarIRNode {
     return {
         type: "varIR",
         name: image,

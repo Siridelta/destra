@@ -1,4 +1,4 @@
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { ComparisonASTNode, isFuncExplSubst } from "../helpers";
 import { RangeDots } from "../../tokens/op-and-puncs";
 import { BuiltinFuncASTNode } from "./terminals";
@@ -7,7 +7,7 @@ import { ContextType1ASTNode, isContextType1ASTNode } from "./context-type1";
 
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         postfixLevel(ctx: any): any;
         fromPostfix(ctx: any): any;
         factorial(ctx: any): any;
@@ -138,7 +138,7 @@ function addToPostfixAST(obj: any, postfixAST: any): boolean {
     }
 }
 
-FormulaVisitor.prototype.postfixLevel = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.postfixLevel = function (ctx: any) {
 
     const operand = this.visit(ctx.atomicExp);
     const postfixAST = ctx.fromPostfix ? this.visit(ctx.fromPostfix) : null;
@@ -159,14 +159,14 @@ FormulaVisitor.prototype.postfixLevel = function (ctx: any) {
     return operand;
 }
 
-FormulaVisitor.prototype.fromPostfix = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.fromPostfix = function (ctx: any) {
     if (!ctx.case) {
         throw new Error("Internal error: No case found for fromPostfix");
     }
     return this.visit(ctx.case);
 }
 
-FormulaVisitor.prototype.factorial = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.factorial = function (ctx: any) {
     const factorialAST = {
         type: "factorial",
         operand: null,    // vacancy
@@ -188,7 +188,7 @@ FormulaVisitor.prototype.factorial = function (ctx: any) {
     throw new Error("Internal error: Failed to add to postfixAST");
 }
 
-FormulaVisitor.prototype.fromDot = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.fromDot = function (ctx: any) {
     const attr = ctx.attr?.[0]?.image ?? null;
     const extFunc = ctx.extFunc?.[0]?.image ?? null;
     const argsList = ctx.argsList ? this.visit(ctx.argsList) : null;
@@ -231,7 +231,7 @@ FormulaVisitor.prototype.fromDot = function (ctx: any) {
     throw new Error("Internal error: Failed to add to postfixAST");
 }
 
-FormulaVisitor.prototype.toListSliceRangeASTNode = function (items: any[]): ListSliceRangeASTNode {
+ExprDSLCSTVisitor.prototype.toListSliceRangeASTNode = function (items: any[]): ListSliceRangeASTNode {
     if (items.length < 2 || items.length > 3) {
         throw new Error("Internal error: Invalid item syntax for listSliceRange: length must be 2 or 3");
     }
@@ -245,7 +245,7 @@ FormulaVisitor.prototype.toListSliceRangeASTNode = function (items: any[]): List
     }
 }
 
-FormulaVisitor.prototype.fromIndexer = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.fromIndexer = function (ctx: any) {
     const firstFactor = this.visit(ctx.firstFactor);
     const compOp1s = ctx.ComparisonOperator1 ? this.batchVisit(ctx.ComparisonOperator1) : [];
     const compOp2s = ctx.ComparisonOperator2 ? this.batchVisit(ctx.ComparisonOperator2) : [];
@@ -333,7 +333,7 @@ FormulaVisitor.prototype.fromIndexer = function (ctx: any) {
     throw new Error("Internal error: Failed to add to fromPostfixAST");
 }
 
-FormulaVisitor.prototype.indexerRestItem = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.indexerRestItem = function (ctx: any) {
     const items = ctx.item ? this.batchVisit(ctx.item) : [];
     if (items.length === 0 || items.length > 3) {
         throw Error(`Internal Error: Invalid item syntax for indexerRestItem: unexpected token count ${items.length}`);

@@ -1,5 +1,5 @@
 import { IToken } from "chevrotain";
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { BuiltinFuncASTNode, ColorHexLiteralASTNode, ConstantASTNode, isTerminalASTNode, NumberASTNode, SubstitutionASTNode, TerminalASTNode, VarIRNode } from "./terminals";
 import { SupportOmittedCallFunc } from "../../tokens/reserved-words/builtin-funcs/categories";
 import { RangeDots } from "../../tokens/op-and-puncs";
@@ -10,7 +10,7 @@ import { PiecewiseExpASTNode } from "./piecewise-exp";
 
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         atomicExp(ctx: any): any;
         builtinFuncCall(ctx: any): any;
         argsList(ctx: any): any;
@@ -100,7 +100,7 @@ export function isAtomicExpASTNode(node: any): node is AtomicExpASTNode {
     );
 }
 
-FormulaVisitor.prototype.atomicExp = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.atomicExp = function (ctx: any) {
     if (ctx.NumberLiteral) {
         return this.toNumberAST(ctx.NumberLiteral[0].image);
     }
@@ -116,7 +116,7 @@ FormulaVisitor.prototype.atomicExp = function (ctx: any) {
     throw new Error(`Internal error: Unexpected token ${JSON.stringify(ctx)} in atomicExp`);
 }
 
-FormulaVisitor.prototype.builtinFuncCall = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.builtinFuncCall = function (ctx: any) {
     const funcToken = ctx.BuiltinFunc[0] as IToken;
     const args = ctx.argsList ? this.visit(ctx.argsList) : null;
 
@@ -142,11 +142,11 @@ FormulaVisitor.prototype.builtinFuncCall = function (ctx: any) {
     }
 }
 
-FormulaVisitor.prototype.argsList = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.argsList = function (ctx: any) {
     return ctx.arg ? this.batchVisit(ctx.arg) : [];
 }
 
-FormulaVisitor.prototype.varOrCall = function (ctx: any)
+ExprDSLCSTVisitor.prototype.varOrCall = function (ctx: any)
     : VarIRNode | SubstitutionASTNode | DefinedFuncCallASTNode | MaybeFuncDefIRNode {
     const placeholder = ctx.Placeholder ? ctx.Placeholder[0] : null;
     const customVar = ctx.CustomIdentifier ? ctx.CustomIdentifier[0] : null;
@@ -191,7 +191,7 @@ FormulaVisitor.prototype.varOrCall = function (ctx: any)
     throw new Error(`Internal error: Unexpected token ${JSON.stringify(ctx)} in varOrCall`);
 }
 
-FormulaVisitor.prototype.parenExp = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.parenExp = function (ctx: any) {
     const content = this.visit(ctx.commasLevel);
 
     // commas node -> TupleExp
@@ -208,7 +208,7 @@ FormulaVisitor.prototype.parenExp = function (ctx: any) {
     }
 }
 
-FormulaVisitor.prototype.toListRangeASTNode = function (items: any[]): ListRangeASTNode {
+ExprDSLCSTVisitor.prototype.toListRangeASTNode = function (items: any[]): ListRangeASTNode {
     if (items.length !== 3) {
         throw new Error("Internal error: Invalid item syntax for listRange: length must be 3");
     }
@@ -222,7 +222,7 @@ FormulaVisitor.prototype.toListRangeASTNode = function (items: any[]): ListRange
     }
 }
 
-FormulaVisitor.prototype.listExp = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.listExp = function (ctx: any) {
     const items = ctx.listItem ? this.batchVisit(ctx.listItem) : [];
     let hasRange = false;
 
@@ -259,7 +259,7 @@ FormulaVisitor.prototype.listExp = function (ctx: any) {
     }
 }
 
-FormulaVisitor.prototype.listItem = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.listItem = function (ctx: any) {
     const terms = this.batchVisit(ctx.term);
     if (terms.length === 0) {
         throw new Error(`Internal error: Invalid item syntax for listItem: unexpected term count ${terms.length}`);
@@ -273,7 +273,7 @@ FormulaVisitor.prototype.listItem = function (ctx: any) {
     return this.toListRangeASTNode(terms);
 }
 
-FormulaVisitor.prototype.absExp = function (ctx: any): AbsExpASTNode {
+ExprDSLCSTVisitor.prototype.absExp = function (ctx: any): AbsExpASTNode {
     const content = this.visit(ctx.addSubLevel);
     return {
         type: "absExp",

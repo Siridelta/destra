@@ -1,10 +1,10 @@
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { isUpToAddSubLevelASTNode, UpToAddSubLevel } from "./addSub-level";
 import { SubstitutionASTNode } from "./terminals";
 
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         commasLevel(ctx: any): any;
         actionLevel(ctx: any): any;
     }
@@ -43,7 +43,7 @@ export function isUpToActionLevelASTNode(node: any): node is UpToActionLevel {
         || isUpToAddSubLevelASTNode(node);
 }
 
-FormulaVisitor.prototype.commasLevel = function (ctx: any): any {
+ExprDSLCSTVisitor.prototype.commasLevel = function (ctx: any): any {
     const actionLevels = this.batchVisit(ctx.actionLevel);
 
     if (actionLevels.length === 0) {
@@ -59,7 +59,7 @@ FormulaVisitor.prototype.commasLevel = function (ctx: any): any {
     }
 }
 
-FormulaVisitor.prototype.actionLevel = function (ctx: any): any {
+ExprDSLCSTVisitor.prototype.actionLevel = function (ctx: any): any {
     const target = this.visit(ctx.target);
     const value = ctx.value ? this.visit(ctx.value) : null;
 

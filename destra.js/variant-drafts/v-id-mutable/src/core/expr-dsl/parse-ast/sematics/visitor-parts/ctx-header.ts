@@ -1,4 +1,4 @@
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { CtxVarExprDefASTNode, CtxVarRangeDefASTNode, CtxVarNullDefASTNode } from "./addSub-level";
 import { analyzeRsVarDepType, scanUdRsVarRefs } from "../helpers";
 import { traverse } from "../traverse-ast";
@@ -6,7 +6,7 @@ import { resolveVarIRs } from "./top-level";
 import { RsVarDepType } from "../helpers";
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         ctxFactoryExprDefHead(ctx: any): CtxFactoryExprDefHeadASTNode;
         ctxFactoryRangeDefHead(ctx: any): CtxFactoryRangeDefHeadASTNode;
         ctxFactoryNullDefHead(ctx: any): CtxFactoryNullDefHeadASTNode;
@@ -76,7 +76,7 @@ function checkNoDuplicateCtxVarNames(ctxVarNames: string[]) {
     }
 }
 
-FormulaVisitor.prototype.ctxFactoryExprDefHead = function (ctx: any): CtxFactoryExprDefHeadASTNode {
+ExprDSLCSTVisitor.prototype.ctxFactoryExprDefHead = function (ctx: any): CtxFactoryExprDefHeadASTNode {
     const ctxVarNames = this.batchVisit(ctx.ctxVar);
     const values = this.batchVisit(ctx.value);
 
@@ -109,7 +109,7 @@ FormulaVisitor.prototype.ctxFactoryExprDefHead = function (ctx: any): CtxFactory
     return ast;
 }
 
-FormulaVisitor.prototype.ctxFactoryRangeDefHead = function (ctx: any): CtxFactoryRangeDefHeadASTNode {
+ExprDSLCSTVisitor.prototype.ctxFactoryRangeDefHead = function (ctx: any): CtxFactoryRangeDefHeadASTNode {
     const ctxVarName = this.visit(ctx.ctxVar);
     
     const lower = this.visit(ctx.lower[0]);
@@ -142,7 +142,7 @@ FormulaVisitor.prototype.ctxFactoryRangeDefHead = function (ctx: any): CtxFactor
     return ast;
 }
 
-FormulaVisitor.prototype.ctxFactoryNullDefHead = function (ctx: any): CtxFactoryNullDefHeadASTNode {
+ExprDSLCSTVisitor.prototype.ctxFactoryNullDefHead = function (ctx: any): CtxFactoryNullDefHeadASTNode {
     const ctxVarNames: string[] = this.batchVisit(ctx.ctxVar); 
     const ctxVarDefs: CtxVarNullDefASTNode[] = ctxVarNames.map(name => ({
         type: "ctxVarDef",

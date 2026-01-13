@@ -1,14 +1,13 @@
-import { FormulaVisitor } from "../base-visitor";
+import { ExprDSLCSTVisitor } from "../base-visitor";
 import { RsVarDepType } from "../helpers";
 import { TopLevelASTNode } from "./top-level";
 
 
 declare module '../base-visitor' {
-    interface FormulaVisitor {
+    interface ExprDSLCSTVisitor {
         formula(ctx: any): any;
         inLevel(ctx: any): any;
         sliderDef(ctx: any): any;
-        topLevel(ctx: any): any;
     }
 }
 
@@ -22,12 +21,12 @@ export interface FormulaASTNode {
 
 export interface SliderConfigASTNode {
     type: "sliderConfig",
-    from: any | null,
-    to: any | null,
+    min: any | null,
+    max: any | null,
     step: any | null,
 }
 
-FormulaVisitor.prototype.formula = function (ctx: any): FormulaASTNode {
+ExprDSLCSTVisitor.prototype.formula = function (ctx: any): FormulaASTNode {
     const { content, slider } = this.visit(ctx.inLevel) as { content: TopLevelASTNode, slider: SliderConfigASTNode | null };
     let rsVarDepType: RsVarDepType | null = null;
     let rsVars: string[] = [];
@@ -48,7 +47,7 @@ FormulaVisitor.prototype.formula = function (ctx: any): FormulaASTNode {
     }
 }
 
-FormulaVisitor.prototype.inLevel = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.inLevel = function (ctx: any) {
     const topLevel = this.visit(ctx.topLevel);
     const slider = ctx.sliderDef ? this.visit(ctx.sliderDef) : null;
     return {
@@ -57,7 +56,7 @@ FormulaVisitor.prototype.inLevel = function (ctx: any) {
     }
 }
 
-FormulaVisitor.prototype.sliderDef = function (ctx: any) {
+ExprDSLCSTVisitor.prototype.sliderDef = function (ctx: any) {
     const terms = this.batchVisit(ctx.term);
 
     let i = 0;
