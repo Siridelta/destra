@@ -11,9 +11,9 @@ describe('Realname API Tests', () => {
         test('should set and get realname correctly', () => {
             const vec1 = expl`(1, 2)` as VarExpl;
             vec1.id("physics.vec");
-            vec1.realname("v");
+            vec1.realname("v_ec");
             
-            expect(vec1.realname()).toBe("v");
+            expect(vec1.realname()).toBe("v_ec");
             expect(vec1.id()).toBe("physics.vec");
         });
 
@@ -25,7 +25,7 @@ describe('Realname API Tests', () => {
 
         test('should overwrite existing realname', () => {
             const vec1 = expl`(1, 2)` as VarExpl;
-            vec1.realname("v");
+            vec1.realname("v_ec");
             vec1.realname("v_elocity");
             expect(vec1.realname()).toBe("v_elocity");
         });
@@ -160,26 +160,26 @@ describe('Realname API Tests', () => {
         test('realname should be independent of ID', () => {
             const vec5 = expl`(1, 2)` as VarExpl;
             vec5.id("physics.velocity");
-            vec5.realname("v");
+            vec5.realname("v_el");
             
             expect(vec5.id()).toBe("physics.velocity");
-            expect(vec5.realname()).toBe("v");
+            expect(vec5.realname()).toBe("v_el");
         });
 
         test('changing ID should not affect realname', () => {
             const vec5 = expl`(1, 2)` as VarExpl;
             vec5.id("physics.velocity");
-            vec5.realname("v");
+            vec5.realname("v_el");
             
             vec5.id("math.speed");
             expect(vec5.id()).toBe("math.speed");
-            expect(vec5.realname()).toBe("v");
+            expect(vec5.realname()).toBe("v_el");
         });
 
         test('changing realname should not affect ID', () => {
             const vec5 = expl`(1, 2)` as VarExpl;
             vec5.id("math.speed");
-            vec5.realname("v");
+            vec5.realname("v_el");
 
             vec5.realname("v_elocity");
             expect(vec5.id()).toBe("math.speed");

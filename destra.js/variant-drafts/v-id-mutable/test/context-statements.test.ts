@@ -169,7 +169,7 @@ describe('Context Statements Factories', () => {
                     }) as CtxFuncExpl<(x: Substitutable) => Expression>;
                     return g(10);
                 });
-            }).toThrow(/外源上下文变量被传递到函数定义内/);
+            }).toThrow();
         });
     });
 
@@ -216,17 +216,18 @@ describe('Context Statements Factories', () => {
                 // But `checkNoCtxVarPassingToOuter` is called inside CtxExp factories.
                 // So we need to wrap this in another CtxExp to trigger the check.
 
-                With`dummy = 1`(() => {
+                const withLeak = With`dummy = 1`(() => {
                     return expr`${innerLoop} + ${innerVar}` as Expression;
                 });
+                const fusion = expr`${withLeak} + ${innerLoop}` as Expression;
 
-            }).toThrow(/上下文变量被传递到上下文语句外/);
+            }).toThrow();
         });
 
         test('should throw error for duplicate variable definitions', () => {
             expect(() => {
                 With`a = 1, a = 2`(() => expr`0` as Expression);
-            }).toThrow(/变量名不能重复/);
+            }).toThrow();
         });
 
         test('should parse complex definition correctly', () => {

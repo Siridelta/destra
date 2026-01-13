@@ -291,7 +291,7 @@ export interface FlattenedMultLevel {
     nodes: any[];
     opTypes: (MultDivLevelASTNode['type'] | ImplicitMultASTNode['type'])[];
 }
-export const flattenMultLevel = (ast: any): any => {
+export const flattenMultLevel = (ast: any): FlattenedMultLevel => {
     const nodes: FlattenedMultLevel['nodes'] = [];
     const ops: FlattenedMultLevel['opTypes'] = [];
 
@@ -318,7 +318,7 @@ export const flattenMultLevel = (ast: any): any => {
     visitMultDivLevel(ast);
     return {
         nodes,
-        ops,
+        opTypes: ops,
     }
 }
 export const unflattenMultLevel = (flattened: FlattenedMultLevel): any => {

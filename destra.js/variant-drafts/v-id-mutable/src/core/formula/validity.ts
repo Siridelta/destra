@@ -6,6 +6,7 @@ import { traverse } from "../expr-dsl/parse-ast/sematics/traverse-ast";
 declare module "../state" {
     interface CtxValidityState {
         missingCtxs: Set<CtxVar>;
+        downstreamCtxExps: Set<CtxExp>;
         hasInlineWith: boolean;
     }
 }
@@ -18,7 +19,7 @@ declare module "../state" {
 const getCtxValidityState = (f: Formula): CtxValidityState => {
     const s = getState(f).ctxValidity;
     if (!s) {
-        return { missingCtxs: new Set(), hasInlineWith: false };
+        return { missingCtxs: new Set(), downstreamCtxExps: new Set(), hasInlineWith: false };
     }
     return s;
 };
@@ -29,12 +30,13 @@ const getCtxValidityState = (f: Formula): CtxValidityState => {
  */
 export const evalCtxValidityState = (formula: Formula): CtxValidityState => {
     const missingCtxs = new Set<CtxVar>();
+    const downstreamCtxExps = new Set<CtxExp>();
     let hasInlineWith = false;
 
     // 1. CtxVar: Depends on itself (conceptually)
     if (formula instanceof CtxVar) {
         missingCtxs.add(formula);
-        return { missingCtxs, hasInlineWith: false };
+        return { missingCtxs, downstreamCtxExps, hasInlineWith: false };
     }
 
     // 2. Gather from dependencies (deps)
@@ -46,6 +48,9 @@ export const evalCtxValidityState = (formula: Formula): CtxValidityState => {
 
         for (const m of depState.missingCtxs) {
             missingCtxs.add(m);
+        }
+        for (const d of depState.downstreamCtxExps) {
+            downstreamCtxExps.add(d);
         }
         if (depState.hasInlineWith) {
             hasInlineWith = true;
@@ -90,9 +95,11 @@ export const evalCtxValidityState = (formula: Formula): CtxValidityState => {
         }
 
         // 4.2 Remove own variables from missingCtxs (Requirement Satisfaction)
+        // and add own CtxExp to downstreamCtxExps
         for (const v of formula.ctxVars) {
             missingCtxs.delete(v);
         }
+        downstreamCtxExps.add(formula);
 
         // 4.3 Illegal Nested With Check
         if (formula.ctxKind === 'with') {
@@ -104,7 +111,8 @@ export const evalCtxValidityState = (formula: Formula): CtxValidityState => {
             hasInlineWith = true;
         }
 
-    } else if (formula instanceof Expl) {
+    } 
+    if (formula instanceof Expl) {
         // Expl (VarExpl, FuncExpl)
 
         // 4.5 Expl blocks 'hasInlineWith' propagation
@@ -119,7 +127,17 @@ export const evalCtxValidityState = (formula: Formula): CtxValidityState => {
         }
     }
 
-    return { missingCtxs, hasInlineWith };
+    // 5. ctxVar escape test
+    // for every still missing ctxVar, check if it is in any downstreamCtxExps
+    // it is supposed to be eliminated, so if we can still find unsatisfied ctxVar beyond the CtxExp scope, it is a leak
+    for (const v of missingCtxs) {
+        const sourceCtx = getState(v).ctxVar?.sourceCtx;
+        if (sourceCtx && downstreamCtxExps.has(sourceCtx)) {
+            throw new TypeError(`CtxVar ${v.name} 逃逸到外部作用域。`);
+        }
+    }
+
+    return { missingCtxs, downstreamCtxExps, hasInlineWith };
 };
 
 /**

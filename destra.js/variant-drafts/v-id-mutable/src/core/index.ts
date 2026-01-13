@@ -11,18 +11,18 @@
 // 核心类型和基类，以及状态管理模块
 // ============================================================================
 
-import { 
+import {
     Formula, FormulaType,
-    Expression, ExplicitEquation, ImplicitEquation, Regression, 
+    Expression, ExplicitEquation, ImplicitEquation, Regression,
     VarExpl, type FuncExpl, Expl,
     type Substitutable,
     type CtxVar, type CtxExpression, type CtxVarExpl, type CtxFuncExpl, type CtxExpBody, type CtxExp
 } from "./formula/base";
 
-export { 
+export {
     type Formula, FormulaType,
-    type Expression, type ExplicitEquation, type ImplicitEquation, type Regression, 
-    type VarExpl, type FuncExpl, type Expl, 
+    type Expression, type ExplicitEquation, type ImplicitEquation, type Regression,
+    type VarExpl, type FuncExpl, type Expl,
     type Substitutable,
     type CtxVar, type CtxExpression, type CtxVarExpl, type CtxFuncExpl, type CtxExpBody, type CtxExp
 };
@@ -44,7 +44,7 @@ export { type Label, label };
 
 // 样式相关方法的原型注入，并导出样式相关类型
 import {
-    type LineStyle, type PointStyle, type DragMode, type LabelOrientation,
+    LineStyle, PointStyle, DragMode, LabelOrientation,
     type NumericStyleValue, type ColorStyleValue, type LabelTextValue,
     type DestraStyle,
     type EditorBase, type LeafEditor,
@@ -53,7 +53,7 @@ import {
 } from "./formula/style";
 import './formula/style';
 
-export { 
+export {
     LineStyle, PointStyle, DragMode, LabelOrientation,
     NumericStyleValue, ColorStyleValue, LabelTextValue,
     DestraStyle,

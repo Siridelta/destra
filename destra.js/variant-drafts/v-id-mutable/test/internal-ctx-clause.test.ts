@@ -24,7 +24,7 @@ describe('Internal Context Clause', () => {
         });
         test('should create an Int expression, dx at the beginning', () => {
             const result = expr`int(0, 1) dx x^2 + 1`;
-            const ast = getState(result).ast!.ast;
+            const ast = getState(result).ast!.root;
         });
         
     });

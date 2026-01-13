@@ -192,7 +192,7 @@ ExprDSLCSTVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
     }
 
     // only one node ?! good
-    if (flattened.ops.length === 0) {
+    if (flattened.opTypes.length === 0) {
         ctxVarName = matchMaybeDx(flattened.nodes[0]);
         if (!ctxVarName) {
             throw new Error(
@@ -203,24 +203,24 @@ ExprDSLCSTVisitor.prototype.int = function (ctx: any): IntClauseASTNode {
     }
 
     // Seek leftmost in mult/div chain - imult chain
-    if (flattened.ops[0] === 'iMult') {
+    if (flattened.opTypes[0] === 'implicitMult') {
         ctxVarName = matchMaybeDx(flattened.nodes[0]);
     }
     // shift left
     if (ctxVarName) {
         flattened.nodes.shift();
-        flattened.ops.shift();
+        flattened.opTypes.shift();
         return mkResult(ctxVarName, unflattenMultLevel(flattened));
     }
 
 
     // Seek rightmost in mult/div chain - imult chain
-    if (flattened.ops[flattened.ops.length - 1] === 'iMult') {
+    if (flattened.opTypes[flattened.opTypes.length - 1] === 'implicitMult') {
         ctxVarName = matchMaybeDx(flattened.nodes[flattened.nodes.length - 1]);
     }
     if (ctxVarName) {
         flattened.nodes.pop();
-        flattened.ops.pop();
+        flattened.opTypes.pop();
         return mkResult(ctxVarName, unflattenMultLevel(flattened));
     }
 

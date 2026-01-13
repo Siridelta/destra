@@ -112,7 +112,7 @@ export const realnamePattern = exactly(
         anyOf(...specialSymbolsPaged.greekLowerCase.chars),
         anyOf(...specialSymbolsPaged.greekUpperCase.chars),
     ).groupedAs("head"),
-    maybe(anyOf(
+    maybe(anyOf(exactly(
         "_",
         anyOf(
             oneOrMore(anyOf(letter, digit)).groupedAs("subscript1"),
@@ -122,7 +122,7 @@ export const realnamePattern = exactly(
                 "}",
             )
         )
-    )),
+    ))),
     exactly("").at.lineEnd(),
 );
 
@@ -140,7 +140,7 @@ export const realnamePattern = exactly(
 function normalizeName(name: string): string {
     const match = name.match(createRegExp(realnamePattern));
     if (!match) {
-        throw new TypeError("无效的 Desmos 变量名。");
+        throw new TypeError(`无效的 Desmos 变量名: ${name}`);
     }
 
     let finalName = name;
