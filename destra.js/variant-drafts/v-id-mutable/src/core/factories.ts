@@ -250,6 +250,7 @@ const createCtxExpressionIntermediate = <K extends CtxKindNotFunc>(
     // Logic after user passes callback
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxExpression(template, ctxVars, body, kind);
+        getState(result).ast ??= { ast };
 
         const rsVarsFromDef = ast.rsVars;
         const rsVarsFromBody =
@@ -303,6 +304,7 @@ const createCtxVarExplIntermediate = <K extends CtxKindNotFunc>(
     // Logic after user passes callback
     const mkResult = (body: CtxExpBody) => {
         const result = new CtxVarExpl(template, ctxVars, body, kind);
+        getState(result).ast ??= { ast };
 
         const rsVarsFromDef = ast.rsVars;
         const rsVarsFromBody =
@@ -399,6 +401,7 @@ export const Func = (strings: TemplateStringsArray, ...values: Substitutable[]) 
     ): CtxFuncExpl<TFunc> => {
         const body = callback(ctxObj);
         const result = createCallableCtxFuncExpl<TFunc>(template, params, ctxVars, body);
+        getState(result).ast ??= { ast };
 
         const rsVarsFromDef = ast.rsVars;
         const rsVarsFromBody =
