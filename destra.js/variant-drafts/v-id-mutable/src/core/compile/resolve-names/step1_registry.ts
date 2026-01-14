@@ -1,5 +1,5 @@
 
-import { CtxExp, CtxVar, Dt, Expl, Expression, Formula, Regression, RegrParam } from "../../formula/base";
+import { CtxExp, CtxVar, Dt, Expl, Expression, Formula, isNoAst, Regression, RegrParam } from "../../formula/base";
 import { Label } from "../../formula/label";
 import { normalizeName2 } from "../../formula/realname";
 import { getState } from "../../state";
@@ -38,10 +38,6 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
     for (const item of graph.root) {
         if (item instanceof Folder) {
             for (const child of item.children) {
-                if (child instanceof RegrParam) {
-                    context.regrParams.add(child);
-                    continue;
-                }
                 if (context.formulaToFolder.has(child)) {
                     throw new Error(`Formula is in multiple folders or appearing multiple times.`);
                 }
@@ -84,6 +80,8 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
         traverse(f, context, visited, unknownOwnership);
     }
 
+    const allEntries = [...context.rootFormulas, ...context.formulaToFolder.keys(), ...context.implicitRootFormulas];
+
     // After traversal, any Expl left in 'unknownOwnership' is an implicit root formula
     // Any Expression left in 'unknownOwnership' is a background formula
     for (const f of unknownOwnership) {
@@ -94,10 +92,19 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
         }
     }
 
+    // Move all RegrParams to Regression Parameters
+    for (const f of allEntries) {
+        if (f instanceof RegrParam) {
+            context.regrParams.add(f);
+            context.implicitRootFormulas.delete(f);
+            context.rootFormulas.delete(f);
+            context.formulaToFolder.delete(f);
+        }
+    }
+
     // Step 1.5: Structural Validity Check (Final Acceptance)
     // Check for CtxVar Leakage
-    const allRoots = [...context.rootFormulas, ...context.formulaToFolder.keys()];
-    for (const root of allRoots) {
+    for (const root of allEntries) {
         const state = getState(root);
         // ctxValidity is computed at creation time
         if (!state.ctxValidity) {
@@ -194,12 +201,6 @@ const traverse = (
         return;
     }
 
-    // If this formula was not claimed by root or folder (i.e. we reached it via dependency),
-    // and it is NOT in rootFormulas or formulaToFolder map, then it is currently "unknown".
-    if (!context.rootFormulas.has(formula) && !context.formulaToFolder.has(formula)) {
-        unknownOwnership.add(formula);
-    }
-
     // Register ID if it is an Expl
     if (formula instanceof Expl) {
         const id = formula.id();
@@ -220,6 +221,23 @@ const traverse = (
         context.idMap.set(id, formula);
     }
 
+    // RegrParam:
+    // Not engaged in records.
+    if (formula instanceof RegrParam) {
+        const regrParam = formula as RegrParam;
+        context.regrParams.add(regrParam);
+        return;
+    }
+    if (isNoAst(formula)) {
+        return;
+    }
+
+    // If this formula was not claimed by root or folder (i.e. we reached it via dependency),
+    // and it is NOT in rootFormulas or formulaToFolder map, then it is currently "unknown".
+    if (!context.rootFormulas.has(formula) && !context.formulaToFolder.has(formula)) {
+        unknownOwnership.add(formula);
+    }
+
     // Recurse on dependencies
     for (const dep of formula.deps) {
         if (dep instanceof Formula) {
@@ -229,7 +247,6 @@ const traverse = (
     // visit Regression produced RegrParams
     if (formula instanceof Regression) {
         for (const regrParam of Object.values(formula.regrParams)) {
-            context.regrParams.add(regrParam);
             traverse(regrParam, context, visited, unknownOwnership);
         }
     }

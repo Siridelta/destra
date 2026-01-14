@@ -8,6 +8,7 @@
 import { CtxFactoryHeadASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/ctx-header";
 import { type FormulaTypeInfo } from "../expr-dsl/analyzeFormulaType";
 import { getState } from "../state";
+import { _expr } from "../factories";
 
 // ============================================================================
 // 类型定义
@@ -411,7 +412,7 @@ export const createFunctionCallExpression = <TFunc extends FuncExplTFuncBase>(
         strings: Object.freeze(strings),
         values: Object.freeze(values),
     };
-    return new Expression(template);
+    return _expr(template) as Expression;
 };
 
 export const isFuncExpl = <TFunc extends FuncExplTFuncBase>(formula: Formula): formula is FuncExpl<TFunc> => {
@@ -632,3 +633,9 @@ export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplTFuncBase>
  * Substitutable：可代入模板字符串插值的值类型（原始值或可嵌入的表达式）
  */
 export type Substitutable = Embeddable | PrimitiveValue;
+
+export type NoAst = CtxVar | RegrParam | Dt;
+
+export const isNoAst = (formula: Formula): formula is NoAst => {
+    return formula instanceof CtxVar || formula instanceof RegrParam || formula instanceof Dt;
+}

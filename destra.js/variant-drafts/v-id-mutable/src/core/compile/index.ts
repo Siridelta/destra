@@ -1,5 +1,5 @@
-import { Folder, Graph, type Ticker } from "./types";
+import { Folder, Graph, type Ticker, TickerAction } from "./types";
 
 import './compile';
 
-export { Folder, Graph, Ticker };
+export { Folder, Graph, Ticker, TickerAction };

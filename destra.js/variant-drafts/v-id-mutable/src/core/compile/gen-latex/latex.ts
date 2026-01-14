@@ -8,8 +8,8 @@ export const l = {
     '=': '=',
     '==': '=',
 
-    '~': '\\sim',
-    '->': '\\to',
+    '~': '\\sim ',
+    '->': '\\to ',
     
     'opName': (name: string) => `\\operatorname{${name}}`,
 

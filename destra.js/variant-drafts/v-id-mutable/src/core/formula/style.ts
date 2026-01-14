@@ -28,6 +28,13 @@ export enum PointStyle {
     STAR = "STAR",
 }
 
+export enum LoopMode {
+    LOOP_FORWARD_REVERSE = "LOOP_FORWARD_REVERSE",
+    LOOP_FORWARD = "LOOP_FORWARD",
+    PLAY_ONCE = "PLAY_ONCE",
+    PLAY_INDEFINITELY = "PLAY_INDEFINITELY",
+}
+
 export enum DragMode {
     AUTO = "AUTO",
     NONE = "NONE",
@@ -89,6 +96,15 @@ export interface DestraStyle {
      * 颜色。
      */
     color?: ColorStyleValue;
+
+    /**
+     * 滑动条动画
+     */
+    slider?: {
+        playing?: boolean;
+        speed?: .05 | .1 | .15 | .2 | .35 | .5 | .75 | 1 | 1.5 | 2 | 3.5 | 5 | 7.5 | 10 | 15 | 20;
+        loopMode?: LoopMode;
+    };
 
     /**
      * 线条样式
@@ -158,7 +174,7 @@ export interface DestraStyle {
 
 // 定义所有一级属性 Key，维持与 Destra Style Schema 的一致性
 const styleKeys = [
-    'hidden', 'showParts', 'color', 'line', 'point', 'fill', 'label', 'click',
+    'hidden', 'showParts', 'color', 'slider', 'line', 'point', 'fill', 'label', 'click',
     'theta', 'phi', 't', 'u', 'v',
 ] as const;
 
@@ -183,6 +199,11 @@ const or = <T1, T2>(v1: Validator<T1>, v2: Validator<T2>): Validator<T1 | T2> =>
 const oneOf = <T extends string>(enumObj: Record<string, T>): Validator<T> => {
     const values = new Set(Object.values(enumObj));
     return (v): v is T => typeof v === 'string' && values.has(v as T);
+};
+
+const oneOfNumber = <T extends number>(enumObj: Record<string, T>): Validator<T> => {
+    const values = new Set(Object.values(enumObj));
+    return (v): v is T => typeof v === 'number' && values.has(v as T);
 };
 
 const isExpression = (v: unknown): v is Expression => v instanceof Expression;
@@ -222,6 +243,11 @@ const styleSchema = {
         label: isBoolean,
     },
     color: isColorStyleValue,
+    slider: {
+        playing: isBoolean,
+        speed: oneOfNumber({'.05': .05, '.1': .1, '.15': .15, '.2': .2, '.35': .35, '.5': .5, '.75': .75, '1': 1, '1.5': 1.5, '2': 2, '3.5': 3.5, '5': 5, '7.5': 7.5, '10': 10, '15': 15, '20': 20 } as const),
+        loopMode: oneOf(LoopMode),
+    },
     line: {
         style: oneOf(LineStyle),
         width: isNumericStyleValue,
@@ -293,6 +319,16 @@ export interface ShowPartsEditor extends EditorBase<NonUndefinedable<DestraStyle
 
     get label(): LeafEditor<boolean>;
     set label(v: boolean | undefined);
+}
+
+/**
+ * Slider Editor
+ */
+export interface SliderEditor extends EditorBase<NonUndefinedable<DestraStyle['slider']>> {
+    get playing(): LeafEditor<boolean>;
+    set playing(v: boolean | undefined);
+    get speed(): LeafEditor<.05 | .1 | .15 | .2 | .35 | .5 | .75 | 1 | 1.5 | 2 | 3.5 | 5 | 7.5 | 10 | 15 | 20>;
+    set speed(v: .05 | .1 | .15 | .2 | .35 | .5 | .75 | 1 | 1.5 | 2 | 3.5 | 5 | 7.5 | 10 | 15 | 20 | undefined);
 }
 
 /**
@@ -385,6 +421,9 @@ export interface RootStyleEditor extends EditorBase<DestraStyle> {
 
     get color(): LeafEditor<NonUndefinedable<DestraStyle['color']>>;
     set color(v: NonUndefinedable<DestraStyle['color']> | undefined);
+
+    get slider(): SliderEditor;
+    set slider(v: DeepPartial<NonUndefinedable<DestraStyle['slider']>> | undefined);
 
     get line(): LineEditor;
     set line(v: DeepPartial<NonUndefinedable<DestraStyle['line']>> | undefined);
@@ -685,6 +724,7 @@ declare module "./base" {
         hidden(config: boolean | ((editor: LeafEditor<boolean>) => void)): this;
         showParts(config: DeepPartial<NonUndefinedable<DestraStyle['showParts']>> | ((editor: ShowPartsEditor) => void)): this;
         color(config: NonUndefinedable<DestraStyle['color']> | ((editor: LeafEditor<NonUndefinedable<DestraStyle['color']>>) => void)): this;
+        slider(config: DeepPartial<NonUndefinedable<DestraStyle['slider']>> | ((editor: SliderEditor) => void)): this;
         line(config: DeepPartial<NonUndefinedable<DestraStyle['line']>> | ((editor: LineEditor) => void)): this;
         point(config: DeepPartial<NonUndefinedable<DestraStyle['point']>> | ((editor: PointEditor) => void)): this;
         fill(config: DeepPartial<NonUndefinedable<DestraStyle['fill']>> | ((editor: FillEditor) => void)): this;
@@ -701,6 +741,7 @@ declare module "./base" {
         setHidden(val: boolean): this;
         setShowParts(val: NonUndefinedable<DestraStyle['showParts']>): this;
         setColor(val: NonUndefinedable<DestraStyle['color']>): this;
+        setSlider(val: NonUndefinedable<DestraStyle['slider']>): this;
         setLine(val: NonUndefinedable<DestraStyle['line']>): this;
         setPoint(val: NonUndefinedable<DestraStyle['point']>): this;
         setFill(val: NonUndefinedable<DestraStyle['fill']>): this;

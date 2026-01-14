@@ -17,7 +17,7 @@ import {
     ScopeNode,
     UdVarScopeNode
 } from "../types";
-import { makeSuffixed } from "./step2_globalRealname";
+import { makeSuffixed, transformId } from "./step2_globalRealname";
 
 let scopeIdCounter = 0;
 type ScopeNodeBase = Omit<BaseScopeNode, 'id' | 'children' | 'parents' | 'definedVars' | 'forbiddenNames' | 'usedNames' | 'upstreamForcedNames' | 'forcedNames'>;
@@ -57,7 +57,13 @@ export const ctxRealnameResolution = (context: CompileContext) => {
     };
 
     const visited = new Set<Formula>();
-    const queue = [...context.rootFormulas, ...context.formulaToFolder.keys()];
+    const queue = [
+        ...context.rootFormulas,
+        ...context.formulaToFolder.keys(),
+        ...context.implicitRootFormulas,
+        ...context.backgroundFormulas,
+        ...context.regrParams,
+    ];
 
     // BFS to find all formulas and build Users graph
     while (queue.length > 0) {
@@ -268,7 +274,7 @@ export const ctxRealnameResolution = (context: CompileContext) => {
 
 
         for (const v of varsToResolve) {
-            let finalName = v.originalName;
+            let finalName = transformId(v.originalName);
 
             if (v.forcedName) {
                 // Prevent conflict with upstream forced names, and add to forcedNames

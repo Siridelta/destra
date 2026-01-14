@@ -49,10 +49,10 @@ export interface GraphSettings {
     squareAxes?: boolean;
     userLockedViewport?: boolean;
     viewport?: {
-        xmin: NumericStyleValue;
-        xmax: NumericStyleValue;
-        ymin: NumericStyleValue;
-        ymax: NumericStyleValue;
+        xmin: number;
+        xmax: number;
+        ymin: number;
+        ymax: number;
     };
     // Note: Without script approaches a user can only have the two always the same value
     xAxisArrowMode?: "NONE" | "POSITIVE" | "BOTH";
@@ -78,7 +78,7 @@ export interface Ticker {
     minStep?: NumericStyleValue;
     handler?: ActionStyleValue | TickerAction;
     playing?: boolean;
-    open?: boolean;
+    open?: boolean;    // if handler is present, default to true
     secret?: boolean;
 }
 

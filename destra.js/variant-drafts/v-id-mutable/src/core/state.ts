@@ -133,6 +133,6 @@ function getState(obj: Formula | Label): FormulaState | LabelState {
     if (obj instanceof Label) {
         return getLabelState(obj);
     }
-    throw new Error('Invalid object type');
+    throw new Error('Invalid object type:');
 }
 export { getState };

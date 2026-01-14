@@ -17,7 +17,7 @@ const sortedGreek = [...greekLetters].sort((a, b) => b.length - a.length);
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const transformId = (id: string): string => {
+export const transformId = (id: string): string => {
     // Remove underscores if every segment has them
     const parts = id.split('.').map(p => p.replace(/_/g, ''));
 

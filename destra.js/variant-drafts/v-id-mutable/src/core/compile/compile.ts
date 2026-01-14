@@ -1,5 +1,5 @@
 import { CtxFactoryHeadASTNode, FormulaASTNode } from "../expr-dsl/parse-ast";
-import { CtxVar, Formula } from "../formula/base";
+import { CtxVar, Formula, isNoAst, RegrParam } from "../formula/base";
 import { ActionStyleValue, ColorStyleValue, LabelTextValue, NumericStyleValue } from "../formula/style";
 import { getState } from "../state";
 import { ASTParenAdder } from "./ast-normalize/add-parens";
@@ -141,7 +141,7 @@ Graph.prototype.export = function (config?: exportConfig) {
     config = { ...defaultExportConfig, ...config };
     const ctx = resolveGraph(this);
     ctx.topoSort.forEach(f => {
-        if (f instanceof CtxVar) return;
+        if (isNoAst(f)) return;
         normalizeAST(f, ctx);
         compileFormula(f, ctx);
     });
@@ -163,6 +163,9 @@ Graph.prototype.export = function (config?: exportConfig) {
                 min: result.slider.min,
                 max: result.slider.max,
                 step: result.slider.step,
+                isPlaying: style.slider?.playing,
+                animationPeriod: style.slider?.speed ? 4000 / style.slider.speed : undefined,
+                loopMode: style.slider?.loopMode,
             } : undefined,
 
             hidden: style.hidden,
@@ -229,7 +232,7 @@ Graph.prototype.export = function (config?: exportConfig) {
         return {
             handlerLatex: actionToLatex(ticker.handler, ctx),
             minStepLatex: numericToLatex(ticker.minStep, ctx),
-            open: ticker.open,
+            open: ticker.open ?? (ticker.handler ? true : undefined),
             playing: ticker.playing,
             secret: ticker.secret,
         };
@@ -250,7 +253,7 @@ Graph.prototype.export = function (config?: exportConfig) {
         implicitRootStates.push(buildDesmosExpressionState(f, (idCounter++).toString()));
     }
 
-    for (const f of this.root) {
+    for (const f of ctx.rootFormulas) {
         if (f instanceof Folder) {
             const folderId = (idCounter++).toString();
             desmosExpressionList.push(buildFolderState(f.title, folderId));
@@ -272,10 +275,10 @@ Graph.prototype.export = function (config?: exportConfig) {
 
     // state.graph
     const viewportField = this.settings?.viewport ? {
-        xmin: Number(numericToLatex(this.settings?.viewport?.xmin, ctx)),
-        xmax: Number(numericToLatex(this.settings?.viewport?.xmax, ctx)),
-        ymin: Number(numericToLatex(this.settings?.viewport?.ymin, ctx)),
-        ymax: Number(numericToLatex(this.settings?.viewport?.ymax, ctx)),
+        xmin: this.settings?.viewport?.xmin ?? -10,
+        xmax: this.settings?.viewport?.xmax ?? 10,
+        ymin: this.settings?.viewport?.ymin,
+        ymax: this.settings?.viewport?.ymax,
     } : undefined;
     const graphField = {
         complex: this.settings?.complex,

@@ -1,0 +1,19 @@
+{
+  "name": "test1-from-npm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@ad-destra/destra": "latest",
+    "@ad-destra/vite-plugin-destra": "latest",
+    "vite": "^6.4.1"
+  }
+}

@@ -42,20 +42,18 @@ export const NumberLiteral = createToken({
                         digit.times.any(),
                     ),
                 ),
-                maybe(
-                    anyOf(
-                        // 只有小数点，需要做后续点号的检测
-                        exactly(".")
-                            .notBefore(
-                                exactly("..").notBefore("."),
-                            ),
-                        // 小数点后面有数字，正常解析
-                        exactly(
-                            ".",
-                            digit.times.atLeast(1),
+                maybe(anyOf(
+                    // 小数点后面有数字，正常解析
+                    exactly(
+                        ".",
+                        digit.times.atLeast(1),
+                    ),
+                    // 只有小数点，需要做后续点号的检测
+                    exactly(".")
+                        .notBefore(
+                            exactly("..").notBefore("."),
                         ),
-                    )
-                )
+                ))
             ),
             // 无整数部分，必带小数部分，.456, .4567, ...
             exactly(

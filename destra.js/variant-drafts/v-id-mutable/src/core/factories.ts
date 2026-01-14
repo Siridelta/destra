@@ -5,7 +5,7 @@
  * 以及提供 `For`, `With`, `Sum`, `Int`, `Func` 等上下文语句工厂函数。
  */
 
-import { Substitutable, Expr, Expl, Formula, CtxExpBody, FuncExpl, RegrParam } from "./formula/base";
+import { Substitutable, Expr, Expl, Formula, CtxExpBody, FuncExpl, RegrParam, TemplatePayload } from "./formula/base";
 import {
     FormulaType,
     createTemplatePayload,
@@ -90,6 +90,12 @@ interface ExprFactory {
  */
 export const expr: ExprFactory = Object.assign((strings: TemplateStringsArray, ...values: Substitutable[]): Expr => {
     const template = createTemplatePayload(strings, values);
+    return _expr(template);
+}, {
+    type: 'expr' as const
+});
+
+export const _expr = (template: TemplatePayload): Expr => {
     const ast = parseFormula(template);
     const info = analyzeTypeAndCheck(ast, "expr");
 
@@ -118,9 +124,7 @@ export const expr: ExprFactory = Object.assign((strings: TemplateStringsArray, .
     evalAndSetCtxValidityState(result);
 
     return result;
-}, {
-    type: 'expr' as const
-});
+}
 
 let explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl => {
     // Parse and analyze
@@ -142,6 +146,13 @@ let explFn = (strings: TemplateStringsArray, ...values: Substitutable[]): Expl =
             const funcExpl = createCallableFuncExpl(template, info);
             result = funcExpl;
             break;
+    }
+
+    if (ast.content.type === "functionDefinition") {
+        const name = ast.content.name;
+        if (name) {
+            result.id(name);
+        }
     }
 
     // Set Sidecar states
