@@ -3,6 +3,7 @@ import { DivisionASTNode, isPrefixLevelASTNode } from "../../../expr-dsl/parse-a
 import { isPostfixLevelASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/postfix-level";
 import { possibleAmbiguousImages, toCharflowImage } from "../../../expr-dsl/syntax-reference/mathquill-charflow";
 import { Leaf, PercentIR } from "./collapse";
+import { stringifyFormula } from "../../../error";
 
 
 declare module './base' {
@@ -157,7 +158,7 @@ MultDivArranger.prototype.charflowCheckAndBreak = function (items: I[]): I[][] {
                     destraImage = target.toString();
                 } else {
                     destraImage = this.compileContext.globalRealnameMap.get(target) ?? null;
-                    if (!destraImage) throw new Error(`Internal Error: Global realname not found for ${target}`);
+                    if (!destraImage) throw new Error(`Internal Error: Global realname not found for ${stringifyFormula(target)}`);
                 }
             } else if (currNode.type === 'builtinFunc') {
                 destraImage = currNode.name;

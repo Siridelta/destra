@@ -202,6 +202,7 @@ Expl.prototype.applyIdDrvs = function (this: Expl, drvs: (DrvData | CustomIdDeri
 // ============================================================================
 
 for (const methodName of idMutableMethods) {
+    if (methodName === 'applyIdDrvs') continue;
     Object.defineProperty(Expl.prototype, methodName, {
         value: function (this: Expl, ...args: Parameters<IdMutable[typeof methodName]>): Expl {
 

@@ -1,8 +1,10 @@
+import { traceSubstitution } from "../../../expr-dsl/parse-ast";
 import { getASTChildPaths, getChildByPath } from "../../../expr-dsl/parse-ast/sematics/traverse-ast";
 import { BuiltinFuncCallASTNode, ParenExpASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/atomic-exps";
 import { CrossASTNode, DivisionASTNode, ImplicitMultASTNode, isUpToMultDivLevelASTNode, MultiplicationASTNode, OmittedCallASTNode, PercentOfASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/multDiv-level";
+import { SubstitutionASTNode } from "../../../expr-dsl/parse-ast/sematics/visitor-parts/terminals";
 import { ASTVisitorWithDefault } from "../../../expr-dsl/visit-ast/visitor-withdefault";
-import { Formula } from "../../../formula/base";
+import { Expl, Formula } from "../../../formula/base";
 import { CompileContext } from "../../types";
 import { checkLevelWithSubst, wrapWithParentheses } from "../utils";
 
@@ -74,6 +76,9 @@ export interface MultDivArranger {
     implicitMult(node: ImplicitMultASTNode, context: MultDivArrangerContext): ImplicitMultASTNode;
 
     parenExp(node: ParenExpASTNode, context: MultDivArrangerContext): ParenExpASTNode;
+
+    // temporarily always wrap substitution for non expls (well....)
+    substitution(node: SubstitutionASTNode, context: MultDivArrangerContext): SubstitutionASTNode | ParenExpASTNode;
 
     backTrack(node: MultDivChunkNode | ParenExpASTNode): MultDivChunkNode | ParenExpASTNode;
     chunkTop(node: MultDivChunkNode): MultDivChunkNode;
@@ -147,6 +152,12 @@ MultDivArranger.prototype.omittedCall = function (node: OmittedCallASTNode, cont
         func: node.func,
         args: [node.arg],
     };
+}
+
+MultDivArranger.prototype.substitution = function (node: SubstitutionASTNode, context: MultDivArrangerContext): SubstitutionASTNode | ParenExpASTNode {
+    if (traceSubstitution(node, this.targetFormula) instanceof Expl)
+        return node;
+    return wrapWithParentheses(node);
 }
 
 // --- Chunked processing ---

@@ -1,9 +1,11 @@
-import { CtxExp, CtxVar, Dt, Expl, Expression, Formula, Regression, RegrParam } from "../../formula/base";
+import { CtxExp, CtxVar, Dt, Expl, Expression, Formula, Image, Regression, RegrParam } from "../../formula/base";
 import { isNoAst } from "../../formula/types";
 import { Label } from "../../formula/label";
 import { normalizeName2 } from "../../formula/realname";
 import { getState } from "../../state";
 import { CompileContext, Folder, Graph, TickerAction } from "../types";
+import { stringifyFormula } from "../../error";
+import { Selection, traverseSelection, traverseSelectionOrFormula } from "../../selection";
 
 export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
     const context: CompileContext = {
@@ -35,29 +37,37 @@ export const registryAndCollisionCheck = (graph: Graph): CompileContext => {
     const unknownOwnership = new Set<Formula>();
 
     // 1. Process explicit roots
+
+    const processFolderChild = (child: Formula, folder: Folder) => {
+        if (context.formulaToFolder.has(child)) {
+            throw new Error(`Formula is in multiple folders or appearing multiple times.`);
+        }
+        if (context.rootFormulas.has(child)) {
+            throw new Error(`Formula cannot be both a root item and inside a folder.`);
+        }
+        context.formulaToFolder.set(child, folder);
+        unknownOwnership.delete(child); // Claimed
+        traverse(child, context, visited, unknownOwnership);
+    }
+    const processRootItem = (item: Formula) => {
+        if (context.formulaToFolder.has(item)) {
+            throw new Error(`Formula cannot be both a root item and inside a folder.`);
+        }
+        if (context.rootFormulas.has(item)) {
+            throw new Error(`Formula appears multiple times in root.`);
+        }
+        context.rootFormulas.add(item);
+        unknownOwnership.delete(item); // Claimed
+        traverse(item, context, visited, unknownOwnership);
+    }
+
     for (const item of graph.root) {
         if (item instanceof Folder) {
             for (const child of item.children) {
-                if (context.formulaToFolder.has(child)) {
-                    throw new Error(`Formula is in multiple folders or appearing multiple times.`);
-                }
-                if (context.rootFormulas.has(child)) {
-                    throw new Error(`Formula cannot be both a root item and inside a folder.`);
-                }
-                context.formulaToFolder.set(child, item);
-                unknownOwnership.delete(child); // Claimed
-                traverse(child, context, visited, unknownOwnership);
+                traverseSelectionOrFormula(child, (child) => processFolderChild(child, item));
             }
-        } else if (item instanceof Formula) {
-            if (context.formulaToFolder.has(item)) {
-                throw new Error(`Formula cannot be both a root item and inside a folder.`);
-            }
-            if (context.rootFormulas.has(item)) {
-                throw new Error(`Formula appears multiple times in root.`);
-            }
-            context.rootFormulas.add(item);
-            unknownOwnership.delete(item); // Claimed
-            traverse(item, context, visited, unknownOwnership);
+        } else {
+            traverseSelectionOrFormula(item, processRootItem);
         }
     }
     const notFromRoot: Set<any> = new Set();
@@ -208,7 +218,7 @@ const traverse = (
             // In creation form, auto-ID should be generated. Empty ID is invalid at compile time.
             throw new Error(
                 `Formula found with empty ID during compilation.`
-                + `Formula: ${formula['_content']}`
+                + `Formula: ${stringifyFormula(formula)}`
             );
         }
 
@@ -228,9 +238,9 @@ const traverse = (
         context.regrParams.add(regrParam);
         return;
     }
-    if (isNoAst(formula)) {
-        return;
-    }
+    // if (isNoAst(formula)) {
+    //     return;
+    // }
 
     // If this formula was not claimed by root or folder (i.e. we reached it via dependency),
     // and it is NOT in rootFormulas or formulaToFolder map, then it is currently "unknown".

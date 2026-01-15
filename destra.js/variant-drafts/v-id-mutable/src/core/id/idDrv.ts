@@ -10,7 +10,7 @@ import { idSegmentPattern } from "../expr-dsl/syntax-reference/commonRegExpPatte
 export type CustomIdDerivation = (initialId: string) => string;
 
 export type DrvDataTypes = {
-    [KMethodName in keyof IdMutable]: {
+    [KMethodName in Exclude<keyof IdMutable, 'applyIdDrvs'>]: {
         kind: KMethodName;
         data: Parameters<IdMutable[KMethodName]>;
     }
@@ -19,7 +19,7 @@ export type DrvDataTypes = {
 export type DrvData = DrvDataTypes[keyof DrvDataTypes];
 
 export type DrvFuncsType = {
-    [KMethodName in keyof IdMutable]: (idData: IdData, drvData: DrvDataTypes[KMethodName]['data']) => IdData
+    [KMethodName in Exclude<keyof IdMutable, 'applyIdDrvs'>]: (idData: IdData, drvData: DrvDataTypes[KMethodName]['data']) => IdData
 }
 
 export const drvFuncs = {

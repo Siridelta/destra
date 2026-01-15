@@ -1,3 +1,4 @@
+import { Formula } from "./formula/base";
 import { IdMutable, idMutableMethods, isIdMutable } from "./id/idMutable";
 
 /**
@@ -36,6 +37,7 @@ export const selection = <T extends Record<string, IdMutable>>(items: T): Select
                     const item = items[key];
                     // 递归调用 idMutable 项的 methodName 方法
                     if (!isIdMutable(item)) continue;
+                    // @ts-ignore
                     item[methodName](...args);
                 }
                 return this;
@@ -48,3 +50,24 @@ export const selection = <T extends Record<string, IdMutable>>(items: T): Select
     Object.freeze(sel);
     return sel;
 };
+
+
+export const traverseSelection = (selection: any, callback: (item: Formula) => void) => {
+    if (!(typeof selection === 'object' && selection !== null)) return;
+    for (const key in selection) {
+        const item = selection[key];
+        if (item instanceof Formula) {
+            callback(item);
+        } else if (typeof item === 'object' && item !== null) {
+            traverseSelection(item, callback);
+        }
+    }
+}
+
+export const traverseSelectionOrFormula = (selection: any, callback: (item: Formula) => void) => {
+    if (selection instanceof Formula) {
+        callback(selection);
+    } else if (typeof selection === 'object' && selection !== null) {
+        traverseSelection(selection, callback);
+    }
+}

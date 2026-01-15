@@ -1,4 +1,4 @@
-import { expr, expl, builder, Substitutable, Expression, FuncExpl } from "@ad-destra/destra";
+import { expr, expl, builder, Substitutable, Expression, FuncExpl, VarExpl, selection } from "@ad-destra/destra";
 
 
 // Toolkit to establish a coordinate system
@@ -46,7 +46,7 @@ const makeCoordSystem = builder(
             mathHeight = config.yMax - config.yMin;
         }
 
-        const toCS_x = expl`(x) => (x - ${xMid}) / ${mathWidth} + 0.5)` as FuncExpl<(x: Substitutable) => Expression>;
+        const toCS_x = expl`(x) => (x - ${xMid}) / ${mathWidth} + 0.5` as FuncExpl<(x: Substitutable) => Expression>;
         const toCS_y = expl`(y) => ((y - ${yMid}) / ${mathHeight} + 0.5) * height / width` as FuncExpl<(y: Substitutable) => Expression>;
         const toCSCoord = expl`(p) => (${toCS_x}(p.x), ${toCS_y}(p.y))` as FuncExpl<(p: Substitutable) => Expression>;
 
@@ -55,17 +55,20 @@ const makeCoordSystem = builder(
         const fromCSCoord = expl`(p) => (${fromCS_x}(p.x), ${fromCS_y}(p.y))` as FuncExpl<(p: Substitutable) => Expression>;
 
         // the yMax in the custom coordinate system
-        const yMaxCS = expl`height / width` as Expression;
+        const yMaxCS = expl`height / width` as VarExpl;
 
-        toCS_x.id("toCS_x").applyIdDrvs(idDrvs);
-        toCS_y.id("toCS_y").applyIdDrvs(idDrvs);
-        toCSCoord.id("toCSCoord").applyIdDrvs(idDrvs);
-        fromCS_x.id("fromCS_x").applyIdDrvs(idDrvs);
-        fromCS_y.id("fromCS_y").applyIdDrvs(idDrvs);
-        fromCSCoord.id("fromCSCoord").applyIdDrvs(idDrvs);
+        toCS_x.id("toCS_x").hidden(true);
+        toCS_y.id("toCS_y").hidden(true);
+        toCSCoord.id("toCSCoord").hidden(true);
+        fromCS_x.id("fromCS_x").hidden(true);
+        fromCS_y.id("fromCS_y").hidden(true);
+        fromCSCoord.id("fromCSCoord").hidden(true);
+        yMaxCS.id("yMaxCS").hidden(true);
+
+        
 
 
-        return {
+        return selection({
             toCSCoord,
             toCS_x,
             toCS_y,
@@ -73,7 +76,7 @@ const makeCoordSystem = builder(
             fromCS_x,
             fromCS_y,
             yMaxCS,
-        };
+        }).applyIdDrvs(idDrvs);
     }
 )
 

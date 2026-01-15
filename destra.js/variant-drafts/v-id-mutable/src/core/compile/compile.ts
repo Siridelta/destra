@@ -1,5 +1,5 @@
 import { CtxFactoryHeadASTNode, FormulaASTNode } from "../expr-dsl/parse-ast";
-import { Expression, Formula, VarExpl, Image } from "../formula/base";
+import { Expression, Formula, VarExpl, Image, Expl } from "../formula/base";
 import { ActionStyleValue, ColorStyleValue, isPointPrimitiveStyleValue, LabelTextValue, NumericStyleValue, PointStyleValue } from "../formula/style";
 import { getState } from "../state";
 import { isNoAst } from "../formula/types";
@@ -13,6 +13,8 @@ import { registryAndCollisionCheck } from "./resolve-names/step1_registry";
 import { globalRealnameResolution } from "./resolve-names/step2_globalRealname";
 import { ctxRealnameResolution } from "./resolve-names/step3_ctxRealname";
 import { CompileContext, Folder, Graph, Ticker, TickerAction } from "./types";
+import { stringifyFormula } from "../error";
+import { traverseSelection, traverseSelectionOrFormula } from "../selection";
 
 export { Folder, Graph, type FolderInput, type GraphInput, type GraphSettings, type Ticker } from "./types";
 
@@ -89,11 +91,17 @@ function compileFormula(f: Formula, ctx: CompileContext, force: boolean = false)
         return maybeCompileResult;
     }
 
-    const compileResult = new LatexCompiler(
-        ctx, f,
-        (f_dep) => compileFormula(f_dep, ctx),
-        (f_ast) => normalizeAST(f_ast, ctx),
-    ).compile();
+    let compileResult: CompileResult;
+    try {
+        compileResult = new LatexCompiler(
+            ctx, f,
+            (f_dep) => compileFormula(f_dep, ctx),
+            (f_ast) => normalizeAST(f_ast, ctx),
+        ).compile();
+    } catch (e) {
+        console.error(`Error compiling formula ${stringifyFormula(f)}:\n${(e as Error).message}`);
+        throw e;
+    }
 
     getState(f).compile!.compileResult = compileResult;
 
@@ -285,11 +293,13 @@ const buildDesmosFormulaState = (f: Formula, ctx: CompileContext, id: string, fo
     return buildDesmosExpressionState(f, ctx, id, folderId);
 }
 
-const buildFolderState = (title: string, folderId: string) => {
+const buildFolderState = (folder: Folder, folderId: string) => {
     return {
         type: 'folder',
-        id: folderId,
-        title: title,
+        id: folder.options.id ?? folderId,
+        title: folder.title,
+        collapsed: folder.options.collapsed,
+        hidden: folder.options.hidden,
     };
 }
 const buildTickerState = (ticker: Ticker | undefined, ctx: CompileContext) => {
@@ -324,41 +334,48 @@ Graph.prototype.export = function (config?: exportConfig) {
         compileFormula(f, ctx);
     });
 
+    // clone the graph root
+    const graphRoot = [...this.root];
     const desmosFormulaList: any[] = [];
-
     let idCounter = 0;
 
-    const implicitRootStates: any[] = [];
+    let implicitRootFolderId: string | undefined;
     if (this.destraSettings.implicitRootFolder) {
-        desmosFormulaList.push(
-            buildFolderState(
-                this.destraSettings.implicitRootFolder.title,
-                this.destraSettings.implicitRootFolder.id ?? (idCounter++).toString()
-            )
-        );
-    }
-    for (const f of ctx.implicitRootFormulas) {
-        implicitRootStates.push(buildDesmosFormulaState(f, ctx, (idCounter++).toString()));
+        const folder = new Folder({
+            title: this.destraSettings.implicitRootFolder.title,
+            children: [...ctx.implicitRootFormulas],
+            options: {
+                id: this.destraSettings.implicitRootFolder.id ?? (idCounter++).toString(),
+            },
+        });
+        if (this.destraSettings.implicitRootPosition === 'TOP') {
+            graphRoot.unshift(folder);
+        } else {
+            graphRoot.push(folder);
+        }
+    } else {
+        graphRoot.unshift(...ctx.implicitRootFormulas);
     }
 
-    for (const f of ctx.rootFormulas) {
+    for (const f of graphRoot) {
         if (f instanceof Folder) {
             const folderId = (idCounter++).toString();
-            desmosFormulaList.push(buildFolderState(f.title, folderId));
+            desmosFormulaList.push(buildFolderState(f, folderId));
             for (const child of f.children) {
-                desmosFormulaList.push(buildDesmosFormulaState(child, ctx, (idCounter++).toString(), folderId));
+                traverseSelectionOrFormula(child, (child: Formula) =>
+                    desmosFormulaList.push(
+                        buildDesmosFormulaState(child, ctx, (idCounter++).toString(), folderId)
+                    )
+                );
             }
         }
         else {
-            desmosFormulaList.push(buildDesmosFormulaState(f, ctx, (idCounter++).toString(), undefined));
+            traverseSelectionOrFormula(f, (f: Formula) =>
+                desmosFormulaList.push(
+                    buildDesmosFormulaState(f, ctx, (idCounter++).toString(), undefined)
+                )
+            );
         }
-    }
-
-    if (this.destraSettings.implicitRootPosition === 'TOP') {
-        desmosFormulaList.unshift(...implicitRootStates);
-    }
-    else {
-        desmosFormulaList.push(...implicitRootStates);
     }
 
     // state.graph
