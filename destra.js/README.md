@@ -21,28 +21,20 @@ pnpm init
 
 1.2. 安装 Destra.js 和 Vite：
 ```bash
-npm install --save-dev @ad-destra/destra @ad-destra/vite-plugin-destra vite
+npm install --save-dev @ad-destra/destra@alpha @ad-destra/vite-plugin-destra@alpha vite
 ```
 
 或者使用 pnpm：
 ```bash
-pnpm install --save-dev @ad-destra/destra @ad-destra/vite-plugin-destra vite
+pnpm install --save-dev @ad-destra/destra@alpha @ad-destra/vite-plugin-destra@alpha vite
 ```
 
+现阶段我会仅在 alpha 频道里频繁更新版本，建议加入 alpha 频道（如上安装命令所示）以接收到最新更新。
 
-1.3. 修改 package.json 文件，将 destra 的依赖改为 latest
+接收更新时使用 `pnpm update` 或 `npm update` 命令更新。如果使用 update 命令无法进行更新，请尝试重新运行上面的安装命令**重新安装**。
 
-这样可以最快速度接收到我推送到 npm 的更新
 
-```json
-"dependencies": {
-    "@ad-destra/destra": "latest",
-    "@ad-destra/vite-plugin-destra": "latest"
-    // ... other dependencies
-}
-```
-
-1.4. 创建 vite.config.ts 文件：
+1.3. 创建 vite.config.ts 文件：
 ```ts
 import { defineConfig } from 'vite';
 import destraPlugin from '@ad-destra/vite-plugin-destra';
