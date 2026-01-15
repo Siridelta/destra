@@ -255,7 +255,7 @@ const buildDesmosImageState = (image: Image, ctx: CompileContext, id: string, fo
         type: 'image',
         id: id,
         folderId: folderId,
-        url: image.url,
+        image_url: image.url,
         name: image.name,
         center: pointToLatex(image.options.center, ctx),
         width: numericToLatex(image.options.width, ctx),
@@ -302,6 +302,19 @@ const buildTickerState = (ticker: Ticker | undefined, ctx: CompileContext) => {
         secret: ticker.secret,
     };
 }
+
+const cleanUndefinedFields = (obj: any) => {
+    for (const k in obj) {
+        if (obj[k] === undefined) {
+            delete obj[k];
+        }
+        if (typeof obj[k] === 'object' && obj[k] !== null) {
+            obj[k] = cleanUndefinedFields(obj[k]);
+        }
+    }
+    return obj;
+}
+
 Graph.prototype.export = function (config?: exportConfig) {
     config = { ...defaultExportConfig, ...config };
     const ctx = resolveGraph(this);
@@ -380,7 +393,7 @@ Graph.prototype.export = function (config?: exportConfig) {
         randomSeed: this.settings?.randomSeed,
     }
 
-    return {
+    return cleanUndefinedFields({
         version: config.version,
         graph: graphField,
         // Recall: Desmos used to call it 'expressions', but in destra for clarity we always call it 'formulas'.
@@ -389,6 +402,6 @@ Graph.prototype.export = function (config?: exportConfig) {
             list: desmosFormulaList,
             ticker: buildTickerState(this.ticker, ctx),
         }
-    }
+    });
 
 };

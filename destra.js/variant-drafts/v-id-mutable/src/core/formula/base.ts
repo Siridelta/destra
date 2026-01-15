@@ -633,7 +633,8 @@ export class Image extends Formula {
             if (dimensions) {
                 const [picWidth, picHeight] = dimensions;
                 options.height = 10;
-                options.width = expr`${picWidth} / ${picHeight} * ${options.height}` as Expression;
+                // options.width = expr`${picWidth} / ${picHeight} * ${options.height}` as Expression;
+                options.width = picWidth / picHeight * options.height;
             }
         }
 

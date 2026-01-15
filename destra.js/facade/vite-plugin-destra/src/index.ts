@@ -1,5 +1,4 @@
 import type { Plugin, ViteDevServer } from 'vite';
-import path from 'path';
 
 interface DestraPluginOptions {
     entry: string; // 图表定义文件
