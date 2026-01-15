@@ -5,33 +5,19 @@
  * 以及提供 `For`, `With`, `Sum`, `Int`, `Func` 等上下文语句工厂函数。
  */
 
-import { Substitutable, Expr, Expl, Formula, CtxExpBody, FuncExpl, RegrParam, TemplatePayload } from "./formula/base";
-import {
-    FormulaType,
-    createTemplatePayload,
-    Expression,
-    ExplicitEquation,
-    ImplicitEquation,
-    Regression,
-    VarExpl,
-    createCallableFuncExpl,
-    CtxVar,
-    CtxExpression,
-    CtxVarExpl,
-    createCallableCtxFuncExpl,
-    type FuncExplTFuncBase,
-    type CtxFuncExpl,
-    type CtxExp,
-    isCtxExp,
-} from "./formula/base";
-import { getState } from "./state";
-import { FormulaASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/formula";
-import { analyzeRsVarDepType, arrayUnion, parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula, RsVarDepType, scanUdRsVarRefs } from "./expr-dsl/parse-ast";
 import { analyzeTypeAndCheck } from "./expr-dsl/analyzeFormulaType";
+import { analyzeRsVarDepType, arrayUnion, parseCtxFactoryExprDefHead, parseCtxFactoryNullDefHead, parseCtxFactoryRangeDefHead, parseFormula, RsVarDepType } from "./expr-dsl/parse-ast";
 import { CtxFactoryHeadASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/ctx-header";
-
-import { evalAndSetCtxValidityState } from "./formula/validity";
+import { FormulaASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/formula";
 import { RegressionASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/top-level";
+import {
+    createCallableCtxFuncExpl, createCallableFuncExpl, createTemplatePayload, type CtxExp, CtxExpBody, CtxExpression, type CtxFuncExpl, CtxVar, CtxVarExpl, Expl, ExplicitEquation, Expr, Expression, Formula, type FuncExplTFuncBase, ImplicitEquation,
+    Regression, RegrParam, VarExpl
+} from "./formula/base";
+import { Image, ImageOptions } from "./formula/image";
+import { FormulaType, Substitutable, TemplatePayload } from "./formula/types";
+import { evalAndSetCtxValidityState } from "./formula/validity";
+import { getState } from "./state";
 
 declare module "./state" {
     interface ASTState {
@@ -494,3 +480,14 @@ export const expl: ExplFactory = Object.assign(explFn, {
     Diff: explDiff,
     type: 'expl' as const
 });
+
+// ============================================================================
+// Image Factory
+// ============================================================================
+
+export const img = (url: string, options: ImageOptions): Image => {
+    const result = new Image(url, options);
+    // Initialize validity state (Image usually is always valid as it doesn't have internal context structure like CtxExp)
+    evalAndSetCtxValidityState(result);
+    return result;
+};

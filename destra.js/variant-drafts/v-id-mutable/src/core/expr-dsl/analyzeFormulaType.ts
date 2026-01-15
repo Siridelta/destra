@@ -1,4 +1,4 @@
-import { FormulaType } from "../formula/base";
+import { FormulaType } from "../formula/types";
 import { FormulaASTNode } from "./parse-ast";
 
 // ============================================================================

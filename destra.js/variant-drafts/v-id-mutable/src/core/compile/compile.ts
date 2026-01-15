@@ -1,10 +1,12 @@
 import { CtxFactoryHeadASTNode, FormulaASTNode } from "../expr-dsl/parse-ast";
-import { CtxVar, Formula, isNoAst, RegrParam } from "../formula/base";
-import { ActionStyleValue, ColorStyleValue, LabelTextValue, NumericStyleValue } from "../formula/style";
+import { Expression, Formula, VarExpl } from "../formula/base";
+import { Image } from "../formula/image";
+import { ActionStyleValue, ColorStyleValue, isPointPrimitiveStyleValue, LabelTextValue, NumericStyleValue, PointStyleValue } from "../formula/style";
 import { getState } from "../state";
+import { isNoAst } from "../formula/no-ast";
 import { ASTParenAdder } from "./ast-normalize/add-parens";
 import { ASTCloner } from "./ast-normalize/clone";
-import { ASTExpander } from "./ast-normalize/expand";
+import { ASTExpander, numberToAST } from "./ast-normalize/expand";
 import { MultDivArranger } from "./ast-normalize/multDiv-arrange";
 import { compileLabel } from "./compileLabel";
 import { LatexCompiler } from "./gen-latex";
@@ -99,17 +101,56 @@ function compileFormula(f: Formula, ctx: CompileContext, force: boolean = false)
     return compileResult;
 }
 
-function numericToLatex(value: NumericStyleValue | undefined, ctx: CompileContext) {
+export function numberToLatex(value: number | number[]): string {
+    let ast: any | null = null;
+    if (Array.isArray(value)) {
+        ast = {
+            type: 'listExp',
+            items: value.map(v => numberToAST(v)),
+        }
+    }
+    else
+        ast = numberToAST(value);
+    // @ts-ignore
+    return new LatexCompiler().visit(ast);
+}
+function pointPrimitiveToLatex(value: [number, number] | [number, number][]) {
+    let ast: any | null = null;
+    const singlePointToAST = (point: [number, number]) => {
+        return {
+            type: 'tupleExp',
+            items: [numberToAST(point[0]), numberToAST(point[1])],
+        }
+    }
+    if (value.every(p => Array.isArray(p) && p.length === 2 && p.every(n => typeof n === 'number'))) {
+        ast = {
+            type: 'listExp',
+            items: (value as [number, number][]).map(p => singlePointToAST(p)),
+        }
+    }
+    else
+        ast = singlePointToAST(value as [number, number]);
+    // @ts-ignore
+    return new LatexCompiler().visit(ast);
+}
+export function numericToLatex(value: NumericStyleValue | undefined, ctx: CompileContext) {
     if (!value) return undefined;
-    if (typeof value === 'number') {
-        return value.toString();
+    if (typeof value === 'number' || (Array.isArray(value) && value.every(v => typeof v === 'number'))) {
+        return numberToLatex(value);
     }
     if (typeof value === 'string') {
         return value;
     }
+    value = value as Expression | VarExpl;
     return compileFormula(value, ctx).latex;
 }
-
+function pointToLatex(value: PointStyleValue | undefined, ctx: CompileContext) {
+    if (!value) return undefined;
+    if (isPointPrimitiveStyleValue(value)) {
+        return pointPrimitiveToLatex(value);
+    }
+    return compileFormula(value, ctx).latex;
+}
 function colorToLatex(value: ColorStyleValue | undefined, ctx: CompileContext) {
     if (!value) return undefined;
     if (typeof value === 'string') {
@@ -137,6 +178,131 @@ function actionToLatex(value: ActionStyleValue | TickerAction | undefined, ctx: 
     return compileFormula(value, ctx).latex;
 }
 
+const buildDesmosExpressionState = (f: Formula, ctx: CompileContext, id: string, folderId?: string) => {
+    const result = compileFormula(f, ctx);
+    const style = f.styleData;
+    const desmosExpression: any = {
+        type: 'expression',
+        id: id,
+        latex: result.latex,
+
+        folderId: folderId,
+
+        slider: result.slider ? {
+            hardMin: result.slider.min ? true : undefined,
+            hardMax: result.slider.max ? true : undefined,
+            min: result.slider.min,
+            max: result.slider.max,
+            step: result.slider.step,
+            isPlaying: style.slider?.playing,
+            animationPeriod: style.slider?.speed ? 4000 / style.slider.speed : undefined,
+            loopMode: style.slider?.loopMode,
+        } : undefined,
+
+        hidden: style.hidden,
+        lines: style.showParts?.lines,
+        points: style.showParts?.points,
+        fill: style.showParts?.fill,
+
+        showLabel: style.showParts?.label,
+        color: colorToLatex(style.color, ctx),
+
+        lineStyle: style.line?.style,
+        lineWidth: numericToLatex(style.line?.width, ctx),
+        lineOpacity: numericToLatex(style.line?.opacity, ctx),
+
+        pointStyle: style.point?.style,
+        pointSize: numericToLatex(style.point?.size, ctx),
+        pointOpacity: numericToLatex(style.point?.opacity, ctx),
+        dragMode: style.point?.dragMode,
+
+        fillOpacity: numericToLatex(style.fill?.opacity, ctx),
+
+        label: labelTextToLatex(style.label?.text, ctx),
+        labelSize: numericToLatex(style.label?.size, ctx),
+        labelOrientation: style.label?.orientation,
+        labelAngle: numericToLatex(style.label?.angle, ctx),
+
+        clickableInfo: style.click ? {
+            enabled: style.click.enabled === null ? undefined : (style.click.enabled ?? true),
+            latex: actionToLatex(style.click.handler, ctx),
+        } : undefined,
+
+        polarDomain: style.theta ? {
+            min: numericToLatex(style.theta?.min, ctx),
+            max: numericToLatex(style.theta?.max, ctx),
+        } : undefined,
+        paramtricDomain3Dphi: style.phi ? {
+            min: numericToLatex(style.phi?.min, ctx),
+            max: numericToLatex(style.phi?.max, ctx),
+        } : undefined,
+        parametricDomain: style.t ? {
+            min: numericToLatex(style.t?.min, ctx),
+            max: numericToLatex(style.t?.max, ctx),
+        } : undefined,
+        paramtricDomain3Du: style.u ? {
+            min: numericToLatex(style.u?.min, ctx),
+            max: numericToLatex(style.u?.max, ctx),
+        } : undefined,
+        paramtricDomain3Dv: style.v ? {
+            min: numericToLatex(style.v?.min, ctx),
+            max: numericToLatex(style.v?.max, ctx),
+        } : undefined,
+    };
+    return desmosExpression;
+}
+const buildDesmosImageState = (image: Image, ctx: CompileContext, id: string, folderId?: string) => {
+    return {
+        type: 'image',
+        id: id,
+        folderId: folderId,
+        url: image.url,
+        name: image.name,
+        center: pointToLatex(image.options.center, ctx),
+        width: numericToLatex(image.options.width, ctx),
+        height: numericToLatex(image.options.height, ctx),
+        angle: numericToLatex(image.options.angle, ctx),
+        opacity: numericToLatex(image.options.opacity, ctx),
+        dragMode: image.options.draggable,
+        clickableInfo: (() => {
+            const enabled =
+                image.options.onClick !== undefined
+                || image.options.hoverImage !== undefined
+                || image.options.depressedImage !== undefined;
+            if (!enabled) return undefined;
+            return {
+                enabled: enabled,
+                latex: actionToLatex(image.options.onClick, ctx),
+                hoverImage: image.options.hoverImage,
+                depressedImage: image.options.depressedImage,
+            };
+        })(),
+    };
+}
+const buildDesmosFormulaState = (f: Formula, ctx: CompileContext, id: string, folderId?: string) => {
+    if (f instanceof Image) {
+        return buildDesmosImageState(f, ctx, id, folderId);
+    }
+    return buildDesmosExpressionState(f, ctx, id, folderId);
+}
+
+const buildFolderState = (title: string, folderId: string) => {
+    return {
+        type: 'folder',
+        id: folderId,
+        title: title,
+    };
+}
+const buildTickerState = (ticker: Ticker | undefined, ctx: CompileContext) => {
+    if (!ticker) return undefined;
+    return {
+        handlerLatex: actionToLatex(ticker.handler, ctx),
+        minStepLatex: numericToLatex(ticker.minStep, ctx),
+        open: ticker.open ?? (ticker.handler ? true : undefined),
+        playing: ticker.playing,
+        secret: ticker.secret,
+    };
+}
 Graph.prototype.export = function (config?: exportConfig) {
     config = { ...defaultExportConfig, ...config };
     const ctx = resolveGraph(this);
@@ -146,131 +312,41 @@ Graph.prototype.export = function (config?: exportConfig) {
         compileFormula(f, ctx);
     });
 
-    const desmosExpressionList: any[] = [];
-    const buildDesmosExpressionState = (f: Formula, id: string, folderId?: string) => {
-        const result = compileFormula(f, ctx);
-        const style = f.styleData;
-        const desmosExpression: any = {
-            type: 'expression',
-            id: id,
-            latex: result.latex,
-
-            folderId: folderId,
-
-            slider: result.slider ? {
-                hardMin: result.slider.min ? true : undefined,
-                hardMax: result.slider.max ? true : undefined,
-                min: result.slider.min,
-                max: result.slider.max,
-                step: result.slider.step,
-                isPlaying: style.slider?.playing,
-                animationPeriod: style.slider?.speed ? 4000 / style.slider.speed : undefined,
-                loopMode: style.slider?.loopMode,
-            } : undefined,
-
-            hidden: style.hidden,
-            lines: style.showParts?.lines,
-            points: style.showParts?.points,
-            fill: style.showParts?.fill,
-
-            showLabel: style.showParts?.label,
-            color: colorToLatex(style.color, ctx),
-
-            lineStyle: style.line?.style,
-            lineWidth: numericToLatex(style.line?.width, ctx),
-            lineOpacity: numericToLatex(style.line?.opacity, ctx),
-
-            pointStyle: style.point?.style,
-            pointSize: numericToLatex(style.point?.size, ctx),
-            pointOpacity: numericToLatex(style.point?.opacity, ctx),
-            dragMode: style.point?.dragMode,
-
-            fillOpacity: numericToLatex(style.fill?.opacity, ctx),
-
-            label: labelTextToLatex(style.label?.text, ctx),
-            labelSize: numericToLatex(style.label?.size, ctx),
-            labelOrientation: style.label?.orientation,
-            labelAngle: numericToLatex(style.label?.angle, ctx),
-
-            clickableInfo: style.click ? {
-                enabled: style.click.enabled === null ? undefined : (style.click.enabled ?? true),
-                latex: actionToLatex(style.click.handler, ctx),
-            } : undefined,
-
-            polarDomain: style.theta ? {
-                min: numericToLatex(style.theta?.min, ctx),
-                max: numericToLatex(style.theta?.max, ctx),
-            } : undefined,
-            paramtricDomain3Dphi: style.phi ? {
-                min: numericToLatex(style.phi?.min, ctx),
-                max: numericToLatex(style.phi?.max, ctx),
-            } : undefined,
-            parametricDomain: style.t ? {
-                min: numericToLatex(style.t?.min, ctx),
-                max: numericToLatex(style.t?.max, ctx),
-            } : undefined,
-            paramtricDomain3Du: style.u ? {
-                min: numericToLatex(style.u?.min, ctx),
-                max: numericToLatex(style.u?.max, ctx),
-            } : undefined,
-            paramtricDomain3Dv: style.v ? {
-                min: numericToLatex(style.v?.min, ctx),
-                max: numericToLatex(style.v?.max, ctx),
-            } : undefined,
-        };
-        return desmosExpression;
-    }
-    const buildFolderState = (title: string, folderId: string) => {
-        return {
-            type: 'folder',
-            id: folderId,
-            title: title,
-        };
-    }
-    const buildTickerState = (ticker: Ticker | undefined, ctx: CompileContext) => {
-        if (!ticker) return undefined;
-        return {
-            handlerLatex: actionToLatex(ticker.handler, ctx),
-            minStepLatex: numericToLatex(ticker.minStep, ctx),
-            open: ticker.open ?? (ticker.handler ? true : undefined),
-            playing: ticker.playing,
-            secret: ticker.secret,
-        };
-    }
+    const desmosFormulaList: any[] = [];
 
     let idCounter = 0;
 
     const implicitRootStates: any[] = [];
     if (this.destraSettings.implicitRootFolder) {
-        desmosExpressionList.push(
+        desmosFormulaList.push(
             buildFolderState(
-                this.destraSettings.implicitRootFolder.title, 
+                this.destraSettings.implicitRootFolder.title,
                 this.destraSettings.implicitRootFolder.id ?? (idCounter++).toString()
             )
         );
     }
     for (const f of ctx.implicitRootFormulas) {
-        implicitRootStates.push(buildDesmosExpressionState(f, (idCounter++).toString()));
+        implicitRootStates.push(buildDesmosFormulaState(f, ctx, (idCounter++).toString()));
     }
 
     for (const f of ctx.rootFormulas) {
         if (f instanceof Folder) {
             const folderId = (idCounter++).toString();
-            desmosExpressionList.push(buildFolderState(f.title, folderId));
+            desmosFormulaList.push(buildFolderState(f.title, folderId));
             for (const child of f.children) {
-                desmosExpressionList.push(buildDesmosExpressionState(child, (idCounter++).toString(), folderId));
+                desmosFormulaList.push(buildDesmosFormulaState(child, ctx, (idCounter++).toString(), folderId));
             }
         }
         else {
-            desmosExpressionList.push(buildDesmosExpressionState(f, (idCounter++).toString(), undefined));
+            desmosFormulaList.push(buildDesmosFormulaState(f, ctx, (idCounter++).toString(), undefined));
         }
     }
 
     if (this.destraSettings.implicitRootPosition === 'TOP') {
-        desmosExpressionList.unshift(...implicitRootStates);
+        desmosFormulaList.unshift(...implicitRootStates);
     }
     else {
-        desmosExpressionList.push(...implicitRootStates);
+        desmosFormulaList.push(...implicitRootStates);
     }
 
     // state.graph
@@ -308,8 +384,10 @@ Graph.prototype.export = function (config?: exportConfig) {
     return {
         version: config.version,
         graph: graphField,
+        // Recall: Desmos used to call it 'expressions', but in destra for clarity we always call it 'formulas'.
+        // here is where the concepts convert back.
         expressions: {
-            list: desmosExpressionList,
+            list: desmosFormulaList,
             ticker: buildTickerState(this.ticker, ctx),
         }
     }

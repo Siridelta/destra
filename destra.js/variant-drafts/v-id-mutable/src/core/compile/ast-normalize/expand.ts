@@ -189,10 +189,10 @@ type NumberAST_ExpandResult =
             }
         }
     };
-ASTExpander.prototype.number = function (node: NumberASTNode): NumberAST_ExpandResult {
+function _number(node: NumberASTNode): NumberAST_ExpandResult {
     if (node.exponent === undefined) return node as N_NumberASTNode;
 
-    const newNode = {
+    return {
         type: 'multiplication',
         left: {
             type: 'number',
@@ -219,27 +219,24 @@ ASTExpander.prototype.number = function (node: NumberASTNode): NumberAST_ExpandR
                 },
         },
     }
-    return this.visit(newNode);
+}
+ASTExpander.prototype.number = function (node: NumberASTNode): NumberAST_ExpandResult {
+    return this.visit(_number(node));
 }
 
-ASTExpander.prototype.substitution = function (node: SubstitutionASTNode): SubstitutionASTNode | UnaryMinusASTNode | NumberAST_ExpandResult | ConstantASTNode {
-    const f = traceSubstitution(node, this.targetFormula);
-    if (f instanceof Formula)
-        return node;
-    if (typeof f !== 'number')
-        throw new Error(`Internal error: Substitution value is not a number. ${f}`);
-    const isNeg = f < 0;
-    const x = Math.abs(f);
-    let newNode: NumberASTNode | ConstantASTNode | null = null;
+export function numberToAST(value: number): NumberAST_ExpandResult | UnaryMinusASTNode | ConstantASTNode {
+    const isNeg = value < 0;
+    const x = Math.abs(value);
+    let node: NumberASTNode | ConstantASTNode | null = null;
     if (x === Infinity)
-        newNode = {
+        node = {
             type: 'constant',
             value: 'infinity',
         }
     if (x.toString().includes('e')) {
         const [base, exponent] = x.toString().split('e');
         const [integer, decimal] = base.split('.');
-        newNode = {
+        node = {
             type: 'number',
             base: { integer: base, decimal: decimal },
             exponent: {
@@ -249,18 +246,30 @@ ASTExpander.prototype.substitution = function (node: SubstitutionASTNode): Subst
         }
     } else {
         const [integer, decimal] = x.toString().split('.');
-        newNode = {
+        node = {
             type: 'number',
             base: { integer: integer, decimal: decimal },
             exponent: undefined,
         }
     }
-
-    if (isNeg)
-        return this.visit({
-            type: 'unaryMinus',
-            operand: newNode,
-        });
+    let expandedNode: NumberAST_ExpandResult | ConstantASTNode | UnaryMinusASTNode | null = null;
+    if (node.type === 'number')
+        expandedNode = _number(node);
     else
-        return this.visit(newNode);
+        expandedNode = node;
+    if (isNeg)
+        return {
+            type: 'unaryMinus',
+            operand: expandedNode,
+        };
+    return expandedNode;
+}
+
+ASTExpander.prototype.substitution = function (node: SubstitutionASTNode): SubstitutionASTNode | UnaryMinusASTNode | NumberAST_ExpandResult | ConstantASTNode {
+    const f = traceSubstitution(node, this.targetFormula);
+    if (f instanceof Formula)
+        return node;
+    if (typeof f !== 'number')
+        throw new Error(`Internal error: Substitution value is not a number. ${f}`);
+    return this.visit(numberToAST(f));
 }

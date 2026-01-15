@@ -1,5 +1,5 @@
-
-import { CtxExp, CtxVar, Dt, Expl, Expression, Formula, isNoAst, Regression, RegrParam } from "../../formula/base";
+import { CtxExp, CtxVar, Dt, Expl, Expression, Formula, Regression, RegrParam } from "../../formula/base";
+import { isNoAst } from "../../formula/no-ast";
 import { Label } from "../../formula/label";
 import { normalizeName2 } from "../../formula/realname";
 import { getState } from "../../state";

@@ -65,16 +65,21 @@ export enum LabelOrientation {
 // --- 2. 类型定义 (Destra Style Schema) ---
 
 // 数值型的、可嵌入公式的样式值类型
-export type NumericStyleValue = number | string | Expression | VarExpl;
+export type NumericPrimitiveStyleValue = number | number[];
+export type NumericStyleValue = NumericPrimitiveStyleValue | Expression | VarExpl;
 
 // 颜色
-export type ColorStyleValue = VarExpl | string;
+export type ColorStyleValue = VarExpl;
 
 // 标签文本值类型
 export type LabelTextValue = string | Label;
 
 // Action 表达式
 export type ActionStyleValue = Expression | VarExpl;
+
+// Point 表达式
+export type PointPrimitiveStyleValue = [number, number] | [number, number][];
+export type PointStyleValue = PointPrimitiveStyleValue | Expression | VarExpl;
 
 export interface DestraStyle {
     /**
@@ -180,7 +185,7 @@ const styleKeys = [
 
 type CheckDestraStyle = Expect<Assignable<DestraStyle, { [K in typeof styleKeys[number]]?: any }>>;
 
-type LeafType = boolean | number | string | Expression | VarExpl | Label | null;
+type LeafType = boolean | number | string | Expression | VarExpl | Label | null | any[];
 
 // Validator 定义
 type Validator<T> = (v: unknown) => v is T;
@@ -210,14 +215,22 @@ const isExpression = (v: unknown): v is Expression => v instanceof Expression;
 const isVarExpl = (v: unknown): v is VarExpl => v instanceof VarExpl;
 const isLabel = (v: unknown): v is Label => v instanceof Label;
 
-const isNumericStyleValue: Validator<NumericStyleValue> = (v): v is NumericStyleValue =>
-    isNumber(v) || isString(v) || isExpression(v) || isVarExpl(v);
+export const isNumericPrimitiveStyleValue: Validator<NumericPrimitiveStyleValue> = (v): v is NumericPrimitiveStyleValue =>
+    isNumber(v) || (Array.isArray(v) && v.every(isNumber));
+export const isNumericStyleValue: Validator<NumericStyleValue> = (v): v is NumericStyleValue =>
+    isNumericPrimitiveStyleValue(v) || isExpression(v) || isVarExpl(v);
 
 const isColorStyleValue: Validator<ColorStyleValue> = (v): v is ColorStyleValue =>
-    isString(v) || isVarExpl(v);
+    isVarExpl(v);
 
 const isLabelTextValue: Validator<LabelTextValue> = (v): v is LabelTextValue =>
     isString(v) || isLabel(v);
+
+export const isPointPrimitiveStyleValue: Validator<PointPrimitiveStyleValue> = (v): v is PointPrimitiveStyleValue =>
+    (Array.isArray(v) && v.every(item => Array.isArray(item) && item.every(isNumber) && item.length === 2)) 
+    || (Array.isArray(v) && v.every(isNumber) && v.length === 2);
+export const isPointStyleValue: Validator<PointStyleValue> = (v): v is PointStyleValue =>
+    isPointPrimitiveStyleValue(v) || isExpression(v) || isVarExpl(v);
 
 const isActionStyleValue: Validator<ActionStyleValue> = (v): v is ActionStyleValue =>
     isExpression(v) || isVarExpl(v);

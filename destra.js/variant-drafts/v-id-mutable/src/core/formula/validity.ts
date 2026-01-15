@@ -1,7 +1,7 @@
-
-import { Formula, FormulaType, CtxVar, Expl, isCtxExp, CtxExp } from "./base";
-import { getState, CtxValidityState } from "../state";
 import { traverse } from "../expr-dsl/parse-ast/sematics/traverse-ast";
+import { CtxValidityState, getState } from "../state";
+import { CtxExp, CtxVar, Expl, Formula, isCtxExp } from "./base";
+import { FormulaType } from "./types";
 
 declare module "../state" {
     interface CtxValidityState {

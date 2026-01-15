@@ -5,47 +5,12 @@
  * 这些是构建整个表达式系统的基础。
  */
 
-import { CtxFactoryHeadASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/ctx-header";
 import { type FormulaTypeInfo } from "../expr-dsl/analyzeFormulaType";
-import { getState } from "../state";
+import { CtxFactoryHeadASTNode } from "../expr-dsl/parse-ast/sematics/visitor-parts/ctx-header";
 import { _expr } from "../factories";
+import { getState } from "../state";
+import { Embeddable, FormulaType, PrimitiveValue, Substitutable, TemplatePayload } from "./types";
 
-// ============================================================================
-// 类型定义
-// ============================================================================
-
-/**
- * 原始值类型：字符串、数字、布尔值、null、undefined
- */
-export type PrimitiveValue =
-    // | string
-    | number
-//    | boolean
-//    | null
-//    | undefined;
-
-/**
- * 模板字符串载荷，包含字符串片段和插值值
- */
-export interface TemplatePayload {
-    readonly strings: readonly string[];
-    readonly values: readonly Substitutable[];
-}
-
-/**
- * 公式类型枚举
- */
-export enum FormulaType {
-    Expression = "expression",
-    Variable = "variable",
-    ContextVariable = "context-variable",
-    Function = "function",
-    ExplicitEquation = "explicit-equation",
-    ImplicitEquation = "implicit-equation",
-    Regression = "regression",
-    RegressionParameter = "regression-parameter",
-    Dt = "dt",
-}
 
 // ============================================================================
 // 辅助函数
@@ -120,6 +85,16 @@ export const collectDependencies = (values: readonly Substitutable[]): Embeddabl
     }
     return Array.from(set);
 };
+
+/**
+ * 创建空载荷
+ */
+export const createEmptyTemplatePayload = (): TemplatePayload => {
+    return {
+        strings: Object.freeze([""]),
+        values: Object.freeze([]),
+    };
+}
 
 // ============================================================================
 // 基类定义
@@ -324,7 +299,7 @@ class FuncExplBaseClass extends Expl {
  * TFunc 只用于存储函数签名的类型信息，其返回值类型信息我们不使用
  * （实际返回的一定将会是 Expression 类型而不是它的子类型）
  */
-class FuncExplClass<TFunc extends FuncExplTFuncBase> extends FuncExplBaseClass {
+export class FuncExplClass<TFunc extends FuncExplTFuncBase> extends FuncExplBaseClass {
     protected invoke(funcExpl: FuncExpl<TFunc>, ...args: Parameters<TFunc>): Expression {
         // 运行时检查：参数必须是可代入项
         args.forEach((arg, index) => {
@@ -620,22 +595,4 @@ export class Dt extends Formula {
     }
 }
 
-// ============================================================================
-// 并集类型
-// ============================================================================
 
-/**
- * Embeddable：可嵌入的表达式类型（可用于其他表达式中）
- */
-export type Embeddable = Expression | VarExpl | FuncExplClass<FuncExplTFuncBase> | CtxVar | RegrParam;
-
-/**
- * Substitutable：可代入模板字符串插值的值类型（原始值或可嵌入的表达式）
- */
-export type Substitutable = Embeddable | PrimitiveValue;
-
-export type NoAst = CtxVar | RegrParam | Dt;
-
-export const isNoAst = (formula: Formula): formula is NoAst => {
-    return formula instanceof CtxVar || formula instanceof RegrParam || formula instanceof Dt;
-}
