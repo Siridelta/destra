@@ -1,5 +1,5 @@
 import { formulaParser } from "../parsing/parser";
-import { Substitutable } from "../../../formula/base";
+import { Substitutable } from "../../../formula/types";
 
 export const BaseCSTVisitor = formulaParser.getBaseCstVisitorConstructor();
 

@@ -1,6 +1,5 @@
 import { CtxVar, Formula, isFuncExpl } from "../../../formula/base";
-import { Substitutable } from "../../../formula/types";
-import { isNoAst } from "../../../formula/no-ast";
+import { isNoAst, Substitutable } from "../../../formula/types";
 import { ASTState, getState } from "../../../state";
 import { ExprDSLCSTVisitor } from "./base-visitor";
 import { traverse } from "./traverse-ast";

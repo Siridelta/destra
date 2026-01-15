@@ -11,11 +11,10 @@ import { CtxFactoryHeadASTNode } from "./expr-dsl/parse-ast/sematics/visitor-par
 import { FormulaASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/formula";
 import { RegressionASTNode } from "./expr-dsl/parse-ast/sematics/visitor-parts/top-level";
 import {
-    createCallableCtxFuncExpl, createCallableFuncExpl, createTemplatePayload, type CtxExp, CtxExpBody, CtxExpression, type CtxFuncExpl, CtxVar, CtxVarExpl, Expl, ExplicitEquation, Expr, Expression, Formula, type FuncExplTFuncBase, ImplicitEquation,
+    createCallableCtxFuncExpl, createCallableFuncExpl, createTemplatePayload, type CtxExp, CtxExpBody, CtxExpression, type CtxFuncExpl, CtxVar, CtxVarExpl, Expl, ExplicitEquation, Expr, Expression, Formula, type FuncExplTFuncBase, Image, ImplicitEquation,
     Regression, RegrParam, VarExpl
 } from "./formula/base";
-import { Image, ImageOptions } from "./formula/image";
-import { FormulaType, Substitutable, TemplatePayload } from "./formula/types";
+import { FormulaType, ImageOptions, Substitutable, TemplatePayload } from "./formula/types";
 import { evalAndSetCtxValidityState } from "./formula/validity";
 import { getState } from "./state";
 
@@ -480,6 +479,8 @@ export const expl: ExplFactory = Object.assign(explFn, {
     Diff: explDiff,
     type: 'expl' as const
 });
+
+
 
 // ============================================================================
 // Image Factory

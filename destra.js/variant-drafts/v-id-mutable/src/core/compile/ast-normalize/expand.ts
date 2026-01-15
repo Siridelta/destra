@@ -221,6 +221,7 @@ function _number(node: NumberASTNode): NumberAST_ExpandResult {
     }
 }
 ASTExpander.prototype.number = function (node: NumberASTNode): NumberAST_ExpandResult {
+    if (node.exponent === undefined) return node as N_NumberASTNode;
     return this.visit(_number(node));
 }
 

@@ -1,9 +1,8 @@
 import { CtxFactoryHeadASTNode, FormulaASTNode } from "../expr-dsl/parse-ast";
-import { Expression, Formula, VarExpl } from "../formula/base";
-import { Image } from "../formula/image";
+import { Expression, Formula, VarExpl, Image } from "../formula/base";
 import { ActionStyleValue, ColorStyleValue, isPointPrimitiveStyleValue, LabelTextValue, NumericStyleValue, PointStyleValue } from "../formula/style";
 import { getState } from "../state";
-import { isNoAst } from "../formula/no-ast";
+import { isNoAst } from "../formula/types";
 import { ASTParenAdder } from "./ast-normalize/add-parens";
 import { ASTCloner } from "./ast-normalize/clone";
 import { ASTExpander, numberToAST } from "./ast-normalize/expand";

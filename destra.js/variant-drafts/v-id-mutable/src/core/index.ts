@@ -15,17 +15,19 @@ import {
     Formula,
     Expression, ExplicitEquation, ImplicitEquation, Regression,
     VarExpl, type FuncExpl, Expl,
-    type CtxVar, type CtxExpression, type CtxVarExpl, type CtxFuncExpl, type CtxExpBody, type CtxExp
+    type CtxVar, type CtxExpression, type CtxVarExpl, type CtxFuncExpl, type CtxExpBody, type CtxExp,
+    type Image
 } from "./formula/base";
 
-import { type FormulaType, type Substitutable } from "./formula/types";
+import { type FormulaType, type Substitutable, type ImageOptions } from "./formula/types";
 
 export {
     type Formula, FormulaType,
     type Expression, type ExplicitEquation, type ImplicitEquation, type Regression,
     type VarExpl, type FuncExpl, type Expl,
     type Substitutable,
-    type CtxVar, type CtxExpression, type CtxVarExpl, type CtxFuncExpl, type CtxExpBody, type CtxExp
+    type CtxVar, type CtxExpression, type CtxVarExpl, type CtxFuncExpl, type CtxExpBody, type CtxExp,
+    type Image
 };
 
 import "./state";
@@ -42,10 +44,6 @@ import "./formula/realname";
 // Label 相关功能
 import { Label, label } from "./formula/label";
 export { type Label, label };
-
-// Image 相关功能
-import { Image, type ImageOptions } from "./formula/image";
-export { Image, type ImageOptions };
 
 // 样式相关方法的原型注入，并导出样式相关类型
 import {
@@ -75,9 +73,9 @@ export {
 
 import {
     expr, expl, For, With, Sum, Int, Prod, Diff, Func,
-    regr, img,
+    regr,
 } from "./factories";
-export { expr, expl, For, With, Sum, Int, Prod, Diff, Func, regr, img };
+export { expr, expl, For, With, Sum, Int, Prod, Diff, Func, regr };
 
 export * from "./selection";
 export * from "./builder";
