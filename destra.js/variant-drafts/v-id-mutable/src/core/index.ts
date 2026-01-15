@@ -73,9 +73,9 @@ export {
 
 import {
     expr, expl, For, With, Sum, Int, Prod, Diff, Func,
-    regr,
+    regr, img
 } from "./factories";
-export { expr, expl, For, With, Sum, Int, Prod, Diff, Func, regr };
+export { expr, expl, For, With, Sum, Int, Prod, Diff, Func, regr, img};
 
 export * from "./selection";
 export * from "./builder";
