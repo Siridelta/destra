@@ -25,9 +25,9 @@ export {
     type Formula, FormulaType,
     type Expression, type ExplicitEquation, type ImplicitEquation, type Regression,
     type VarExpl, type FuncExpl, type Expl,
-    type Substitutable,
     type CtxVar, type CtxExpression, type CtxVarExpl, type CtxFuncExpl, type CtxExpBody, type CtxExp,
-    type Image
+    type Image, type ImageOptions,
+    type Substitutable,
 };
 
 import "./state";

@@ -1,5 +1,5 @@
 import { CtxVar, Expression, FuncExplClass, FuncExplTFuncBase, Image, RegrParam, VarExpl } from "./base";
-import { NumericStyleValue, PointStyleValue } from "./style"
+import { ActionStyleValue, NumericStyleValue, PointStyleValue } from "./style"
 import { Dt, Formula } from "./base";
 
 
